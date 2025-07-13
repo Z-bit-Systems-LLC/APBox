@@ -8,82 +8,74 @@
 <PageTitle>ApBox Dashboard</PageTitle>
 
 <div class="container-fluid">
-    <div class="row">
+    <div class="row mb-4">
         <div class="col-12">
             <h1 class="display-4">ApBox Dashboard</h1>
-            <p class="lead">Card Reader Management System</p>
+            <p class="text-muted">Card Reader Management System</p>
         </div>
     </div>
 
     <div class="row mb-4">
         <div class="col-md-3">
-            <div class="card bg-primary text-white">
-                <div class="card-body">
-                    <div class="d-flex justify-content-between">
-                        <div>
-                            <h4 class="card-title">@activeReaders</h4>
-                            <p class="card-text">Active Readers</p>
-                        </div>
-                        <div class="align-self-center">
-                            <span class="oi oi-monitor" style="font-size: 2rem;"></span>
-                        </div>
+            <div class="card metric-card bg-primary text-white">
+                <div class="d-flex justify-content-between align-items-center">
+                    <div>
+                        <div class="metric-value">@activeReaders</div>
+                        <div class="metric-label">Active Readers</div>
+                    </div>
+                    <div class="metric-icon">
+                        <span class="oi oi-monitor" style="font-size: 1.5rem;"></span>
                     </div>
                 </div>
             </div>
         </div>
         
         <div class="col-md-3">
-            <div class="card bg-success text-white">
-                <div class="card-body">
-                    <div class="d-flex justify-content-between">
-                        <div>
-                            <h4 class="card-title">@loadedPlugins</h4>
-                            <p class="card-text">Loaded Plugins</p>
-                        </div>
-                        <div class="align-self-center">
-                            <span class="oi oi-puzzle-piece" style="font-size: 2rem;"></span>
-                        </div>
+            <div class="card metric-card bg-success text-white">
+                <div class="d-flex justify-content-between align-items-center">
+                    <div>
+                        <div class="metric-value">@loadedPlugins</div>
+                        <div class="metric-label">Loaded Plugins</div>
+                    </div>
+                    <div class="metric-icon">
+                        <span class="oi oi-puzzle-piece" style="font-size: 1.5rem;"></span>
                     </div>
                 </div>
             </div>
         </div>
         
         <div class="col-md-3">
-            <div class="card bg-info text-white">
-                <div class="card-body">
-                    <div class="d-flex justify-content-between">
-                        <div>
-                            <h4 class="card-title">@totalEvents</h4>
-                            <p class="card-text">Card Events Today</p>
-                        </div>
-                        <div class="align-self-center">
-                            <span class="oi oi-credit-card" style="font-size: 2rem;"></span>
-                        </div>
+            <div class="card metric-card bg-info text-white">
+                <div class="d-flex justify-content-between align-items-center">
+                    <div>
+                        <div class="metric-value">@totalEvents</div>
+                        <div class="metric-label">Card Events Today</div>
+                    </div>
+                    <div class="metric-icon">
+                        <span class="oi oi-credit-card" style="font-size: 1.5rem;"></span>
                     </div>
                 </div>
             </div>
         </div>
         
         <div class="col-md-3">
-            <div class="card bg-warning text-white">
-                <div class="card-body">
-                    <div class="d-flex justify-content-between">
-                        <div>
-                            <h4 class="card-title">@systemStatus</h4>
-                            <p class="card-text">System Status</p>
-                        </div>
-                        <div class="align-self-center">
-                            <span class="oi oi-circle-check" style="font-size: 2rem;"></span>
-                        </div>
+            <div class="card metric-card bg-warning text-white">
+                <div class="d-flex justify-content-between align-items-center">
+                    <div>
+                        <div class="metric-value">@systemStatus</div>
+                        <div class="metric-label">System Status</div>
+                    </div>
+                    <div class="metric-icon">
+                        <span class="oi oi-circle-check" style="font-size: 1.5rem;"></span>
                     </div>
                 </div>
             </div>
         </div>
     </div>
 
-    <div class="row">
+    <div class="row mt-4">
         <div class="col-md-8">
-            <div class="card">
+            <div class="card fade-in">
                 <div class="card-header">
                     <h5 class="card-title mb-0">Recent Card Events</h5>
                 </div>
@@ -125,7 +117,7 @@
         </div>
         
         <div class="col-md-4">
-            <div class="card">
+            <div class="card fade-in">
                 <div class="card-header">
                     <h5 class="card-title mb-0">Reader Status</h5>
                 </div>
