@@ -1,0 +1,164 @@
+using ApBox.Plugins;
+
+namespace ApBox.Core.OSDP;
+
+public class MockOsdpDevice : IOsdpDevice
+{
+    private readonly OsdpDeviceConfiguration _config;
+    private readonly ILogger _logger;
+    private readonly Timer? _simulationTimer;
+    private readonly Random _random = new();
+    
+    public MockOsdpDevice(OsdpDeviceConfiguration config, ILogger logger)
+    {
+        _config = config;
+        _logger = logger;
+        Id = config.Id;
+        Address = config.Address;
+        Name = config.Name;
+        IsEnabled = config.IsEnabled;
+        
+        // Start simulation timer for mock card reads
+        _simulationTimer = new Timer(SimulateCardRead, null, TimeSpan.FromSeconds(10), TimeSpan.FromSeconds(30));
+    }
+    
+    public Guid Id { get; }
+    public byte Address { get; }
+    public string Name { get; }
+    public bool IsOnline { get; private set; }
+    public DateTime LastActivity { get; private set; } = DateTime.UtcNow;
+    public bool IsEnabled { get; }
+    
+    public event EventHandler<CardReadEvent>? CardRead;
+    public event EventHandler<OsdpStatusChangedEventArgs>? StatusChanged;
+    
+    public Task<bool> ConnectAsync()
+    {
+        if (!IsEnabled) return Task.FromResult(false);
+        
+        try
+        {
+            // Simulate connection process
+            IsOnline = true;
+            LastActivity = DateTime.UtcNow;
+            
+            _logger.LogInformation("Mock OSDP device {DeviceName} connected on address {Address}", 
+                Name, Address);
+            
+            StatusChanged?.Invoke(this, new OsdpStatusChangedEventArgs
+            {
+                IsOnline = true,
+                Message = "Connected successfully"
+            });
+            
+            return Task.FromResult(true);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Failed to connect to mock OSDP device {DeviceName}", Name);
+            return Task.FromResult(false);
+        }
+    }
+    
+    public Task DisconnectAsync()
+    {
+        IsOnline = false;
+        
+        _logger.LogInformation("Mock OSDP device {DeviceName} disconnected", Name);
+        
+        StatusChanged?.Invoke(this, new OsdpStatusChangedEventArgs
+        {
+            IsOnline = false,
+            Message = "Disconnected"
+        });
+        
+        return Task.CompletedTask;
+    }
+    
+    public Task<bool> SendCommandAsync(OsdpCommand command)
+    {
+        if (!IsOnline) return Task.FromResult(false);
+        
+        LastActivity = DateTime.UtcNow;
+        
+        _logger.LogDebug("Mock OSDP device {DeviceName} received command {CommandCode}", 
+            Name, command.CommandCode);
+        
+        // Simulate command processing
+        return Task.FromResult(true);
+    }
+    
+    public Task<bool> SendFeedbackAsync(ReaderFeedback feedback)
+    {
+        if (!IsOnline) return Task.FromResult(false);
+        
+        var commands = new List<OsdpCommand>();
+        
+        // Convert feedback to OSDP commands
+        if (feedback.LedColor.HasValue)
+        {
+            commands.Add(new LedCommand
+            {
+                Color = feedback.LedColor.Value,
+                Count = 1,
+                OnTime = (byte)(feedback.LedDurationMs ?? 1000 / 100),
+                OffTime = 0
+            });
+        }
+        
+        if (feedback.BeepCount.HasValue && feedback.BeepCount > 0)
+        {
+            commands.Add(new BuzzerCommand
+            {
+                Count = (byte)feedback.BeepCount.Value,
+                OnTime = 2,
+                OffTime = 2
+            });
+        }
+        
+        // Send all commands
+        foreach (var command in commands)
+        {
+            _logger.LogDebug("Mock OSDP device {DeviceName} executing feedback command {CommandType}", 
+                Name, command.GetType().Name);
+        }
+        
+        return Task.FromResult(true);
+    }
+    
+    private void SimulateCardRead(object? state)
+    {
+        if (!IsOnline || !IsEnabled) return;
+        
+        // Randomly simulate card reads
+        if (_random.Next(1, 100) <= 20) // 20% chance
+        {
+            var cardNumber = GenerateRandomCardNumber();
+            var cardRead = new CardReadEvent
+            {
+                ReaderId = Id,
+                CardNumber = cardNumber,
+                BitLength = 26,
+                Timestamp = DateTime.UtcNow,
+                ReaderName = Name
+            };
+            
+            _logger.LogInformation("Mock card read on device {DeviceName}: {CardNumber}", 
+                Name, cardNumber);
+            
+            CardRead?.Invoke(this, cardRead);
+            LastActivity = DateTime.UtcNow;
+        }
+    }
+    
+    private string GenerateRandomCardNumber()
+    {
+        // Generate a random 8-digit card number
+        return _random.Next(10000000, 99999999).ToString();
+    }
+    
+    public void Dispose()
+    {
+        _simulationTimer?.Dispose();
+    }
+}

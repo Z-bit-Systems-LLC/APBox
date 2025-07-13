@@ -1,4 +1,5 @@
 using ApBox.Plugins;
+using ApBox.Core.OSDP;
 
 namespace ApBox.Core.Services;
 
@@ -14,6 +15,9 @@ public static class ServiceCollectionExtensions
         });
         
         services.AddSingleton<IFeedbackResolutionService, FeedbackResolutionService>();
+        
+        // Register OSDP services
+        services.AddSingleton<IOsdpCommunicationManager, OsdpCommunicationManager>();
         
         // Register core application services
         services.AddSingleton<ICardProcessingService, CardProcessingService>();
