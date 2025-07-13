@@ -1,5 +1,6 @@
 using ApBox.Core.Services;
 using ApBox.Plugins;
+using ApBox.Web.Services;
 using Microsoft.AspNetCore.Mvc;
 
 namespace ApBox.Web.Controllers;
@@ -13,13 +14,16 @@ namespace ApBox.Web.Controllers;
 public class CardEventsController : ControllerBase
 {
     private readonly ICardProcessingService _cardProcessingService;
+    private readonly IEnhancedCardProcessingService _enhancedCardProcessingService;
     private readonly ILogger<CardEventsController> _logger;
     
     public CardEventsController(
         ICardProcessingService cardProcessingService,
+        IEnhancedCardProcessingService enhancedCardProcessingService,
         ILogger<CardEventsController> logger)
     {
         _cardProcessingService = cardProcessingService;
+        _enhancedCardProcessingService = enhancedCardProcessingService;
         _logger = logger;
     }
     
@@ -68,6 +72,56 @@ public class CardEventsController : ControllerBase
         catch (Exception ex)
         {
             _logger.LogError(ex, "Error processing card read for reader {ReaderId}", request.ReaderId);
+            return StatusCode(500, "Internal server error");
+        }
+    }
+
+    /// <summary>
+    /// Process a card read event with real-time notifications
+    /// </summary>
+    /// <param name="request">The card read event details to process</param>
+    /// <returns>The processing result with real-time notifications sent to connected clients</returns>
+    /// <response code="200">Returns the processing result</response>
+    /// <response code="500">If there was an internal server error</response>
+    [HttpPost("process-realtime")]
+    [ProducesResponseType(typeof(CardProcessingResultDto), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status500InternalServerError)]
+    public async Task<ActionResult<CardProcessingResultDto>> ProcessCardReadRealtime([FromBody] ProcessCardRequest request)
+    {
+        try
+        {
+            var cardReadEvent = new CardReadEvent
+            {
+                ReaderId = request.ReaderId,
+                CardNumber = request.CardNumber,
+                BitLength = request.BitLength ?? 26,
+                Timestamp = DateTime.UtcNow,
+                ReaderName = request.ReaderName ?? "Manual Entry",
+                AdditionalData = request.AdditionalData ?? new Dictionary<string, object>()
+            };
+
+            _logger.LogInformation("Processing real-time card read for reader {ReaderId}, card {CardNumber}", 
+                request.ReaderId, request.CardNumber);
+
+            // Use enhanced service for real-time processing and notifications
+            var result = await _enhancedCardProcessingService.ProcessCardReadWithNotificationAsync(cardReadEvent);
+            var feedback = await _enhancedCardProcessingService.GetFeedbackAsync(request.ReaderId, result);
+
+            var response = new CardProcessingResultDto
+            {
+                Success = result.Success,
+                Message = result.Message,
+                Feedback = feedback,
+                ProcessedAt = DateTime.UtcNow,
+                CardNumber = request.CardNumber,
+                ReaderId = request.ReaderId
+            };
+
+            return Ok(response);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error processing real-time card read for reader {ReaderId}", request.ReaderId);
             return StatusCode(500, "Internal server error");
         }
     }

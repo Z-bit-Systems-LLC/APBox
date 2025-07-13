@@ -22,7 +22,11 @@ public static class ServiceCollectionExtensions
         
         // Register core application services
         services.AddSingleton<ICardProcessingService, CardProcessingService>();
+        services.AddSingleton<IEnhancedCardProcessingService, EnhancedCardProcessingService>();
         services.AddSingleton<IReaderService, ReaderService>();
+        
+        // Register SignalR notification service
+        services.AddSingleton<ICardEventNotificationService, CardEventNotificationService>();
         
         // Register configuration services
         services.AddSingleton<IReaderConfigurationService, ReaderConfigurationService>();

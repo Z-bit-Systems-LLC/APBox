@@ -1,9 +1,13 @@
 ﻿@page "/"
 @using ApBox.Core.Services
 @using ApBox.Plugins
+@using ApBox.Web.Hubs
+@using Microsoft.AspNetCore.SignalR.Client
 @inject IReaderService ReaderService
 @inject ICardProcessingService CardProcessingService
 @inject IPluginLoader PluginLoader
+@inject IJSRuntime JSRuntime
+@implements IAsyncDisposable
 
 <PageTitle>ApBox Dashboard</PageTitle>
 
@@ -149,10 +153,79 @@
     private string systemStatus = "Online";
     private List<CardReadEvent> recentEvents = new();
     private List<ReaderConfiguration> readers = new();
+    private HubConnection? hubConnection;
 
     protected override async Task OnInitializedAsync()
     {
         await LoadDashboardData();
+        await InitializeSignalR();
+    }
+
+    private async Task InitializeSignalR()
+    {
+        try
+        {
+            hubConnection = new HubConnectionBuilder()
+                .WithUrl("/cardevents")
+                .Build();
+
+            // Handle card event notifications
+            hubConnection.On<CardEventNotification>("CardEventProcessed", async (notification) =>
+            {
+                await InvokeAsync(() =>
+                {
+                    // Add new event to the beginning of the list
+                    var newEvent = new CardReadEvent
+                    {
+                        ReaderId = notification.ReaderId,
+                        ReaderName = notification.ReaderName,
+                        CardNumber = notification.CardNumber,
+                        BitLength = notification.BitLength,
+                        Timestamp = notification.Timestamp
+                    };
+
+                    recentEvents.Insert(0, newEvent);
+                    
+                    // Keep only the latest 25 events
+                    if (recentEvents.Count > 25)
+                    {
+                        recentEvents = recentEvents.Take(25).ToList();
+                    }
+
+                    totalEvents++;
+                    StateHasChanged();
+                });
+            });
+
+            // Handle reader status notifications
+            hubConnection.On<ReaderStatusNotification>("ReaderStatusChanged", async (notification) =>
+            {
+                await InvokeAsync(() =>
+                {
+                    // Update reader status if needed
+                    StateHasChanged();
+                });
+            });
+
+            // Handle statistics updates
+            hubConnection.On<StatisticsNotification>("StatisticsUpdated", async (notification) =>
+            {
+                await InvokeAsync(() =>
+                {
+                    activeReaders = notification.ActiveReaders;
+                    loadedPlugins = notification.LoadedPlugins;
+                    totalEvents = notification.TotalEventsToday;
+                    systemStatus = notification.SystemStatus;
+                    StateHasChanged();
+                });
+            });
+
+            await hubConnection.StartAsync();
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error initializing SignalR: {ex.Message}");
+        }
     }
 
     private async Task LoadDashboardData()
@@ -197,5 +270,13 @@
         }
         
         recentEvents = recentEvents.OrderByDescending(e => e.Timestamp).ToList();
+    }
+
+    public async ValueTask DisposeAsync()
+    {
+        if (hubConnection is not null)
+        {
+            await hubConnection.DisposeAsync();
+        }
     }
 }

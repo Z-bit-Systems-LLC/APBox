@@ -1,10 +1,14 @@
 using ApBox.Web.Services;
+using ApBox.Web.Hubs;
 
 var builder = WebApplication.CreateBuilder(args);
 
 // Add services to the container
 builder.Services.AddRazorPages();
 builder.Services.AddServerSideBlazor();
+
+// Add SignalR
+builder.Services.AddSignalR();
 
 // Add ApBox services (business logic, OSDP, etc.)
 builder.Services.AddApBoxServices(builder.Configuration);
@@ -54,6 +58,9 @@ app.UseRouting();
 
 // Map API controllers
 app.MapControllers();
+
+// Map SignalR hub
+app.MapHub<CardEventsHub>("/cardevents");
 
 // Map Blazor
 app.MapBlazorHub();

@@ -1,0 +1,267 @@
+@page "/test-card-reads"
+@using ApBox.Core.Services
+@using ApBox.Plugins
+@using System.Text.Json
+@inject IReaderService ReaderService
+@inject HttpClient HttpClient
+@inject IJSRuntime JSRuntime
+
+<PageTitle>Test Card Reads</PageTitle>
+
+<div class="container-fluid">
+    <div class="row">
+        <div class="col-12">
+            <h1 class="display-4">Test Card Reads</h1>
+            <p class="text-muted">Simulate card reads to test real-time notifications</p>
+        </div>
+    </div>
+
+    <div class="row mb-4">
+        <div class="col-md-6">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="card-title mb-0">Simulate Card Read</h5>
+                </div>
+                <div class="card-body">
+                    <form @onsubmit="SimulateCardRead" @onsubmit:preventDefault="true">
+                        <div class="mb-3">
+                            <label for="readerSelect" class="form-label">Reader</label>
+                            <select class="form-select" id="readerSelect" @bind="selectedReaderId">
+                                <option value="">Select a reader...</option>
+                                @foreach (var reader in readers)
+                                {
+                                    <option value="@reader.ReaderId">@reader.ReaderName</option>
+                                }
+                            </select>
+                        </div>
+                        
+                        <div class="mb-3">
+                            <label for="cardNumber" class="form-label">Card Number</label>
+                            <input type="text" class="form-control" id="cardNumber" @bind="cardNumber" 
+                                   placeholder="Enter card number" />
+                        </div>
+                        
+                        <div class="mb-3">
+                            <label for="bitLength" class="form-label">Bit Length</label>
+                            <select class="form-select" id="bitLength" @bind="bitLength">
+                                <option value="26">26-bit</option>
+                                <option value="37">37-bit</option>
+                            </select>
+                        </div>
+                        
+                        <div class="d-grid gap-2 d-md-flex justify-content-md-end">
+                            <button type="button" class="btn btn-secondary me-md-2" @onclick="GenerateRandomCard">
+                                Generate Random
+                            </button>
+                            <button type="submit" class="btn btn-primary" disabled="@isProcessing">
+                                @if (isProcessing)
+                                {
+                                    <span class="spinner-border spinner-border-sm me-2" role="status"></span>
+                                    <span>Processing...</span>
+                                }
+                                else
+                                {
+                                    <span>Simulate Card Read</span>
+                                }
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+        
+        <div class="col-md-6">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="card-title mb-0">Quick Actions</h5>
+                </div>
+                <div class="card-body">
+                    <div class="d-grid gap-2">
+                        <button class="btn btn-outline-primary" @onclick="() => SimulateMultipleReads(5)">
+                            Simulate 5 Random Reads
+                        </button>
+                        <button class="btn btn-outline-success" @onclick="() => SimulateMultipleReads(10)">
+                            Simulate 10 Random Reads
+                        </button>
+                        <button class="btn btn-outline-info" @onclick="StartContinuousSimulation" disabled="@isContinuousRunning">
+                            @if (isContinuousRunning)
+                            {
+                                <span>Continuous Running...</span>
+                            }
+                            else
+                            {
+                                <span>Start Continuous Simulation</span>
+                            }
+                        </button>
+                        <button class="btn btn-outline-danger" @onclick="StopContinuousSimulation" disabled="@(!isContinuousRunning)">
+                            Stop Continuous
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    @if (!string.IsNullOrEmpty(lastResult))
+    {
+        <div class="row">
+            <div class="col-12">
+                <div class="alert alert-info">
+                    <h6>Last Result:</h6>
+                    <pre>@lastResult</pre>
+                </div>
+            </div>
+        </div>
+    }
+</div>
+
+@code {
+    private List<ReaderConfiguration> readers = new();
+    private string selectedReaderId = "";
+    private string cardNumber = "";
+    private int bitLength = 26;
+    private bool isProcessing = false;
+    private bool isContinuousRunning = false;
+    private string lastResult = "";
+    private Timer? continuousTimer;
+    private Random random = new();
+
+    protected override async Task OnInitializedAsync()
+    {
+        try
+        {
+            var readerConfigs = await ReaderService.GetReadersAsync();
+            readers = readerConfigs.ToList();
+            
+            if (readers.Any())
+            {
+                selectedReaderId = readers.First().ReaderId.ToString();
+            }
+        }
+        catch (Exception ex)
+        {
+            await JSRuntime.InvokeVoidAsync("console.error", $"Error loading readers: {ex.Message}");
+        }
+    }
+
+    private async Task SimulateCardRead()
+    {
+        if (string.IsNullOrEmpty(selectedReaderId) || string.IsNullOrEmpty(cardNumber))
+        {
+            await JSRuntime.InvokeVoidAsync("alert", "Please select a reader and enter a card number");
+            return;
+        }
+
+        isProcessing = true;
+        StateHasChanged();
+
+        try
+        {
+            var reader = readers.FirstOrDefault(r => r.ReaderId.ToString() == selectedReaderId);
+            var request = new
+            {
+                ReaderId = Guid.Parse(selectedReaderId),
+                CardNumber = cardNumber,
+                BitLength = bitLength,
+                ReaderName = reader?.ReaderName ?? "Unknown Reader"
+            };
+
+            var json = JsonSerializer.Serialize(request);
+            var content = new StringContent(json, System.Text.Encoding.UTF8, "application/json");
+
+            var response = await HttpClient.PostAsync("/api/cardevents/process-realtime", content);
+            var responseContent = await response.Content.ReadAsStringAsync();
+
+            if (response.IsSuccessStatusCode)
+            {
+                lastResult = $"✅ Success: {responseContent}";
+            }
+            else
+            {
+                lastResult = $"❌ Error: {response.StatusCode} - {responseContent}";
+            }
+        }
+        catch (Exception ex)
+        {
+            lastResult = $"❌ Exception: {ex.Message}";
+        }
+        finally
+        {
+            isProcessing = false;
+            StateHasChanged();
+        }
+    }
+
+    private void GenerateRandomCard()
+    {
+        cardNumber = random.Next(10000, 99999).ToString() + random.Next(100, 999).ToString();
+    }
+
+    private async Task SimulateMultipleReads(int count)
+    {
+        if (!readers.Any())
+        {
+            await JSRuntime.InvokeVoidAsync("alert", "No readers available");
+            return;
+        }
+
+        for (int i = 0; i < count; i++)
+        {
+            var reader = readers[random.Next(readers.Count)];
+            selectedReaderId = reader.ReaderId.ToString();
+            GenerateRandomCard();
+            
+            await SimulateCardRead();
+            
+            // Small delay between reads
+            await Task.Delay(random.Next(500, 1500));
+        }
+    }
+
+    private async Task StartContinuousSimulation()
+    {
+        if (!readers.Any())
+        {
+            await JSRuntime.InvokeVoidAsync("alert", "No readers available");
+            return;
+        }
+
+        isContinuousRunning = true;
+        StateHasChanged();
+
+        continuousTimer = new Timer(async _ =>
+        {
+            try
+            {
+                var reader = readers[random.Next(readers.Count)];
+                selectedReaderId = reader.ReaderId.ToString();
+                GenerateRandomCard();
+                
+                await InvokeAsync(async () =>
+                {
+                    await SimulateCardRead();
+                });
+            }
+            catch (Exception ex)
+            {
+                await InvokeAsync(async () =>
+                {
+                    await JSRuntime.InvokeVoidAsync("console.error", $"Continuous simulation error: {ex.Message}");
+                });
+            }
+        }, null, 0, random.Next(2000, 5000)); // Random interval between 2-5 seconds
+    }
+
+    private void StopContinuousSimulation()
+    {
+        isContinuousRunning = false;
+        continuousTimer?.Dispose();
+        continuousTimer = null;
+        StateHasChanged();
+    }
+
+    public void Dispose()
+    {
+        continuousTimer?.Dispose();
+    }
+}
