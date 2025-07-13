@@ -1,9 +1,209 @@
 ﻿@page "/"
+@using ApBox.Core.Services
+@using ApBox.Plugins
+@inject IReaderService ReaderService
+@inject ICardProcessingService CardProcessingService
+@inject IPluginLoader PluginLoader
 
-<PageTitle>Index</PageTitle>
+<PageTitle>ApBox Dashboard</PageTitle>
 
-<h1>Hello, world!</h1>
+<div class="container-fluid">
+    <div class="row">
+        <div class="col-12">
+            <h1 class="display-4">ApBox Dashboard</h1>
+            <p class="lead">Card Reader Management System</p>
+        </div>
+    </div>
 
-Welcome to your new app.
+    <div class="row mb-4">
+        <div class="col-md-3">
+            <div class="card bg-primary text-white">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between">
+                        <div>
+                            <h4 class="card-title">@activeReaders</h4>
+                            <p class="card-text">Active Readers</p>
+                        </div>
+                        <div class="align-self-center">
+                            <span class="oi oi-monitor" style="font-size: 2rem;"></span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="col-md-3">
+            <div class="card bg-success text-white">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between">
+                        <div>
+                            <h4 class="card-title">@loadedPlugins</h4>
+                            <p class="card-text">Loaded Plugins</p>
+                        </div>
+                        <div class="align-self-center">
+                            <span class="oi oi-puzzle-piece" style="font-size: 2rem;"></span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="col-md-3">
+            <div class="card bg-info text-white">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between">
+                        <div>
+                            <h4 class="card-title">@totalEvents</h4>
+                            <p class="card-text">Card Events Today</p>
+                        </div>
+                        <div class="align-self-center">
+                            <span class="oi oi-credit-card" style="font-size: 2rem;"></span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="col-md-3">
+            <div class="card bg-warning text-white">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between">
+                        <div>
+                            <h4 class="card-title">@systemStatus</h4>
+                            <p class="card-text">System Status</p>
+                        </div>
+                        <div class="align-self-center">
+                            <span class="oi oi-circle-check" style="font-size: 2rem;"></span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
 
-<SurveyPrompt Title="How is Blazor working for you?" />
+    <div class="row">
+        <div class="col-md-8">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="card-title mb-0">Recent Card Events</h5>
+                </div>
+                <div class="card-body">
+                    @if (recentEvents.Any())
+                    {
+                        <div class="table-responsive">
+                            <table class="table table-striped">
+                                <thead>
+                                    <tr>
+                                        <th>Time</th>
+                                        <th>Reader</th>
+                                        <th>Card Number</th>
+                                        <th>Status</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    @foreach (var cardEvent in recentEvents.Take(10))
+                                    {
+                                        <tr>
+                                            <td>@cardEvent.Timestamp.ToString("HH:mm:ss")</td>
+                                            <td>@cardEvent.ReaderName</td>
+                                            <td>@cardEvent.CardNumber</td>
+                                            <td>
+                                                <span class="badge bg-success">Processed</span>
+                                            </td>
+                                        </tr>
+                                    }
+                                </tbody>
+                            </table>
+                        </div>
+                    }
+                    else
+                    {
+                        <p class="text-muted">No recent card events</p>
+                    }
+                </div>
+            </div>
+        </div>
+        
+        <div class="col-md-4">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="card-title mb-0">Reader Status</h5>
+                </div>
+                <div class="card-body">
+                    @if (readers.Any())
+                    {
+                        @foreach (var reader in readers)
+                        {
+                            <div class="d-flex justify-content-between align-items-center mb-2">
+                                <span>@reader.ReaderName</span>
+                                <span class="badge bg-success">Online</span>
+                            </div>
+                        }
+                    }
+                    else
+                    {
+                        <p class="text-muted">No readers configured</p>
+                    }
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+@code {
+    private int activeReaders = 0;
+    private int loadedPlugins = 0;
+    private int totalEvents = 0;
+    private string systemStatus = "Online";
+    private List<CardReadEvent> recentEvents = new();
+    private List<ReaderConfiguration> readers = new();
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadDashboardData();
+    }
+
+    private async Task LoadDashboardData()
+    {
+        try
+        {
+            // Load readers
+            var readerConfigs = await ReaderService.GetReadersAsync();
+            readers = readerConfigs.ToList();
+            activeReaders = readers.Count;
+
+            // Load plugins
+            var plugins = await PluginLoader.LoadPluginsAsync();
+            loadedPlugins = plugins.Count();
+
+            // Generate sample events for demonstration
+            GenerateSampleEvents();
+            totalEvents = recentEvents.Count;
+        }
+        catch (Exception ex)
+        {
+            systemStatus = "Error";
+            Console.WriteLine($"Dashboard error: {ex.Message}");
+        }
+    }
+
+    private void GenerateSampleEvents()
+    {
+        var random = new Random();
+        var now = DateTime.Now;
+        
+        for (int i = 0; i < 25; i++)
+        {
+            recentEvents.Add(new CardReadEvent
+            {
+                ReaderId = Guid.NewGuid(),
+                CardNumber = $"12345{random.Next(100, 999)}",
+                ReaderName = $"Reader {random.Next(1, 4)}",
+                Timestamp = now.AddMinutes(-random.Next(0, 480)),
+                BitLength = 26
+            });
+        }
+        
+        recentEvents = recentEvents.OrderByDescending(e => e.Timestamp).ToList();
+    }
+}
