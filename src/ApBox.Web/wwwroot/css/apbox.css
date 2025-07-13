@@ -48,29 +48,50 @@ h1, h2, h3, h4, h5, h6 {
 
 /* Sidebar Navigation */
 .sidebar {
-    background-color: white;
+    background-color: white !important;
+    background-image: none !important;
     border-right: 1px solid var(--apbox-border);
     min-height: calc(100vh - 56px);
 }
 
 .nav-item .nav-link {
-    color: var(--apbox-secondary);
+    color: var(--apbox-secondary) !important;
     font-weight: 400;
     padding: 0.75rem 1rem;
     transition: all 0.2s ease;
     border-left: 3px solid transparent;
+    border-radius: 0;
 }
 
 .nav-item .nav-link:hover {
-    background-color: var(--apbox-light);
-    color: var(--apbox-accent);
+    background-color: var(--apbox-light) !important;
+    color: var(--apbox-accent) !important;
     border-left-color: var(--apbox-accent);
 }
 
 .nav-item .nav-link.active {
-    background-color: rgba(0, 102, 204, 0.1);
-    color: var(--apbox-accent);
+    background-color: rgba(0, 102, 204, 0.1) !important;
+    color: var(--apbox-accent) !important;
     border-left-color: var(--apbox-accent);
+}
+
+/* Override any existing nav styles */
+.sidebar .nav-item a,
+.sidebar .nav-item .nav-link {
+    color: var(--apbox-secondary) !important;
+    background-color: transparent !important;
+}
+
+.sidebar .nav-item a:hover,
+.sidebar .nav-item .nav-link:hover {
+    background-color: var(--apbox-light) !important;
+    color: var(--apbox-accent) !important;
+}
+
+.sidebar .nav-item a.active,
+.sidebar .nav-item .nav-link.active {
+    background-color: rgba(0, 102, 204, 0.1) !important;
+    color: var(--apbox-accent) !important;
 }
 
 /* Cards and Panels */
