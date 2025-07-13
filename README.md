@@ -96,7 +96,7 @@ ApBox supports dual feedback sources with priority-based resolution:
 
 6. **Access the web interface**
    
-   Open your browser and navigate to `https://localhost:5001`
+   Open your browser and navigate to `http://localhost:5271`
 
 ### Development Workflow
 
@@ -202,14 +202,147 @@ This project is licensed under the Eclipse Public License v2.0 - see the [LICENS
 - **Issues**: [GitHub Issues](https://github.com/your-org/ApBox/issues)
 - **Discussions**: [GitHub Discussions](https://github.com/your-org/ApBox/discussions)
 
+## Testing with Sample Plugins
+
+ApBox includes 4 comprehensive sample plugins that demonstrate the plugin architecture. Here's how to test them:
+
+### 1. Build and Deploy Sample Plugins
+
+```bash
+# Build the sample plugins
+dotnet build src/ApBox.SamplePlugins
+
+# Copy plugins to the web application plugins directory
+mkdir -p src/ApBox.Web/plugins
+cp src/ApBox.SamplePlugins/bin/Debug/net8.0/ApBox.SamplePlugins.dll src/ApBox.Web/plugins/
+```
+
+### 2. Start the Web Application
+
+```bash
+# Run the web application
+dotnet run --project src/ApBox.Web
+
+# The application will start on http://localhost:5271
+```
+
+### 3. Access the Dashboard
+
+Open your browser to `http://localhost:5271` and you'll see:
+
+- **Dashboard**: Real-time metrics showing active readers and loaded plugins
+- **Recent Card Events**: Live table of card read events
+- **Reader Status**: Current status of configured readers
+
+### 4. Simulate Card Reads
+
+Navigate to `http://localhost:5271/test-card-reads` to use the card simulation interface:
+
+#### **Single Card Simulation**
+1. Select a reader from the dropdown
+2. Enter a card number or click "Generate Random"
+3. Choose bit length (26-bit or 37-bit)
+4. Click "Simulate Card Read"
+
+#### **Batch Testing**
+- **"Simulate 5 Random Reads"**: Quick batch of 5 random events
+- **"Simulate 10 Random Reads"**: Larger batch for stress testing
+- **"Start Continuous Simulation"**: Ongoing random events every 2-5 seconds
+- **"Stop Continuous"**: Stop the continuous simulation
+
+### 5. Sample Plugin Behavior
+
+The included sample plugins will process your card reads:
+
+#### **🔐 Access Control Plugin**
+- **Authorized cards**: `12345678`, `87654321`, `11111111`, `22222222`, `12345123`, `98765987`
+- **Authorized**: Green LED, 1 beep, "ACCESS GRANTED"
+- **Unauthorized**: Red LED, 3 beeps, "ACCESS DENIED"
+
+#### **⏰ Time-Based Access Plugin**
+- **Card `12345678`**: Business hours only (Mon-Fri, 8 AM - 5 PM)
+- **Card `87654321`**: Extended hours (Mon-Sat, 6 AM - 10 PM)
+- **Card `11111111`**: 24/7 access
+- **Card `22222222`**: Weekends only (Sat-Sun, 7 AM - 3 PM)
+- **Time allowed**: Green LED, 2 beeps, "TIME ACCESS OK"
+- **Time restricted**: Amber LED, 2 beeps, "TIME RESTRICTED"
+
+#### **📋 Audit Logging Plugin**
+- Records all events to `logs/audit/audit-YYYY-MM-DD.jsonl`
+- Provides brief blue LED flash (100ms)
+- Check the logs directory for JSON audit entries
+
+#### **📊 Event Logging Plugin**
+- Logs all events to the standard .NET logging system
+- Tracks statistics (total, successful, failed events)
+- No visual feedback (passive monitoring)
+- Check console output for log entries
+
+### 6. Real-Time Dashboard Updates
+
+With the simulation running:
+
+1. **Open multiple browser tabs** to `http://localhost:5271`
+2. **Start continuous simulation** in the test page
+3. **Watch the dashboard** update in real-time:
+   - Recent Card Events table shows new entries instantly
+   - Total Events counter increments
+   - No page refresh needed - SignalR provides live updates
+
+### 7. Log Monitoring
+
+Monitor the application logs to see plugin activity:
+
+```bash
+# The console will show detailed plugin processing:
+# - Access Control Plugin processing card 12345678
+# - Time-Based Access Plugin checking schedule
+# - Audit entries being written
+# - Event statistics being tracked
+```
+
+### 8. Testing Different Scenarios
+
+Try these test scenarios:
+
+#### **Authorized Access**
+- Use card `12345678` during business hours
+- Should get green LED from both Access Control and Time-Based plugins
+
+#### **Unauthorized Card**
+- Use card `99999999` (not in authorized list)
+- Should get red LED from Access Control plugin
+
+#### **Time Restrictions**
+- Use card `12345678` outside business hours (evenings/weekends)
+- Should get amber LED from Time-Based plugin
+
+#### **24/7 Access**
+- Use card `11111111` any time
+- Should always get green LED
+
+### 9. Plugin Development Testing
+
+Use the Test Card Reads page to develop and test your own plugins:
+
+1. **Create your plugin** following the samples in `src/ApBox.SamplePlugins/`
+2. **Build and deploy** to the plugins directory
+3. **Restart the application** to load new plugins
+4. **Test with various card numbers** and scenarios
+5. **Check the dashboard** for real-time results
+
+This testing environment lets you validate plugin behavior without physical card readers, making development fast and reliable.
+
 ## Roadmap
 
 ### MVP (Weeks 1-8)
 - [x] Core foundation and plugin system
 - [x] Plugin interfaces and feedback resolution
+- [x] Real-time SignalR dashboard with live updates
+- [x] Comprehensive Blazor web interface with Z-bit styling
+- [x] Sample plugins and testing infrastructure
+- [x] bUnit UI testing with 66 comprehensive tests
 - [ ] OSDP integration and communication
-- [ ] Basic web interface with Blazorise
-- [ ] Sample plugins and configuration
 - [ ] Docker deployment support
 
 ### Post-MVP
