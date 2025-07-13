@@ -5,6 +5,7 @@
 @inject IReaderService ReaderService
 @inject HttpClient HttpClient
 @inject IJSRuntime JSRuntime
+@inject NavigationManager Navigation
 
 <PageTitle>Test Card Reads</PageTitle>
 
@@ -169,7 +170,7 @@
             var json = JsonSerializer.Serialize(request);
             var content = new StringContent(json, System.Text.Encoding.UTF8, "application/json");
 
-            var response = await HttpClient.PostAsync("/api/cardevents/process-realtime", content);
+            var response = await HttpClient.PostAsync(Navigation.ToAbsoluteUri("/api/cardevents/process-realtime"), content);
             var responseContent = await response.Content.ReadAsStringAsync();
 
             if (response.IsSuccessStatusCode)

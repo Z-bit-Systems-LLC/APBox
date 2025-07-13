@@ -7,6 +7,7 @@
 @inject ICardProcessingService CardProcessingService
 @inject IPluginLoader PluginLoader
 @inject IJSRuntime JSRuntime
+@inject NavigationManager Navigation
 @implements IAsyncDisposable
 
 <PageTitle>ApBox Dashboard</PageTitle>
@@ -166,7 +167,7 @@
         try
         {
             hubConnection = new HubConnectionBuilder()
-                .WithUrl("/cardevents")
+                .WithUrl(Navigation.ToAbsoluteUri("/cardevents"))
                 .Build();
 
             // Handle card event notifications

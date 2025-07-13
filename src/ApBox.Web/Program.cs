@@ -13,6 +13,9 @@ builder.Services.AddSignalR();
 // Add ApBox services (business logic, OSDP, etc.)
 builder.Services.AddApBoxServices(builder.Configuration);
 
+// Add HttpClient for Blazor components
+builder.Services.AddHttpClient();
+
 // Add API controllers
 builder.Services.AddControllers();
 
