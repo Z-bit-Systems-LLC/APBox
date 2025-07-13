@@ -1,4 +1,4 @@
-using ApBox.Core.Controllers;
+using ApBox.Web.Controllers;
 using ApBox.Core.OSDP;
 using ApBox.Core.Services;
 using ApBox.Plugins;
@@ -6,7 +6,7 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Logging;
 using Moq;
 
-namespace ApBox.Core.Tests.Controllers;
+namespace ApBox.Web.Tests.Controllers;
 
 [TestFixture]
 [Category("Unit")]

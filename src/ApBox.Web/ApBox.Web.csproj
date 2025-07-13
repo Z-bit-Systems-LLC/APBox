@@ -10,10 +10,15 @@
     <PackageReference Include="Blazorise.Bootstrap" Version="1.8.0" />
     <PackageReference Include="Blazorise.Icons.FontAwesome" Version="1.8.0" />
     <PackageReference Include="CommunityToolkit.Mvvm" Version="8.4.0" />
+    <PackageReference Include="Swashbuckle.AspNetCore" Version="9.0.3" />
   </ItemGroup>
 
   <ItemGroup>
     <Folder Include="Data\" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\ApBox.Core\ApBox.Core.csproj" />
   </ItemGroup>
 
 </Project>

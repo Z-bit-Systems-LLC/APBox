@@ -1,3 +1,4 @@
+using ApBox.Web.Services;
 using ApBox.Core.Services;
 using ApBox.Plugins;
 using Microsoft.Extensions.Configuration;

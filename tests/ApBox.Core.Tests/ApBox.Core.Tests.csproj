@@ -25,6 +25,7 @@
 
   <ItemGroup>
     <ProjectReference Include="..\..\src\ApBox.Core\ApBox.Core.csproj" />
+    <ProjectReference Include="..\..\src\ApBox.Web\ApBox.Web.csproj" />
   </ItemGroup>
 
 </Project>

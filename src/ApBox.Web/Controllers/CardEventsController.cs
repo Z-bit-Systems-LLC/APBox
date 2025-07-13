@@ -2,7 +2,7 @@ using ApBox.Core.Services;
 using ApBox.Plugins;
 using Microsoft.AspNetCore.Mvc;
 
-namespace ApBox.Core.Controllers;
+namespace ApBox.Web.Controllers;
 
 [ApiController]
 [Route("api/[controller]")]

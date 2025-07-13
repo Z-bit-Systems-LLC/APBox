@@ -10,8 +10,5 @@
     <ProjectReference Include="..\ApBox.Plugins\ApBox.Plugins.csproj" />
   </ItemGroup>
 
-  <ItemGroup>
-    <PackageReference Include="Swashbuckle.AspNetCore" Version="9.0.3" />
-  </ItemGroup>
 
 </Project>

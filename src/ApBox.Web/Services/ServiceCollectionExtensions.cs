@@ -1,7 +1,8 @@
 using ApBox.Plugins;
 using ApBox.Core.OSDP;
+using ApBox.Core.Services;
 
-namespace ApBox.Core.Services;
+namespace ApBox.Web.Services;
 
 public static class ServiceCollectionExtensions
 {
