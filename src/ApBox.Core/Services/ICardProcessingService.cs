@@ -33,6 +33,7 @@ public class CardProcessingService : ICardProcessingService
         {
             var plugins = await _pluginLoader.LoadPluginsAsync();
             var results = new List<bool>();
+            var processedByPlugins = new List<string>();
             
             foreach (var plugin in plugins)
             {
@@ -40,6 +41,7 @@ public class CardProcessingService : ICardProcessingService
                 {
                     var result = await plugin.ProcessCardReadAsync(cardRead);
                     results.Add(result);
+                    processedByPlugins.Add(plugin.Name);
                     
                     _logger.LogDebug("Plugin {PluginName} processed card with result: {Result}", 
                         plugin.Name, result);
@@ -57,7 +59,8 @@ public class CardProcessingService : ICardProcessingService
             return new CardReadResult
             {
                 Success = success,
-                Message = success ? "Card read processed successfully" : "Card read failed processing"
+                Message = success ? "Card read processed successfully" : "Card read failed processing",
+                ProcessedByPlugin = processedByPlugins.Any() ? string.Join(", ", processedByPlugins) : null
             };
         }
         catch (Exception ex)

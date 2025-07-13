@@ -1,6 +1,7 @@
 using ApBox.Plugins;
 using ApBox.Core.OSDP;
 using ApBox.Core.Services;
+using ApBox.Core.Data;
 
 namespace ApBox.Web.Services;
 
@@ -22,14 +23,15 @@ public static class ServiceCollectionExtensions
         
         // Register core application services
         services.AddSingleton<ICardProcessingService, CardProcessingService>();
-        services.AddSingleton<IEnhancedCardProcessingService, EnhancedCardProcessingService>();
-        services.AddSingleton<IReaderService, ReaderService>();
+        services.AddScoped<IEnhancedCardProcessingService, EnhancedCardProcessingService>();
+        services.AddScoped<IReaderService, ReaderService>();
         
         // Register SignalR notification service
         services.AddSingleton<ICardEventNotificationService, CardEventNotificationService>();
         
-        // Register configuration services
-        services.AddSingleton<IReaderConfigurationService, ReaderConfigurationService>();
+        // Register database services
+        var connectionString = configuration.GetConnectionString("DefaultConnection") ?? "Data Source=apbox.db";
+        services.AddApBoxDatabase(connectionString);
         
         return services;
     }

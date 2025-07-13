@@ -1,5 +1,6 @@
 using ApBox.Web.Services;
 using ApBox.Web.Hubs;
+using ApBox.Core.Data;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -42,6 +43,12 @@ builder.Services.AddSwaggerGen(options =>
 });
 
 var app = builder.Build();
+
+// Initialize database
+using (var scope = app.Services.CreateScope())
+{
+    await scope.ServiceProvider.InitializeApBoxDatabaseAsync();
+}
 
 // Configure the HTTP request pipeline
 if (!app.Environment.IsDevelopment())
