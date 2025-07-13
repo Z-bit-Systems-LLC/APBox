@@ -4,7 +4,7 @@
 
 .top-row {
     height: 3.5rem;
-    background-color: rgba(0,0,0,0.4);
+    background-color: #1a1a1a;
 }
 
 .navbar-brand {
@@ -32,22 +32,26 @@
     }
 
     .nav-item ::deep a {
-        color: #d7d7d7;
+        color: #2d2d2d;
         border-radius: 4px;
         height: 3rem;
         display: flex;
         align-items: center;
         line-height: 3rem;
+        border-left: 3px solid transparent;
+        transition: all 0.2s ease;
     }
 
 .nav-item ::deep a.active {
-    background-color: rgba(255,255,255,0.25);
-    color: white;
+    background-color: rgba(0, 102, 204, 0.1);
+    color: #0066cc;
+    border-left-color: #0066cc;
 }
 
 .nav-item ::deep a:hover {
-    background-color: rgba(255,255,255,0.1);
-    color: white;
+    background-color: #f8f9fa;
+    color: #0066cc;
+    border-left-color: #0066cc;
 }
 
 @media (min-width: 641px) {
