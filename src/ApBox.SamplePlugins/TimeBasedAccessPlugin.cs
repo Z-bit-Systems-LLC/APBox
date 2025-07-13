@@ -1,0 +1,212 @@
+using ApBox.Plugins;
+using Microsoft.Extensions.Logging;
+
+namespace ApBox.SamplePlugins;
+
+/// <summary>
+/// Sample time-based access control plugin that restricts access based on time of day and day of week
+/// </summary>
+public class TimeBasedAccessPlugin : IApBoxPlugin
+{
+    private readonly Dictionary<string, AccessSchedule> _cardSchedules;
+    private readonly ILogger<TimeBasedAccessPlugin>? _logger;
+
+    public TimeBasedAccessPlugin()
+    {
+        // Initialize with sample card schedules
+        _cardSchedules = new Dictionary<string, AccessSchedule>(StringComparer.OrdinalIgnoreCase)
+        {
+            // Standard business hours cards
+            ["12345678"] = new AccessSchedule
+            {
+                AllowedDays = DayOfWeek.Monday | DayOfWeek.Tuesday | DayOfWeek.Wednesday | DayOfWeek.Thursday | DayOfWeek.Friday,
+                StartTime = new TimeOnly(8, 0),  // 8:00 AM
+                EndTime = new TimeOnly(17, 0),   // 5:00 PM
+                Description = "Standard Business Hours"
+            },
+            
+            // Extended hours for managers
+            ["87654321"] = new AccessSchedule
+            {
+                AllowedDays = DayOfWeek.Monday | DayOfWeek.Tuesday | DayOfWeek.Wednesday | DayOfWeek.Thursday | DayOfWeek.Friday | DayOfWeek.Saturday,
+                StartTime = new TimeOnly(6, 0),  // 6:00 AM
+                EndTime = new TimeOnly(22, 0),   // 10:00 PM
+                Description = "Extended Hours - Manager"
+            },
+            
+            // 24/7 access for security/maintenance
+            ["11111111"] = new AccessSchedule
+            {
+                AllowedDays = DayOfWeek.Monday | DayOfWeek.Tuesday | DayOfWeek.Wednesday | DayOfWeek.Thursday | DayOfWeek.Friday | DayOfWeek.Saturday | DayOfWeek.Sunday,
+                StartTime = new TimeOnly(0, 0),  // Midnight
+                EndTime = new TimeOnly(23, 59),  // 11:59 PM
+                Description = "24/7 Access - Security"
+            },
+            
+            // Weekend maintenance crew
+            ["22222222"] = new AccessSchedule
+            {
+                AllowedDays = DayOfWeek.Saturday | DayOfWeek.Sunday,
+                StartTime = new TimeOnly(7, 0),  // 7:00 AM
+                EndTime = new TimeOnly(15, 0),   // 3:00 PM
+                Description = "Weekend Maintenance"
+            }
+        };
+    }
+
+    public TimeBasedAccessPlugin(ILogger<TimeBasedAccessPlugin> logger) : this()
+    {
+        _logger = logger;
+    }
+
+    public string Name => "Time-Based Access Plugin";
+    public string Version => "1.0.0";
+    public string Description => "Controls access based on time of day and day of week restrictions";
+
+    public async Task<bool> ProcessCardReadAsync(CardReadEvent cardRead)
+    {
+        await Task.CompletedTask; // Async signature for future extensibility
+
+        _logger?.LogInformation("Time-Based Access Plugin processing card {CardNumber} at {Timestamp}", 
+            cardRead.CardNumber, cardRead.Timestamp);
+
+        // Check if card has a schedule defined
+        if (!_cardSchedules.TryGetValue(cardRead.CardNumber, out var schedule))
+        {
+            _logger?.LogWarning("Card {CardNumber} has no time-based schedule defined", cardRead.CardNumber);
+            
+            return false;
+        }
+
+        var now = DateTime.Now;
+        var currentDay = now.DayOfWeek;
+        var currentTime = TimeOnly.FromDateTime(now);
+
+        // Check if current day is allowed
+        if (!schedule.AllowedDays.HasFlag(GetDayOfWeekFlag(currentDay)))
+        {
+            _logger?.LogInformation("Card {CardNumber} denied - {Day} not in allowed days ({AllowedDays})", 
+                cardRead.CardNumber, currentDay, schedule.AllowedDays);
+            
+            return false;
+        }
+
+        // Check if current time is within allowed hours
+        if (currentTime < schedule.StartTime || currentTime > schedule.EndTime)
+        {
+            _logger?.LogInformation("Card {CardNumber} denied - time {CurrentTime} outside allowed hours {StartTime}-{EndTime}", 
+                cardRead.CardNumber, currentTime, schedule.StartTime, schedule.EndTime);
+            
+            return false;
+        }
+
+        // Access granted
+        _logger?.LogInformation("Card {CardNumber} granted time-based access - {Schedule}", 
+            cardRead.CardNumber, schedule.Description);
+        
+        return true;
+    }
+
+    public async Task<ReaderFeedback?> GetFeedbackAsync(CardReadResult result)
+    {
+        await Task.CompletedTask;
+
+        if (result.Success)
+        {
+            // Green LED with double beep for authorized time-based access
+            return new ReaderFeedback
+            {
+                Type = ReaderFeedbackType.Success,
+                LedColor = Plugins.LedColor.Green,
+                BeepCount = 2,
+                LedDurationMs = 3000,
+                DisplayMessage = "TIME ACCESS OK"
+            };
+        }
+        else
+        {
+            // Orange LED for time-based restrictions (different from general denial)
+            return new ReaderFeedback
+            {
+                Type = ReaderFeedbackType.Failure,
+                LedColor = Plugins.LedColor.Amber,
+                BeepCount = 2,
+                LedDurationMs = 4000,
+                DisplayMessage = "TIME RESTRICTED"
+            };
+        }
+    }
+
+    public Task InitializeAsync()
+    {
+        _logger?.LogInformation("Time-Based Access Plugin initialized with {Count} scheduled cards", 
+            _cardSchedules.Count);
+        return Task.CompletedTask;
+    }
+
+    public Task ShutdownAsync()
+    {
+        _logger?.LogInformation("Time-Based Access Plugin shutting down");
+        return Task.CompletedTask;
+    }
+
+    private static DayOfWeek GetDayOfWeekFlag(DayOfWeek day)
+    {
+        return day;
+    }
+
+    /// <summary>
+    /// Add or update a card's access schedule
+    /// </summary>
+    public void SetCardSchedule(string cardNumber, AccessSchedule schedule)
+    {
+        _cardSchedules[cardNumber] = schedule;
+        _logger?.LogInformation("Updated schedule for card {CardNumber}: {Description}", 
+            cardNumber, schedule.Description);
+    }
+
+    /// <summary>
+    /// Get a card's access schedule
+    /// </summary>
+    public AccessSchedule? GetCardSchedule(string cardNumber)
+    {
+        return _cardSchedules.TryGetValue(cardNumber, out var schedule) ? schedule : null;
+    }
+
+    /// <summary>
+    /// Remove a card's schedule
+    /// </summary>
+    public void RemoveCardSchedule(string cardNumber)
+    {
+        if (_cardSchedules.Remove(cardNumber))
+        {
+            _logger?.LogInformation("Removed schedule for card {CardNumber}", cardNumber);
+        }
+    }
+}
+
+/// <summary>
+/// Represents an access schedule for time-based access control
+/// </summary>
+public class AccessSchedule
+{
+    /// <summary>
+    /// Days of the week when access is allowed (can be combined with flags)
+    /// </summary>
+    public DayOfWeek AllowedDays { get; set; }
+    
+    /// <summary>
+    /// Start time for daily access window
+    /// </summary>
+    public TimeOnly StartTime { get; set; }
+    
+    /// <summary>
+    /// End time for daily access window
+    /// </summary>
+    public TimeOnly EndTime { get; set; }
+    
+    /// <summary>
+    /// Human-readable description of this schedule
+    /// </summary>
+    public string Description { get; set; } = string.Empty;
+}
