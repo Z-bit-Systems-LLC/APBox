@@ -52,3 +52,8 @@ CodeCoverage/
 *.VisualState.xml
 TestResult.xml
 nunit-*.xml
+
+apbox_project_plan.md
+
+.idea/
+.claude/
