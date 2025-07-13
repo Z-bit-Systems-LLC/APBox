@@ -14,7 +14,25 @@ builder.Services.AddControllers();
 
 // Add OpenAPI/Swagger
 builder.Services.AddEndpointsApiExplorer();
-builder.Services.AddSwaggerGen();
+builder.Services.AddSwaggerGen(options =>
+{
+    options.SwaggerDoc("v1", new Microsoft.OpenApi.Models.OpenApiInfo
+    {
+        Title = "ApBox API",
+        Version = "v1",
+        Description = "REST API for ApBox Card Reader Management System",
+        Contact = new Microsoft.OpenApi.Models.OpenApiContact
+        {
+            Name = "Z-bit",
+            Email = "support@z-bit.com"
+        }
+    });
+    
+    // Include XML comments
+    var xmlFilename = $"{System.Reflection.Assembly.GetExecutingAssembly().GetName().Name}.xml";
+    var xmlPath = Path.Combine(AppContext.BaseDirectory, xmlFilename);
+    options.IncludeXmlComments(xmlPath);
+});
 
 var app = builder.Build();
 
