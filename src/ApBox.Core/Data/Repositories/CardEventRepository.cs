@@ -22,7 +22,17 @@ public class CardEventRepository : ICardEventRepository
         connection.Open();
         
         var sql = @"
-            SELECT * FROM card_events 
+            SELECT 
+                id as Id,
+                reader_id as ReaderId,
+                card_number as CardNumber,
+                bit_length as BitLength,
+                reader_name as ReaderName,
+                success as Success,
+                message as Message,
+                processed_by_plugin as ProcessedByPlugin,
+                timestamp as Timestamp
+            FROM card_events 
             ORDER BY timestamp DESC 
             LIMIT @Limit";
         
@@ -35,7 +45,17 @@ public class CardEventRepository : ICardEventRepository
         connection.Open();
         
         var sql = @"
-            SELECT * FROM card_events 
+            SELECT 
+                id as Id,
+                reader_id as ReaderId,
+                card_number as CardNumber,
+                bit_length as BitLength,
+                reader_name as ReaderName,
+                success as Success,
+                message as Message,
+                processed_by_plugin as ProcessedByPlugin,
+                timestamp as Timestamp
+            FROM card_events 
             WHERE reader_id = @ReaderId 
             ORDER BY timestamp DESC 
             LIMIT @Limit";
@@ -49,7 +69,17 @@ public class CardEventRepository : ICardEventRepository
         connection.Open();
         
         var sql = @"
-            SELECT * FROM card_events 
+            SELECT 
+                id as Id,
+                reader_id as ReaderId,
+                card_number as CardNumber,
+                bit_length as BitLength,
+                reader_name as ReaderName,
+                success as Success,
+                message as Message,
+                processed_by_plugin as ProcessedByPlugin,
+                timestamp as Timestamp
+            FROM card_events 
             WHERE timestamp >= @StartDate AND timestamp <= @EndDate 
             ORDER BY timestamp DESC 
             LIMIT @Limit";
