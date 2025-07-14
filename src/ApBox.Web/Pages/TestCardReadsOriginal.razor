@@ -1,4 +1,4 @@
-@page "/test-card-reads"
+@page "/test-card-reads-org"
 @using ApBox.Core.Services
 @using ApBox.Plugins
 @using System.Text.Json
@@ -9,73 +9,82 @@
 
 <PageTitle>Test Card Reads</PageTitle>
 
-<Container Fluid ElementId="test-card-reads-container">
-    <Row Margin="Margin.Is4.FromBottom">
-        <Column>
-            <Heading Size="HeadingSize.Is1" ElementId="test-card-reads-title">Test Card Reads</Heading>
-            <Paragraph TextColor="TextColor.Muted" ElementId="test-card-reads-subtitle">Simulate card reads to test real-time notifications</Paragraph>
-        </Column>
-    </Row>
+<div class="container-fluid">
+    <div class="row">
+        <div class="col-12">
+            <h1 class="display-4">Test Card Reads</h1>
+            <p class="text-muted">Simulate card reads to test real-time notifications</p>
+        </div>
+    </div>
 
-    <Row Margin="Margin.Is4.FromBottom">
-        <Column ColumnSize="ColumnSize.Is6.OnTablet">
-            <Card ElementId="simulate-card">
-                <CardHeader>
-                    <CardTitle Size="5" Margin="Margin.Is0.FromBottom">Simulate Card Read</CardTitle>
-                </CardHeader>
-                <CardBody>
-                    <Form>
-                        <Field Margin="Margin.Is3.FromBottom">
-                            <FieldLabel For="reader-select">Reader</FieldLabel>
-                            <Select @bind-SelectedValue="selectedReaderId" ElementId="reader-select">
-                                <SelectItem Value="@("")">Select a reader...</SelectItem>
+    <div class="row mb-4">
+        <div class="col-md-6">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="card-title mb-0">Simulate Card Read</h5>
+                </div>
+                <div class="card-body">
+                    <form @onsubmit="SimulateCardRead" @onsubmit:preventDefault="true">
+                        <div class="mb-3">
+                            <label for="readerSelect" class="form-label">Reader</label>
+                            <select class="form-select" id="readerSelect" @bind="selectedReaderId">
+                                <option value="">Select a reader...</option>
                                 @foreach (var reader in readers)
                                 {
-                                    <SelectItem Value="@reader.ReaderId.ToString()">@reader.ReaderName</SelectItem>
+                                    <option value="@reader.ReaderId">@reader.ReaderName</option>
                                 }
-                            </Select>
-                        </Field>
+                            </select>
+                        </div>
                         
-                        <Field Margin="Margin.Is3.FromBottom">
-                            <FieldLabel For="card-number-input">Card Number</FieldLabel>
-                            <TextEdit @bind-Text="cardNumber" Placeholder="Enter card number" ElementId="card-number-input" />
-                        </Field>
+                        <div class="mb-3">
+                            <label for="cardNumber" class="form-label">Card Number</label>
+                            <input type="text" class="form-control" id="cardNumber" @bind="cardNumber" 
+                                   placeholder="Enter card number" />
+                        </div>
                         
-                        <Field Margin="Margin.Is3.FromBottom">
-                            <FieldLabel For="bit-length-select">Bit Length</FieldLabel>
-                            <Select @bind-SelectedValue="bitLength" ElementId="bit-length-select">
-                                <SelectItem Value="26">26-bit</SelectItem>
-                                <SelectItem Value="37">37-bit</SelectItem>
-                            </Select>
-                        </Field>
+                        <div class="mb-3">
+                            <label for="bitLength" class="form-label">Bit Length</label>
+                            <select class="form-select" id="bitLength" @bind="bitLength">
+                                <option value="26">26-bit</option>
+                                <option value="37">37-bit</option>
+                            </select>
+                        </div>
                         
-                        <Div Flex="Flex.JustifyContent.End.AlignItems.Center" Gap="Gap.Is2">
-                            <Button Color="Color.Secondary" Clicked="GenerateRandomCard" ElementId="generate-random-button">
+                        <div class="d-grid gap-2 d-md-flex justify-content-md-end">
+                            <button type="button" class="btn btn-secondary me-md-2" @onclick="GenerateRandomCard">
                                 Generate Random
-                            </Button>
-                            <Button Color="Color.Primary" Clicked="SimulateCardRead" Disabled="isProcessing" ElementId="simulate-button" Loading="isProcessing">
-                                Simulate Card Read
-                            </Button>
-                        </Div>
-                    </Form>
-                </CardBody>
-            </Card>
-        </Column>
+                            </button>
+                            <button type="submit" class="btn btn-primary" disabled="@isProcessing">
+                                @if (isProcessing)
+                                {
+                                    <span class="spinner-border spinner-border-sm me-2" role="status"></span>
+                                    <span>Processing...</span>
+                                }
+                                else
+                                {
+                                    <span>Simulate Card Read</span>
+                                }
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
         
-        <Column ColumnSize="ColumnSize.Is6.OnTablet">
-            <Card ElementId="quick-actions-card">
-                <CardHeader>
-                    <CardTitle Size="5" Margin="Margin.Is0.FromBottom">Quick Actions</CardTitle>
-                </CardHeader>
-                <CardBody>
-                    <Buttons Orientation="Orientation.Vertical" Size="Size.Medium">
-                        <Button Color="Color.Primary" Outline Clicked="() => SimulateMultipleReads(5)" Block ElementId="simulate-5-button">
+        <div class="col-md-6">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="card-title mb-0">Quick Actions</h5>
+                </div>
+                <div class="card-body">
+                    <div class="d-grid gap-2">
+                        <button class="btn btn-outline-primary" @onclick="() => SimulateMultipleReads(5)">
                             Simulate 5 Random Reads
-                        </Button>
-                        <Button Color="Color.Success" Outline Clicked="() => SimulateMultipleReads(10)" Block ElementId="simulate-10-button">
+                        </button>
+                        <button class="btn btn-outline-success" @onclick="() => SimulateMultipleReads(10)">
                             Simulate 10 Random Reads
-                        </Button>
-                        <Button Color="Color.Info" Outline Clicked="StartContinuousSimulation" Disabled="isContinuousRunning" Block ElementId="start-continuous-button">
+                        </button>
+                        <button class="btn btn-outline-info" @onclick="StartContinuousSimulation" disabled="@isContinuousRunning">
                             @if (isContinuousRunning)
                             {
                                 <span>Continuous Running...</span>
@@ -84,32 +93,28 @@
                             {
                                 <span>Start Continuous Simulation</span>
                             }
-                        </Button>
-                        <Button Color="Color.Danger" Outline Clicked="StopContinuousSimulation" Disabled="@(!isContinuousRunning)" Block ElementId="stop-continuous-button">
+                        </button>
+                        <button class="btn btn-outline-danger" @onclick="StopContinuousSimulation" disabled="@(!isContinuousRunning)">
                             Stop Continuous
-                        </Button>
-                    </Buttons>
-                </CardBody>
-            </Card>
-        </Column>
-    </Row>
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
 
     @if (!string.IsNullOrEmpty(lastResult))
     {
-        <Row>
-            <Column>
-                <Alert Color="Color.Info" ElementId="last-result-alert">
-                    <AlertMessage>
-                        <Strong>Last Result:</Strong>
-                    </AlertMessage>
-                    <AlertDescription>
-                        <Div TextBreak ElementId="last-result-content">@lastResult</Div>
-                    </AlertDescription>
-                </Alert>
-            </Column>
-        </Row>
+        <div class="row">
+            <div class="col-12">
+                <div class="alert alert-info">
+                    <h6>Last Result:</h6>
+                    <div class="text-break">@lastResult</div>
+                </div>
+            </div>
+        </div>
     }
-</Container>
+</div>
 
 @code {
     private List<ReaderConfiguration> readers = new();

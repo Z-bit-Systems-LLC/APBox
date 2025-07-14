@@ -27,7 +27,7 @@
                         </AddonLabel>
                     </Addon>
                     <Addon AddonType="AddonType.Body">
-                        <TextEdit Placeholder="Search by card number or reader..." @bind-Text="searchTerm" @onkeyup="OnSearchChanged" ElementId="search-input" />
+                        <TextEdit Placeholder="Search by card number or reader..." @bind-Text="_searchTerm" @onkeyup="OnSearchChanged" ElementId="search-input" />
                     </Addon>
                 </Addons>
             </Field>
@@ -35,9 +35,9 @@
         <Column ColumnSize="ColumnSize.Is3.OnTablet">
             <Field>
                 <FieldLabel>Reader Filter</FieldLabel>
-                <Select @bind-SelectedValue="selectedReader" ElementId="reader-filter">
+                <Select @bind-SelectedValue="_selectedReader" ElementId="reader-filter">
                     <SelectItem Value="@("")">All Readers</SelectItem>
-                    @foreach (var reader in readers)
+                    @foreach (var reader in _readers)
                     {
                         <SelectItem Value="@reader.ReaderName">@reader.ReaderName</SelectItem>
                     }
@@ -58,10 +58,10 @@
         <Column>
             <Card ElementId="events-card">
                 <CardHeader>
-                    <CardTitle Size="5" Margin="Margin.Is0.FromBottom" ElementId="events-count">Recent Events (@filteredEvents.Count())</CardTitle>
+                    <CardTitle Size="5" Margin="Margin.Is0.FromBottom" ElementId="events-count">Recent Events (@FilteredEvents.Count())</CardTitle>
                 </CardHeader>
                 <CardBody>
-                    @if (filteredEvents.Any())
+                    @if (FilteredEvents.Any())
                     {
                         <Table Responsive Striped Hoverable ElementId="events-table">
                             <TableHeader>
@@ -75,7 +75,7 @@
                                 </TableRow>
                             </TableHeader>
                             <TableBody>
-                                @foreach (var cardEvent in filteredEvents.Take(pageSize))
+                                @foreach (var cardEvent in FilteredEvents.Take(_pageSize))
                                 {
                                     <TableRow>
                                         <TableRowCell>@cardEvent.Timestamp.ToString("MM/dd/yyyy HH:mm:ss")</TableRowCell>
@@ -108,10 +108,10 @@
                         </Div>
                     }
                     
-                    @if (filteredEvents.Count() > pageSize)
+                    @if (FilteredEvents.Count() > _pageSize)
                     {
                         <Div Flex="Flex.JustifyContent.Between.AlignItems.Center" Margin="Margin.Is3.FromTop" ElementId="load-more-section">
-                            <Span TextColor="TextColor.Muted">Showing @pageSize of @filteredEvents.Count() events</Span>
+                            <Span TextColor="TextColor.Muted">Showing @_pageSize of @FilteredEvents.Count() events</Span>
                             <Button Color="Color.Primary" Outline Clicked="LoadMoreEvents" ElementId="load-more-button">
                                 Load More
                             </Button>
@@ -124,13 +124,13 @@
 </Container>
 
 @code {
-    private List<CardReadEvent> allEvents = new();
-    private List<ReaderConfiguration> readers = new();
-    private string searchTerm = "";
-    private string selectedReader = "";
-    private int pageSize = 20;
+    private List<CardReadEvent> _allEvents = [];
+    private List<ReaderConfiguration> _readers = [];
+    private string _searchTerm = "";
+    private string _selectedReader = "";
+    private int _pageSize = 20;
 
-    private IEnumerable<CardReadEvent> filteredEvents => FilterEvents();
+    private IEnumerable<CardReadEvent> FilteredEvents => FilterEvents();
 
     protected override async Task OnInitializedAsync()
     {
@@ -143,7 +143,7 @@
         {
             // Load readers
             var readerConfigs = await ReaderService.GetReadersAsync();
-            readers = readerConfigs.ToList();
+            _readers = readerConfigs.ToList();
 
             // Load card events from database
             await LoadRecentEventsAsync();
@@ -159,55 +159,28 @@
         try
         {
             var eventEntities = await CardEventRepository.GetRecentAsync(500); // Load more for filtering
-            allEvents = eventEntities.Select(e => e.ToCardReadEvent()).ToList();
+            _allEvents = eventEntities.Select(e => e.ToCardReadEvent()).ToList();
         }
         catch (Exception ex)
         {
             Console.WriteLine($"Error loading recent events: {ex.Message}");
-            // Fallback to sample data for development
-            GenerateSampleEvents();
         }
-    }
-
-    private void GenerateSampleEvents()
-    {
-        var random = new Random();
-        var now = DateTime.Now;
-        
-        allEvents.Clear();
-        
-        for (int i = 0; i < 150; i++)
-        {
-            var readerIndex = random.Next(0, Math.Max(1, readers.Count));
-            var readerName = readers.Any() ? readers[readerIndex % readers.Count].ReaderName : $"Reader {random.Next(1, 5)}";
-            
-            allEvents.Add(new CardReadEvent
-            {
-                ReaderId = Guid.NewGuid(),
-                CardNumber = $"{random.Next(10000, 99999)}{random.Next(100, 999)}",
-                ReaderName = readerName,
-                Timestamp = now.AddMinutes(-random.Next(0, 1440 * 7)), // Last 7 days
-                BitLength = random.Next(0, 10) < 8 ? 26 : 37 // 80% 26-bit, 20% 37-bit
-            });
-        }
-        
-        allEvents = allEvents.OrderByDescending(e => e.Timestamp).ToList();
     }
 
     private IEnumerable<CardReadEvent> FilterEvents()
     {
-        var filtered = allEvents.AsEnumerable();
+        var filtered = _allEvents.AsEnumerable();
 
-        if (!string.IsNullOrWhiteSpace(searchTerm))
+        if (!string.IsNullOrWhiteSpace(_searchTerm))
         {
             filtered = filtered.Where(e => 
-                e.CardNumber.Contains(searchTerm, StringComparison.OrdinalIgnoreCase) ||
-                e.ReaderName.Contains(searchTerm, StringComparison.OrdinalIgnoreCase));
+                e.CardNumber.Contains(_searchTerm, StringComparison.OrdinalIgnoreCase) ||
+                e.ReaderName.Contains(_searchTerm, StringComparison.OrdinalIgnoreCase));
         }
 
-        if (!string.IsNullOrWhiteSpace(selectedReader))
+        if (!string.IsNullOrWhiteSpace(_selectedReader))
         {
-            filtered = filtered.Where(e => e.ReaderName == selectedReader);
+            filtered = filtered.Where(e => e.ReaderName == _selectedReader);
         }
 
         return filtered;
@@ -227,7 +200,7 @@
 
     private void LoadMoreEvents()
     {
-        pageSize += 20;
+        _pageSize += 20;
     }
 
     private void ViewEventDetails(CardReadEvent cardEvent)

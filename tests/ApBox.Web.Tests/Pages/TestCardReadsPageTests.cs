@@ -36,8 +36,11 @@ public class TestCardReadsPageTests : ApBoxTestContext
         var component = RenderComponent<ApBox.Web.Pages.TestCardReads>();
 
         // Assert
-        Assert.That(component.Find("h1").TextContent, Is.EqualTo("Test Card Reads"));
-        Assert.That(component.Find("p").TextContent, Contains.Substring("Simulate card reads"));
+        var title = component.Find("#test-card-reads-title");
+        Assert.That(title.TextContent, Is.EqualTo("Test Card Reads"));
+        
+        var subtitle = component.Find("#test-card-reads-subtitle");
+        Assert.That(subtitle.TextContent, Contains.Substring("Simulate card reads"));
     }
 
     [Test]
@@ -47,11 +50,11 @@ public class TestCardReadsPageTests : ApBoxTestContext
         var component = RenderComponent<ApBox.Web.Pages.TestCardReads>();
 
         // Assert
-        var select = component.Find("#readerSelect");
+        var select = component.Find("#reader-select");
         Assert.That(select, Is.Not.Null);
         
-        var options = component.FindAll("option");
-        Assert.That(options.Count, Is.GreaterThan(1)); // Should include default option + readers
+        var options = select.QuerySelectorAll("option");
+        Assert.That(options.Length, Is.GreaterThan(1)); // Should include default option + readers
     }
 
     [Test]
@@ -61,7 +64,7 @@ public class TestCardReadsPageTests : ApBoxTestContext
         var component = RenderComponent<ApBox.Web.Pages.TestCardReads>();
 
         // Assert
-        var input = component.Find("#cardNumber");
+        var input = component.Find("#card-number-input");
         Assert.That(input, Is.Not.Null);
         Assert.That(input.GetAttribute("placeholder"), Is.EqualTo("Enter card number"));
     }
@@ -73,7 +76,7 @@ public class TestCardReadsPageTests : ApBoxTestContext
         var component = RenderComponent<ApBox.Web.Pages.TestCardReads>();
 
         // Assert
-        var select = component.Find("#bitLength");
+        var select = component.Find("#bit-length-select");
         Assert.That(select, Is.Not.Null);
         
         var options = select.QuerySelectorAll("option");
@@ -87,7 +90,7 @@ public class TestCardReadsPageTests : ApBoxTestContext
         var component = RenderComponent<ApBox.Web.Pages.TestCardReads>();
 
         // Assert
-        var button = component.Find("button[type='submit']");
+        var button = component.Find("#simulate-button");
         Assert.That(button, Is.Not.Null);
         Assert.That(button.TextContent.Trim(), Is.EqualTo("Simulate Card Read"));
     }
@@ -99,7 +102,7 @@ public class TestCardReadsPageTests : ApBoxTestContext
         var component = RenderComponent<ApBox.Web.Pages.TestCardReads>();
 
         // Assert
-        var button = component.Find("button:contains('Generate Random')");
+        var button = component.Find("#generate-random-button");
         Assert.That(button, Is.Not.Null);
     }
 
@@ -110,8 +113,15 @@ public class TestCardReadsPageTests : ApBoxTestContext
         var component = RenderComponent<ApBox.Web.Pages.TestCardReads>();
 
         // Assert
-        var buttons = component.FindAll(".btn-outline-primary, .btn-outline-success, .btn-outline-info, .btn-outline-danger");
-        Assert.That(buttons.Count, Is.EqualTo(4));
+        var simulate5Button = component.Find("#simulate-5-button");
+        var simulate10Button = component.Find("#simulate-10-button");
+        var startContinuousButton = component.Find("#start-continuous-button");
+        var stopContinuousButton = component.Find("#stop-continuous-button");
+        
+        Assert.That(simulate5Button, Is.Not.Null);
+        Assert.That(simulate10Button, Is.Not.Null);
+        Assert.That(startContinuousButton, Is.Not.Null);
+        Assert.That(stopContinuousButton, Is.Not.Null);
     }
 
     [Test]
@@ -119,8 +129,8 @@ public class TestCardReadsPageTests : ApBoxTestContext
     {
         // Act
         var component = RenderComponent<ApBox.Web.Pages.TestCardReads>();
-        var cardNumberInput = component.Find("#cardNumber");
-        var generateButton = component.Find("button:contains('Generate Random')");
+        var cardNumberInput = component.Find("#card-number-input");
+        var generateButton = component.Find("#generate-random-button");
 
         // Verify initial state
         Assert.That(cardNumberInput.GetAttribute("value"), Is.Empty.Or.Null);
@@ -141,7 +151,7 @@ public class TestCardReadsPageTests : ApBoxTestContext
         var component = RenderComponent<ApBox.Web.Pages.TestCardReads>();
 
         // Assert
-        var bitLengthSelect = component.Find("#bitLength");
+        var bitLengthSelect = component.Find("#bit-length-select");
         Assert.That(bitLengthSelect.GetAttribute("value"), Is.EqualTo("26"));
     }
 
@@ -162,7 +172,7 @@ public class TestCardReadsPageTests : ApBoxTestContext
         var component = RenderComponent<ApBox.Web.Pages.TestCardReads>();
 
         // Assert
-        var alertElements = component.FindAll(".alert-info");
+        var alertElements = component.FindAll("#last-result-alert");
         Assert.That(alertElements.Count, Is.EqualTo(0));
     }
 
@@ -173,8 +183,8 @@ public class TestCardReadsPageTests : ApBoxTestContext
         var component = RenderComponent<ApBox.Web.Pages.TestCardReads>();
 
         // Assert
-        var startButton = component.Find("button:contains('Start Continuous Simulation')");
-        var stopButton = component.Find("button:contains('Stop Continuous')");
+        var startButton = component.Find("#start-continuous-button");
+        var stopButton = component.Find("#stop-continuous-button");
         
         Assert.That(startButton, Is.Not.Null);
         Assert.That(stopButton, Is.Not.Null);
