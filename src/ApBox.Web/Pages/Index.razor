@@ -151,9 +151,9 @@
                         <Div TextAlignment="TextAlignment.Center" Padding="Padding.Is3" ElementId="no-readers-message">
                             <Icon Name="IconName.Tv" IconSize="IconSize.x3" TextColor="TextColor.Muted" />
                             <Heading Size="HeadingSize.Is6" Margin="Margin.Is2.FromTop" TextColor="TextColor.Muted">No readers configured</Heading>
-                            <Button Color="Color.Primary" Size="Size.Small" Margin="Margin.Is2.FromTop" To="/configuration">
-                                Add Reader
-                            </Button>
+                            <Paragraph TextColor="TextColor.Muted" Margin="Margin.Is1.FromTop">
+                                <Anchor To="/configuration" ElementId="configure-readers-link">Configure readers</Anchor> to get started
+                            </Paragraph>
                         </Div>
                     }
                 </CardBody>

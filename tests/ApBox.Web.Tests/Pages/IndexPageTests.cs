@@ -140,6 +140,12 @@ public class IndexPageTests : ApBoxTestContext
         // Should show "No readers configured" message
         var noReadersMessage = component.Find("#no-readers-message");
         Assert.That(noReadersMessage, Is.Not.Null);
+        
+        // Should show link to configuration page
+        var configureLink = component.Find("#configure-readers-link");
+        Assert.That(configureLink, Is.Not.Null);
+        Assert.That(configureLink.GetAttribute("href"), Is.EqualTo("/configuration"));
+        Assert.That(configureLink.TextContent, Is.EqualTo("Configure readers"));
     }
 
     [Test]
@@ -155,5 +161,25 @@ public class IndexPageTests : ApBoxTestContext
         // Assert
         var pluginsValue = component.Find("#loaded-plugins-value");
         Assert.That(pluginsValue.TextContent, Is.EqualTo("0"));
+    }
+    
+    [Test]
+    public void Index_DoesNotShowConfigureLinkWhenReadersExist()
+    {
+        // Arrange - Default mock setup includes readers
+        
+        // Act
+        var component = RenderComponent<ApBox.Web.Pages.Index>();
+
+        // Assert
+        var readersValue = component.Find("#active-readers-value");
+        Assert.That(readersValue.TextContent, Is.EqualTo("2")); // Default mock has 2 readers
+        
+        // Should NOT show the "no readers" message or configure link
+        var noReadersMessages = component.FindAll("#no-readers-message");
+        Assert.That(noReadersMessages.Count, Is.EqualTo(0));
+        
+        var configureLinks = component.FindAll("#configure-readers-link");
+        Assert.That(configureLinks.Count, Is.EqualTo(0));
     }
 }
