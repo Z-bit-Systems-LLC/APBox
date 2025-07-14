@@ -52,37 +52,8 @@ public static class ServiceCollectionExtensions
     
     private static async Task SeedDefaultDataAsync(IServiceProvider serviceProvider)
     {
-        var readerRepo = serviceProvider.GetRequiredService<IReaderConfigurationRepository>();
         var logger = serviceProvider.GetRequiredService<ILogger<ReaderConfigurationService>>();
-        
-        // Check if we already have readers
-        var existingReaders = await readerRepo.GetAllAsync();
-        if (existingReaders.Any())
-        {
-            logger.LogInformation("Database already contains {Count} reader configurations", existingReaders.Count());
-            return;
-        }
-        
-        // Seed with default readers
-        var defaultReaders = new[]
-        {
-            new ReaderConfiguration
-            {
-                ReaderId = Guid.Parse("12345678-1234-1234-1234-123456789abc"),
-                ReaderName = "Main Entrance"
-            },
-            new ReaderConfiguration
-            {
-                ReaderId = Guid.Parse("87654321-4321-4321-4321-cba987654321"),
-                ReaderName = "Loading Dock"
-            }
-        };
-        
-        foreach (var reader in defaultReaders)
-        {
-            await readerRepo.CreateAsync(reader);
-        }
-        
-        logger.LogInformation("Seeded database with {Count} default reader configurations", defaultReaders.Length);
+        logger.LogInformation("Starting with empty reader configuration database - no seed data created");
+        await Task.CompletedTask;
     }
 }
