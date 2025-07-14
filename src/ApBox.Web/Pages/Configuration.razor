@@ -14,22 +14,22 @@
     <!-- Navigation Tabs -->
     <Row Margin="Margin.Is4.FromBottom">
         <Column>
-            <Tabs SelectedTab="@activeTab" SelectedTabChanged="@OnSelectedTabChanged" Pills ElementId="configuration-tabs">
+            <Tabs SelectedTab="@_activeTab" SelectedTabChanged="@OnSelectedTabChanged" Pills ElementId="configuration-tabs">
                 <Items>
-                    <Tab Name="readers" ElementId="readers-tab">
-                        <Icon Name="IconName.Tv" Margin="Margin.Is2.FromEnd" />
+                    <Tab Name="readers">
+                        <Icon Name="IconName.Tv" Margin="Margin.Is2.FromEnd"  ElementId="readers-tab" />
                         Readers
                     </Tab>
-                    <Tab Name="feedback" ElementId="feedback-tab">
-                        <Icon Name="IconName.Bell" Margin="Margin.Is2.FromEnd" />
+                    <Tab Name="feedback" >
+                        <Icon Name="IconName.Bell" Margin="Margin.Is2.FromEnd" ElementId="feedback-tab" />
                         Feedback
                     </Tab>
-                    <Tab Name="plugins" ElementId="plugins-tab">
-                        <Icon Name="IconName.PuzzlePiece" Margin="Margin.Is2.FromEnd" />
+                    <Tab Name="plugins">
+                        <Icon Name="IconName.PuzzlePiece" Margin="Margin.Is2.FromEnd" ElementId="plugins-tab" />
                         Plugins
                     </Tab>
-                    <Tab Name="system" ElementId="system-tab">
-                        <Icon Name="IconName.Settings" Margin="Margin.Is2.FromEnd" />
+                    <Tab Name="system">
+                        <Icon Name="IconName.Settings" Margin="Margin.Is2.FromEnd" ElementId="system-tab" />
                         System
                     </Tab>
                 </Items>
@@ -53,29 +53,29 @@
 </Container>
 
 <!-- Status Messages -->
-@if (!string.IsNullOrEmpty(statusMessage))
+@if (!string.IsNullOrEmpty(_statusMessage))
 {
-    <Toast @ref="statusToast" Visible="true" ElementId="status-toast">
+    <Toast @ref="_statusToast" Visible="true" ElementId="status-toast">
         <ToastHeader>
             <Icon Name="@GetToastIcon()" Margin="Margin.Is2.FromEnd" />
             <Strong Margin="Margin.IsAuto.FromEnd">@GetToastTitle()</Strong>
             <CloseButton Clicked="ClearStatusMessage" />
         </ToastHeader>
         <ToastBody>
-            @statusMessage
+            @_statusMessage
         </ToastBody>
     </Toast>
 }
 
 @code {
-    private string activeTab = "readers";
-    private string statusMessage = "";
-    private string statusMessageType = "info";
-    private Toast? statusToast;
+    private string _activeTab = "readers";
+    private string _statusMessage = "";
+    private string _statusMessageType = "info";
+    private Toast? _statusToast;
 
     private Task OnSelectedTabChanged(string name)
     {
-        activeTab = name;
+        _activeTab = name;
         return Task.CompletedTask;
     }
 
@@ -84,20 +84,20 @@
         var parts = message.Split('|');
         if (parts.Length == 2)
         {
-            statusMessage = parts[0];
-            statusMessageType = parts[1];
+            _statusMessage = parts[0];
+            _statusMessageType = parts[1];
         }
         else
         {
-            statusMessage = message;
-            statusMessageType = "info";
+            _statusMessage = message;
+            _statusMessageType = "info";
         }
         
         StateHasChanged();
         
         // Auto-hide after 5 seconds
         await Task.Delay(5000);
-        if (statusMessage == parts[0]) // Only clear if it's still the same message
+        if (_statusMessage == parts[0]) // Only clear if it's still the same message
         {
             ClearStatusMessage();
         }
@@ -105,13 +105,13 @@
 
     private void ClearStatusMessage()
     {
-        statusMessage = "";
+        _statusMessage = "";
         StateHasChanged();
     }
 
     private IconName GetToastIcon()
     {
-        return statusMessageType switch
+        return _statusMessageType switch
         {
             "success" => IconName.Check,
             "warning" => IconName.ExclamationTriangle,
@@ -122,7 +122,7 @@
 
     private string GetToastTitle()
     {
-        return statusMessageType switch
+        return _statusMessageType switch
         {
             "success" => "Success",
             "warning" => "Warning",
