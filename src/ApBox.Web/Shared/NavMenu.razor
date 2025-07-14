@@ -1,49 +1,52 @@
-﻿<div class="top-row ps-3 navbar navbar-dark">
-    <div class="container-fluid">
-        <a class="navbar-brand" href="">ApBox</a>
-        <button title="Navigation menu" class="navbar-toggler" @onclick="ToggleNavMenu">
-            <span class="navbar-toggler-icon"></span>
-        </button>
-    </div>
-</div>
-
-<div class="@NavMenuCssClass nav-scrollable" @onclick="ToggleNavMenu">
-    <nav class="flex-column">
-        <div class="nav-item px-3">
-            <NavLink class="nav-link" href="" Match="NavLinkMatch.All">
-                <span class="oi oi-home" aria-hidden="true"></span> Dashboard
-            </NavLink>
-        </div>
-        <div class="nav-item px-3">
-            <NavLink class="nav-link" href="card-events">
-                <span class="oi oi-credit-card" aria-hidden="true"></span> Card Events
-            </NavLink>
-        </div>
-        <div class="nav-item px-3">
-            <NavLink class="nav-link" href="test-card-reads">
-                <span class="oi oi-play-circle" aria-hidden="true"></span> Test Card Reads
-            </NavLink>
-        </div>
-        <div class="nav-item px-3">
-            <NavLink class="nav-link" href="configuration">
-                <span class="oi oi-cog" aria-hidden="true"></span> Configuration
-            </NavLink>
-        </div>
-        <div class="nav-item px-3">
-            <NavLink class="nav-link" href="swagger" target="_blank">
-                <span class="oi oi-code" aria-hidden="true"></span> API Documentation
-            </NavLink>
-        </div>
-    </nav>
-</div>
+<Bar Mode="BarMode.VerticalInline"
+     CollapseMode="BarCollapseMode.Small"
+     Visibility="Visibility.Visible"
+     Breakpoint="Breakpoint.Desktop"
+     ThemeContrast="ThemeContrast.Light">
+    <BarBrand>
+        <BarItem>
+            <BarLink To="">
+                <BarIcon IconName="IconName.Home" />
+                ApBox
+            </BarLink>
+        </BarItem>
+    </BarBrand>
+    <BarMenu>
+        <BarStart>
+            <BarItem>
+                <BarLink To="" Match="Match.All">
+                    <BarIcon IconName="IconName.Home" />
+                    Dashboard
+                </BarLink>
+            </BarItem>
+            <BarItem>
+                <BarLink To="card-events">
+                    <BarIcon IconName="IconName.CreditCard" />
+                    Card Events
+                </BarLink>
+            </BarItem>
+            <BarItem>
+                <BarLink To="test-card-reads">
+                    <BarIcon IconName="IconName.Play" />
+                    Test Card Reads
+                </BarLink>
+            </BarItem>
+            <BarItem>
+                <BarLink To="configuration">
+                    <BarIcon IconName="IconName.Settings" />
+                    Configuration
+                </BarLink>
+            </BarItem>
+            <BarItem>
+                <BarLink To="swagger" Target="Target.Blank">
+                    <BarIcon IconName="IconName.Code" />
+                    API Documentation
+                </BarLink>
+            </BarItem>
+        </BarStart>
+    </BarMenu>
+</Bar>
 
 @code {
-    private bool collapseNavMenu = true;
-
-    private string? NavMenuCssClass => collapseNavMenu ? "collapse" : null;
-
-    private void ToggleNavMenu()
-    {
-        collapseNavMenu = !collapseNavMenu;
-    }
+    // Bar component handles responsive behavior automatically
 }

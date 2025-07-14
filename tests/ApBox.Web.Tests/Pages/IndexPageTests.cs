@@ -3,6 +3,7 @@ using ApBox.Web.Pages;
 using ApBox.Plugins;
 using Microsoft.Extensions.DependencyInjection;
 using Moq;
+using AngleSharp.Dom;
 
 namespace ApBox.Web.Tests.Pages;
 
@@ -35,10 +36,10 @@ public class IndexPageTests : ApBoxTestContext
         var component = RenderComponent<ApBox.Web.Pages.Index>();
 
         // Assert
-        var pageTitle = component.Find("h1.display-4");
+        var pageTitle = component.Find("#dashboard-title");
         Assert.That(pageTitle.TextContent, Is.EqualTo("ApBox Dashboard"));
         
-        var subtitle = component.Find("p.text-muted");
+        var subtitle = component.Find("#dashboard-subtitle");
         Assert.That(subtitle.TextContent, Is.EqualTo("Card Reader Management System"));
     }
 
@@ -49,24 +50,17 @@ public class IndexPageTests : ApBoxTestContext
         var component = RenderComponent<ApBox.Web.Pages.Index>();
 
         // Assert - Should have 4 metric cards
-        var metricCards = component.FindAll(".metric-card");
-        Assert.That(metricCards.Count, Is.EqualTo(4));
+        var activeReadersCard = component.Find("#active-readers-card");
+        Assert.That(activeReadersCard, Is.Not.Null);
 
-        // Check for Active Readers card
-        var readersCard = component.Find(".metric-card:contains('Active Readers')");
-        Assert.That(readersCard, Is.Not.Null);
+        var loadedPluginsCard = component.Find("#loaded-plugins-card");
+        Assert.That(loadedPluginsCard, Is.Not.Null);
 
-        // Check for Loaded Plugins card
-        var pluginsCard = component.Find(".metric-card:contains('Loaded Plugins')");
-        Assert.That(pluginsCard, Is.Not.Null);
+        var cardEventsCard = component.Find("#card-events-card");
+        Assert.That(cardEventsCard, Is.Not.Null);
 
-        // Check for Card Events card
-        var eventsCard = component.Find(".metric-card:contains('Card Events Today')");
-        Assert.That(eventsCard, Is.Not.Null);
-
-        // Check for System Status card
-        var statusCard = component.Find(".metric-card:contains('System Status')");
-        Assert.That(statusCard, Is.Not.Null);
+        var systemStatusCard = component.Find("#system-status-card");
+        Assert.That(systemStatusCard, Is.Not.Null);
     }
 
     [Test]
@@ -76,12 +70,12 @@ public class IndexPageTests : ApBoxTestContext
         var component = RenderComponent<ApBox.Web.Pages.Index>();
 
         // Assert
-        var eventsSection = component.Find("h5:contains('Recent Card Events')");
+        var eventsSection = component.Find("#recent-events-section");
         Assert.That(eventsSection, Is.Not.Null);
 
         // Should have events table or empty message
-        var hasTable = component.FindAll("table").Count > 0;
-        var hasEmptyMessage = component.FindAll("p:contains('No recent card events')").Count > 0;
+        var hasTable = component.FindAll("#recent-events-table").Count > 0;
+        var hasEmptyMessage = component.FindAll("#no-events-message").Count > 0;
         Assert.That(hasTable || hasEmptyMessage, Is.True);
     }
 
@@ -92,7 +86,7 @@ public class IndexPageTests : ApBoxTestContext
         var component = RenderComponent<ApBox.Web.Pages.Index>();
 
         // Assert
-        var statusSection = component.Find("h5:contains('Reader Status')");
+        var statusSection = component.Find("#reader-status-section");
         Assert.That(statusSection, Is.Not.Null);
     }
 
@@ -105,9 +99,8 @@ public class IndexPageTests : ApBoxTestContext
         var component = RenderComponent<ApBox.Web.Pages.Index>();
 
         // Assert
-        var readersCard = component.Find(".metric-card:contains('Active Readers')");
-        var metricValue = readersCard.QuerySelector(".metric-value");
-        Assert.That(metricValue?.TextContent, Is.EqualTo("2"));
+        var readersValue = component.Find("#active-readers-value");
+        Assert.That(readersValue.TextContent, Is.EqualTo("2"));
     }
 
     [Test]
@@ -119,9 +112,8 @@ public class IndexPageTests : ApBoxTestContext
         var component = RenderComponent<ApBox.Web.Pages.Index>();
 
         // Assert
-        var pluginsCard = component.Find(".metric-card:contains('Loaded Plugins')");
-        var metricValue = pluginsCard.QuerySelector(".metric-value");
-        Assert.That(metricValue?.TextContent, Is.EqualTo("1"));
+        var pluginsValue = component.Find("#loaded-plugins-value");
+        Assert.That(pluginsValue.TextContent, Is.EqualTo("1"));
     }
 
     [Test]
@@ -146,12 +138,11 @@ public class IndexPageTests : ApBoxTestContext
         var component = RenderComponent<ApBox.Web.Pages.Index>();
 
         // Assert
-        var readersCard = component.Find(".metric-card:contains('Active Readers')");
-        var metricValue = readersCard.QuerySelector(".metric-value");
-        Assert.That(metricValue?.TextContent, Is.EqualTo("0"));
+        var readersValue = component.Find("#active-readers-value");
+        Assert.That(readersValue.TextContent, Is.EqualTo("0"));
 
         // Should show "No readers configured" message
-        var noReadersMessage = component.Find("p:contains('No readers configured')");
+        var noReadersMessage = component.Find("#no-readers-message");
         Assert.That(noReadersMessage, Is.Not.Null);
     }
 
@@ -166,8 +157,7 @@ public class IndexPageTests : ApBoxTestContext
         var component = RenderComponent<ApBox.Web.Pages.Index>();
 
         // Assert
-        var pluginsCard = component.Find(".metric-card:contains('Loaded Plugins')");
-        var metricValue = pluginsCard.QuerySelector(".metric-value");
-        Assert.That(metricValue?.TextContent, Is.EqualTo("0"));
+        var pluginsValue = component.Find("#loaded-plugins-value");
+        Assert.That(pluginsValue.TextContent, Is.EqualTo("0"));
     }
 }

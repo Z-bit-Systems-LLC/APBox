@@ -3,6 +3,10 @@ using Microsoft.Extensions.DependencyInjection;
 using ApBox.Core.Services;
 using ApBox.Plugins;
 using Moq;
+using Blazorise;
+using Blazorise.Bootstrap5;
+using Blazorise.Icons.FontAwesome;
+using Blazorise.Tests.bUnit;
 
 namespace ApBox.Web.Tests;
 
@@ -20,6 +24,12 @@ public class ApBoxTestContext : Bunit.TestContext
         MockCardProcessingService = new Mock<ICardProcessingService>();
         MockPluginLoader = new Mock<IPluginLoader>();
         MockReaderConfigurationService = new Mock<IReaderConfigurationService>();
+
+        // Configure Blazorise for testing
+        Services
+            .AddBlazoriseTests()
+            .AddBootstrap5Providers()
+            .AddFontAwesomeIcons();
 
         // Register mocked services
         Services.AddSingleton(MockReaderService.Object);

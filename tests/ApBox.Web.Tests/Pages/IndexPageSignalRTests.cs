@@ -5,7 +5,6 @@ using Bunit;
 using Microsoft.Extensions.DependencyInjection;
 using Moq;
 using NUnit.Framework;
-using AngleSharp.Dom;
 using Microsoft.AspNetCore.Components;
 
 namespace ApBox.Web.Tests.Pages;
@@ -51,10 +50,10 @@ public class IndexPageSignalRTests : ApBoxTestContext
         var component = RenderComponent<ApBox.Web.Pages.Index>();
 
         // Assert
-        var cardEventsCard = component.Find("h5:contains('Recent Card Events')");
-        Assert.That(cardEventsCard, Is.Not.Null);
+        var cardEventsSection = component.Find("#recent-events-section");
+        Assert.That(cardEventsSection, Is.Not.Null);
         
-        var table = component.Find("table");
+        var table = component.Find("#recent-events-table");
         Assert.That(table, Is.Not.Null);
         
         // Check table headers
@@ -77,7 +76,7 @@ public class IndexPageSignalRTests : ApBoxTestContext
         Assert.That(tableRows.Count, Is.GreaterThan(0), "Should display sample card events");
         
         // Check that events are displayed with proper structure
-        var firstRow = tableRows.First();
+        var firstRow = tableRows[0];
         var cells = firstRow.QuerySelectorAll("td");
         Assert.That(cells.Length, Is.EqualTo(4));
         
@@ -117,21 +116,17 @@ public class IndexPageSignalRTests : ApBoxTestContext
         // Act
         var component = RenderComponent<ApBox.Web.Pages.Index>();
 
-        // Assert
-        var metricCards = component.FindAll(".metric-card");
-        Assert.That(metricCards.Count, Is.EqualTo(4));
-        
-        // Check each metric card
-        var activeReadersCard = component.Find(".metric-card:contains('Active Readers')");
+        // Assert - Check each metric card by ElementId
+        var activeReadersCard = component.Find("#active-readers-card");
         Assert.That(activeReadersCard, Is.Not.Null);
         
-        var loadedPluginsCard = component.Find(".metric-card:contains('Loaded Plugins')");
+        var loadedPluginsCard = component.Find("#loaded-plugins-card");
         Assert.That(loadedPluginsCard, Is.Not.Null);
         
-        var cardEventsCard = component.Find(".metric-card:contains('Card Events Today')");
+        var cardEventsCard = component.Find("#card-events-card");
         Assert.That(cardEventsCard, Is.Not.Null);
         
-        var systemStatusCard = component.Find(".metric-card:contains('System Status')");
+        var systemStatusCard = component.Find("#system-status-card");
         Assert.That(systemStatusCard, Is.Not.Null);
     }
 
@@ -142,16 +137,13 @@ public class IndexPageSignalRTests : ApBoxTestContext
         var component = RenderComponent<ApBox.Web.Pages.Index>();
 
         // Assert
-        var readerStatusCard = component.Find("h5:contains('Reader Status')");
-        Assert.That(readerStatusCard, Is.Not.Null);
+        var readerStatusSection = component.Find("#reader-status-section");
+        Assert.That(readerStatusSection, Is.Not.Null);
         
-        // Should show configured readers
-        var readerEntries = component.FindAll(".d-flex:has(.badge)");
-        Assert.That(readerEntries.Count, Is.GreaterThan(0));
-        
-        // Check for "Online" badges
-        var onlineBadges = component.FindAll(".badge.bg-success:contains('Online')");
-        Assert.That(onlineBadges.Count, Is.GreaterThan(0));
+        // Check for "Online" status badges
+        var statusBadge = component.Find("#reader-status-badge");
+        Assert.That(statusBadge, Is.Not.Null);
+        Assert.That(statusBadge.TextContent, Is.EqualTo("Online"));
     }
 
     [Test]
@@ -165,7 +157,7 @@ public class IndexPageSignalRTests : ApBoxTestContext
         var component = RenderComponent<ApBox.Web.Pages.Index>();
 
         // Assert
-        var noReadersMessage = component.Find("p:contains('No readers configured')");
+        var noReadersMessage = component.Find("#no-readers-message");
         Assert.That(noReadersMessage, Is.Not.Null);
     }
 
@@ -187,9 +179,9 @@ public class IndexPageSignalRTests : ApBoxTestContext
         var component = RenderComponent<ApBox.Web.Pages.Index>();
 
         // Assert
-        var activeReadersMetric = component.Find(".metric-card:contains('Active Readers') .metric-value");
-        Assert.That(activeReadersMetric, Is.Not.Null);
-        Assert.That(activeReadersMetric.TextContent, Is.EqualTo("2")); // Based on our mock setup
+        var activeReadersValue = component.Find("#active-readers-value");
+        Assert.That(activeReadersValue, Is.Not.Null);
+        Assert.That(activeReadersValue.TextContent, Is.EqualTo("2")); // Based on our mock setup
     }
 
     [Test]
@@ -199,9 +191,9 @@ public class IndexPageSignalRTests : ApBoxTestContext
         var component = RenderComponent<ApBox.Web.Pages.Index>();
 
         // Assert
-        var loadedPluginsMetric = component.Find(".metric-card:contains('Loaded Plugins') .metric-value");
-        Assert.That(loadedPluginsMetric, Is.Not.Null);
-        Assert.That(loadedPluginsMetric.TextContent, Is.EqualTo("0")); // Based on our mock setup (empty plugins list)
+        var loadedPluginsValue = component.Find("#loaded-plugins-value");
+        Assert.That(loadedPluginsValue, Is.Not.Null);
+        Assert.That(loadedPluginsValue.TextContent, Is.EqualTo("0")); // Based on our mock setup (empty plugins list)
     }
 
     [Test]
@@ -211,9 +203,9 @@ public class IndexPageSignalRTests : ApBoxTestContext
         var component = RenderComponent<ApBox.Web.Pages.Index>();
 
         // Assert
-        var systemStatusMetric = component.Find(".metric-card:contains('System Status') .metric-value");
-        Assert.That(systemStatusMetric, Is.Not.Null);
-        Assert.That(systemStatusMetric.TextContent, Is.EqualTo("Online"));
+        var systemStatusValue = component.Find("#system-status-value");
+        Assert.That(systemStatusValue, Is.Not.Null);
+        Assert.That(systemStatusValue.TextContent, Is.EqualTo("Online"));
     }
 
     [Test]
@@ -223,11 +215,11 @@ public class IndexPageSignalRTests : ApBoxTestContext
         var component = RenderComponent<ApBox.Web.Pages.Index>();
 
         // Assert
-        var cardEventsTodayMetric = component.Find(".metric-card:contains('Card Events Today') .metric-value");
-        Assert.That(cardEventsTodayMetric, Is.Not.Null);
+        var cardEventsValue = component.Find("#card-events-value");
+        Assert.That(cardEventsValue, Is.Not.Null);
         
         // Should be a number (from sample events)
-        var value = cardEventsTodayMetric.TextContent;
+        var value = cardEventsValue.TextContent;
         Assert.That(int.TryParse(value, out _), Is.True, "Card events today should be a number");
     }
 }
