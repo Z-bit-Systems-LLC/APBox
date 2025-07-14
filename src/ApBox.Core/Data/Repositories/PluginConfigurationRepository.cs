@@ -1,6 +1,4 @@
-using ApBox.Core.Data.Models;
 using Dapper;
-using Microsoft.Extensions.Logging;
 
 namespace ApBox.Core.Data.Repositories;
 

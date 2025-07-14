@@ -1,24 +1,15 @@
 using ApBox.Core.Data.Models;
 using ApBox.Plugins;
 using Dapper;
-using Microsoft.Extensions.Logging;
 
 namespace ApBox.Core.Data.Repositories;
 
-public class ReaderConfigurationRepository : IReaderConfigurationRepository
+public class ReaderConfigurationRepository(IApBoxDbContext dbContext, ILogger<ReaderConfigurationRepository> logger)
+    : IReaderConfigurationRepository
 {
-    private readonly IApBoxDbContext _dbContext;
-    private readonly ILogger<ReaderConfigurationRepository> _logger;
-
-    public ReaderConfigurationRepository(IApBoxDbContext dbContext, ILogger<ReaderConfigurationRepository> logger)
-    {
-        _dbContext = dbContext;
-        _logger = logger;
-    }
-
     public async Task<IEnumerable<ReaderConfiguration>> GetAllAsync()
     {
-        using var connection = _dbContext.CreateDbConnectionAsync();
+        using var connection = dbContext.CreateDbConnectionAsync();
         connection.Open();
 
         var sql = @"
@@ -31,7 +22,7 @@ public class ReaderConfigurationRepository : IReaderConfigurationRepository
 
     public async Task<ReaderConfiguration?> GetByIdAsync(Guid readerId)
     {
-        using var connection = _dbContext.CreateDbConnectionAsync();
+        using var connection = dbContext.CreateDbConnectionAsync();
         connection.Open();
 
         var sql = @"
@@ -44,7 +35,7 @@ public class ReaderConfigurationRepository : IReaderConfigurationRepository
 
     public async Task<ReaderConfiguration> CreateAsync(ReaderConfiguration readerConfiguration)
     {
-        using var connection = _dbContext.CreateDbConnectionAsync();
+        using var connection = dbContext.CreateDbConnectionAsync();
         connection.Open();
 
         var entity = ReaderConfigurationEntity.FromReaderConfiguration(readerConfiguration);
@@ -56,7 +47,7 @@ public class ReaderConfigurationRepository : IReaderConfigurationRepository
         
         await connection.ExecuteAsync(sql, entity);
         
-        _logger.LogInformation("Created reader configuration for {ReaderName} ({ReaderId})", 
+        logger.LogInformation("Created reader configuration for {ReaderName} ({ReaderId})", 
             readerConfiguration.ReaderName, readerConfiguration.ReaderId);
         
         return readerConfiguration;
@@ -64,7 +55,7 @@ public class ReaderConfigurationRepository : IReaderConfigurationRepository
 
     public async Task<ReaderConfiguration> UpdateAsync(ReaderConfiguration readerConfiguration)
     {
-        using var connection = _dbContext.CreateDbConnectionAsync();
+        using var connection = dbContext.CreateDbConnectionAsync();
         connection.Open();
 
         var entity = ReaderConfigurationEntity.FromReaderConfiguration(readerConfiguration);
@@ -85,7 +76,7 @@ public class ReaderConfigurationRepository : IReaderConfigurationRepository
             throw new InvalidOperationException($"Reader configuration with ID {readerConfiguration.ReaderId} not found");
         }
         
-        _logger.LogInformation("Updated reader configuration for {ReaderName} ({ReaderId})", 
+        logger.LogInformation("Updated reader configuration for {ReaderName} ({ReaderId})", 
             readerConfiguration.ReaderName, readerConfiguration.ReaderId);
         
         return readerConfiguration;
@@ -93,7 +84,7 @@ public class ReaderConfigurationRepository : IReaderConfigurationRepository
 
     public async Task<bool> DeleteAsync(Guid readerId)
     {
-        using var connection = _dbContext.CreateDbConnectionAsync();
+        using var connection = dbContext.CreateDbConnectionAsync();
         connection.Open();
 
         var sql = "DELETE FROM reader_configurations WHERE reader_id = @ReaderId";
@@ -101,7 +92,7 @@ public class ReaderConfigurationRepository : IReaderConfigurationRepository
         
         if (rowsAffected > 0)
         {
-            _logger.LogInformation("Deleted reader configuration {ReaderId}", readerId);
+            logger.LogInformation("Deleted reader configuration {ReaderId}", readerId);
         }
         
         return rowsAffected > 0;
@@ -109,7 +100,7 @@ public class ReaderConfigurationRepository : IReaderConfigurationRepository
 
     public async Task<bool> ExistsAsync(Guid readerId)
     {
-        using var connection = _dbContext.CreateDbConnectionAsync();
+        using var connection = dbContext.CreateDbConnectionAsync();
         connection.Open();
 
         var sql = "SELECT COUNT(1) FROM reader_configurations WHERE reader_id = @ReaderId";

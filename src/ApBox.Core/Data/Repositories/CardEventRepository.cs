@@ -1,24 +1,15 @@
 using ApBox.Core.Data.Models;
 using ApBox.Plugins;
 using Dapper;
-using Microsoft.Extensions.Logging;
 
 namespace ApBox.Core.Data.Repositories;
 
-public class CardEventRepository : ICardEventRepository
+public class CardEventRepository(IApBoxDbContext dbContext, ILogger<CardEventRepository> logger)
+    : ICardEventRepository
 {
-    private readonly IApBoxDbContext _dbContext;
-    private readonly ILogger<CardEventRepository> _logger;
-
-    public CardEventRepository(IApBoxDbContext dbContext, ILogger<CardEventRepository> logger)
-    {
-        _dbContext = dbContext;
-        _logger = logger;
-    }
-
     public async Task<IEnumerable<CardEventEntity>> GetRecentAsync(int limit = 100)
     {
-        using var connection = _dbContext.CreateDbConnectionAsync();
+        using var connection = dbContext.CreateDbConnectionAsync();
         connection.Open();
         
         var sql = @"
@@ -31,7 +22,7 @@ public class CardEventRepository : ICardEventRepository
 
     public async Task<IEnumerable<CardEventEntity>> GetByReaderAsync(Guid readerId, int limit = 100)
     {
-        using var connection = _dbContext.CreateDbConnectionAsync();
+        using var connection = dbContext.CreateDbConnectionAsync();
         connection.Open();
         
         var sql = @"
@@ -45,7 +36,7 @@ public class CardEventRepository : ICardEventRepository
 
     public async Task<IEnumerable<CardEventEntity>> GetByDateRangeAsync(DateTime startDate, DateTime endDate, int limit = 1000)
     {
-        using var connection = _dbContext.CreateDbConnectionAsync();
+        using var connection = dbContext.CreateDbConnectionAsync();
         connection.Open();
         
         var sql = @"
@@ -64,7 +55,7 @@ public class CardEventRepository : ICardEventRepository
 
     public async Task<CardEventEntity> CreateAsync(CardReadEvent cardEvent, CardReadResult? result = null)
     {
-        using var connection = _dbContext.CreateDbConnectionAsync();
+        using var connection = dbContext.CreateDbConnectionAsync();
         connection.Open();
 
         var entity = CardEventEntity.FromCardReadEvent(cardEvent, result);
@@ -77,19 +68,19 @@ public class CardEventRepository : ICardEventRepository
         
         var id = await connection.QuerySingleAsync<long>(sql, new
         {
-            ReaderId = entity.ReaderId,
-            CardNumber = entity.CardNumber,
-            BitLength = entity.BitLength,
-            ReaderName = entity.ReaderName,
+            entity.ReaderId,
+            entity.CardNumber,
+            entity.BitLength,
+            entity.ReaderName,
             Success = entity.Success ? 1 : 0,
-            Message = entity.Message,
-            ProcessedByPlugin = entity.ProcessedByPlugin,
+            entity.Message,
+            entity.ProcessedByPlugin,
             Timestamp = entity.Timestamp.ToString("yyyy-MM-dd HH:mm:ss.fff")
         });
         
         entity.Id = id;
         
-        _logger.LogDebug("Created card event {Id} for card {CardNumber} on reader {ReaderName}", 
+        logger.LogDebug("Created card event {Id} for card {CardNumber} on reader {ReaderName}", 
             id, cardEvent.CardNumber, cardEvent.ReaderName);
         
         return entity;
@@ -97,7 +88,7 @@ public class CardEventRepository : ICardEventRepository
 
     public async Task<long> GetCountAsync()
     {
-        using var connection = _dbContext.CreateDbConnectionAsync();
+        using var connection = dbContext.CreateDbConnectionAsync();
         connection.Open();
 
         var sql = "SELECT COUNT(*) FROM card_events";
@@ -106,7 +97,7 @@ public class CardEventRepository : ICardEventRepository
 
     public async Task<long> GetCountByReaderAsync(Guid readerId)
     {
-        using var connection = _dbContext.CreateDbConnectionAsync();
+        using var connection = dbContext.CreateDbConnectionAsync();
         connection.Open();
 
         var sql = "SELECT COUNT(*) FROM card_events WHERE reader_id = @ReaderId";
