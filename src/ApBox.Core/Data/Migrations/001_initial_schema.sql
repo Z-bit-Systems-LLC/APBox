@@ -27,12 +27,12 @@ CREATE TABLE card_events (
 -- Plugin configurations table
 CREATE TABLE plugin_configurations (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
-    plugin_name TEXT NOT NULL UNIQUE,
-    version TEXT NOT NULL,
-    is_enabled BOOLEAN NOT NULL DEFAULT 1,
-    configuration_json TEXT,
+    plugin_name TEXT NOT NULL,
+    configuration_key TEXT NOT NULL,
+    configuration_value TEXT,
     created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-    updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
+    updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    UNIQUE(plugin_name, configuration_key)
 );
 
 -- System logs table
