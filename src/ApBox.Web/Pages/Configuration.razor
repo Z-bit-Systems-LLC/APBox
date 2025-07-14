@@ -3,90 +3,80 @@
 
 <PageTitle>Configuration - ApBox</PageTitle>
 
-<div class="container-fluid">
-    <div class="row mb-4">
-        <div class="col-12">
-            <h1 class="display-4">Configuration</h1>
-            <p class="text-muted">Manage readers, feedback settings, and system configuration</p>
-        </div>
-    </div>
+<Container Fluid ElementId="configuration-container">
+    <Row Margin="Margin.Is4.FromBottom">
+        <Column>
+            <Heading Size="HeadingSize.Is1" ElementId="configuration-title">Configuration</Heading>
+            <Paragraph TextColor="TextColor.Muted" ElementId="configuration-subtitle">Manage readers, feedback settings, and system configuration</Paragraph>
+        </Column>
+    </Row>
 
     <!-- Navigation Tabs -->
-    <div class="row mb-4">
-        <div class="col-12">
-            <ul class="nav nav-tabs" role="tablist">
-                <li class="nav-item" role="presentation">
-                    <button class='nav-link @(activeTab == "readers" ? "active" : "")' 
-                            @onclick='@(() => SetActiveTab("readers"))'
-                            type='button' role='tab'>
-                        <span class="oi oi-monitor me-2"></span>Readers
-                    </button>
-                </li>
-                <li class="nav-item" role="presentation">
-                    <button class='nav-link @(activeTab == "feedback" ? "active" : "")' 
-                            @onclick='@(() => SetActiveTab("feedback"))'
-                            type='button' role='tab'>
-                        <span class="oi oi-bell me-2"></span>Feedback
-                    </button>
-                </li>
-                <li class="nav-item" role="presentation">
-                    <button class='nav-link @(activeTab == "plugins" ? "active" : "")' 
-                            @onclick='@(() => SetActiveTab("plugins"))'
-                            type='button' role='tab'>
-                        <span class="oi oi-puzzle-piece me-2"></span>Plugins
-                    </button>
-                </li>
-                <li class="nav-item" role="presentation">
-                    <button class='nav-link @(activeTab == "system" ? "active" : "")' 
-                            @onclick='@(() => SetActiveTab("system"))'
-                            type='button' role='tab'>
-                        <span class="oi oi-cog me-2"></span>System
-                    </button>
-                </li>
-            </ul>
-        </div>
-    </div>
-
-    <!-- Tab Content -->
-    <div class="tab-content">
-        @if (activeTab == "readers")
-        {
-            <ReadersConfiguration OnShowMessage="HandleShowMessage" />
-        }
-        else if (activeTab == "feedback")
-        {
-            <FeedbackConfiguration OnShowMessage="HandleShowMessage" />
-        }
-        else if (activeTab == "plugins")
-        {
-            <PluginsConfiguration OnShowMessage="HandleShowMessage" />
-        }
-        else if (activeTab == "system")
-        {
-            <SystemConfiguration OnShowMessage="HandleShowMessage" />
-        }
-    </div>
-</div>
+    <Row Margin="Margin.Is4.FromBottom">
+        <Column>
+            <Tabs SelectedTab="@activeTab" SelectedTabChanged="@OnSelectedTabChanged" Pills ElementId="configuration-tabs">
+                <Items>
+                    <Tab Name="readers" ElementId="readers-tab">
+                        <Icon Name="IconName.Tv" Margin="Margin.Is2.FromEnd" />
+                        Readers
+                    </Tab>
+                    <Tab Name="feedback" ElementId="feedback-tab">
+                        <Icon Name="IconName.Bell" Margin="Margin.Is2.FromEnd" />
+                        Feedback
+                    </Tab>
+                    <Tab Name="plugins" ElementId="plugins-tab">
+                        <Icon Name="IconName.PuzzlePiece" Margin="Margin.Is2.FromEnd" />
+                        Plugins
+                    </Tab>
+                    <Tab Name="system" ElementId="system-tab">
+                        <Icon Name="IconName.Settings" Margin="Margin.Is2.FromEnd" />
+                        System
+                    </Tab>
+                </Items>
+                <Content>
+                    <TabPanel Name="readers">
+                        <ReadersConfiguration OnShowMessage="HandleShowMessage" />
+                    </TabPanel>
+                    <TabPanel Name="feedback">
+                        <FeedbackConfiguration OnShowMessage="HandleShowMessage" />
+                    </TabPanel>
+                    <TabPanel Name="plugins">
+                        <PluginsConfiguration OnShowMessage="HandleShowMessage" />
+                    </TabPanel>
+                    <TabPanel Name="system">
+                        <SystemConfiguration OnShowMessage="HandleShowMessage" />
+                    </TabPanel>
+                </Content>
+            </Tabs>
+        </Column>
+    </Row>
+</Container>
 
 <!-- Status Messages -->
 @if (!string.IsNullOrEmpty(statusMessage))
 {
-    <div class="position-fixed bottom-0 end-0 p-3" style="z-index: 1050">
-        <div class="alert alert-@statusMessageType alert-dismissible fade show" role="alert">
+    <Toast @ref="statusToast" Visible="true" ElementId="status-toast">
+        <ToastHeader>
+            <Icon Name="@GetToastIcon()" Margin="Margin.Is2.FromEnd" />
+            <Strong Margin="Margin.IsAuto.FromEnd">@GetToastTitle()</Strong>
+            <CloseButton Clicked="ClearStatusMessage" />
+        </ToastHeader>
+        <ToastBody>
             @statusMessage
-            <button type="button" class="btn-close" @onclick="ClearStatusMessage"></button>
-        </div>
-    </div>
+        </ToastBody>
+    </Toast>
 }
 
 @code {
     private string activeTab = "readers";
     private string statusMessage = "";
     private string statusMessageType = "info";
+    private Toast? statusToast;
 
-    private void SetActiveTab(string tab)
+    private Task OnSelectedTabChanged(string name)
     {
-        activeTab = tab;
+        activeTab = name;
+        return Task.CompletedTask;
     }
 
     private async Task HandleShowMessage(string message)
@@ -117,5 +107,27 @@
     {
         statusMessage = "";
         StateHasChanged();
+    }
+
+    private IconName GetToastIcon()
+    {
+        return statusMessageType switch
+        {
+            "success" => IconName.Check,
+            "warning" => IconName.ExclamationTriangle,
+            "danger" => IconName.ExclamationCircle,
+            _ => IconName.Info
+        };
+    }
+
+    private string GetToastTitle()
+    {
+        return statusMessageType switch
+        {
+            "success" => "Success",
+            "warning" => "Warning",
+            "danger" => "Error",
+            _ => "Information"
+        };
     }
 }
