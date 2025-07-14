@@ -1,12 +1,19 @@
 using System.Data;
 using Microsoft.Data.Sqlite;
 using ApBox.Core.Data.Migrations;
+using ApBox.Core.Data.Mappers;
 
 namespace ApBox.Core.Data;
 
 public class ApBoxDbContext(string connectionString, ILogger<ApBoxDbContext> logger, IMigrationRunner migrationRunner)
     : IApBoxDbContext
 {
+    static ApBoxDbContext()
+    {
+        // Configure Dapper to use snake_case to PascalCase mapping
+        DapperMappingExtensions.ConfigureSnakeCaseMapping();
+    }
+
     // Constructor for migration runner to avoid circular dependency
     public ApBoxDbContext(string connectionString, ILogger<ApBoxDbContext> logger) : this(connectionString, logger, null)
     {
