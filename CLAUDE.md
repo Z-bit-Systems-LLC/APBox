@@ -189,3 +189,7 @@ The detailed implementation plan is in `apbox_project_plan.md` (excluded from gi
 ## Testing Best Practices
 
 - Use ElementId attribute for finding components in UI tests
+
+## Development Memories
+
+- Use Blazorise components to render HTML pages

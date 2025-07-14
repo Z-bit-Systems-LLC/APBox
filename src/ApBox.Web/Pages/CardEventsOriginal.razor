@@ -1,0 +1,265 @@
+﻿@page "/card-events"
+@using ApBox.Core.Services
+@using ApBox.Plugins
+@inject ICardProcessingService CardProcessingService
+@inject IReaderService ReaderService
+
+<PageTitle>Card Events</PageTitle>
+
+<div class="container-fluid">
+    <div class="row">
+        <div class="col-12">
+            <h1 class="display-4">Card Events</h1>
+            <p class="text-muted">View and search card reader events</p>
+        </div>
+    </div>
+
+    <div class="row mb-4">
+        <div class="col-md-6">
+            <div class="input-group">
+                <span class="input-group-text">
+                    <span class="oi oi-magnifying-glass"></span>
+                </span>
+                <input type="text" class="form-control" placeholder="Search by card number or reader..." @bind="searchTerm" @oninput="OnSearchChanged" />
+            </div>
+        </div>
+        <div class="col-md-3">
+            <select class="form-select" @bind="selectedReader">
+                <option value="">All Readers</option>
+                @foreach (var reader in readers)
+                {
+                    <option value="@reader.ReaderName">@reader.ReaderName</option>
+                }
+            </select>
+        </div>
+        <div class="col-md-3">
+            <button class="btn btn-secondary w-100" @onclick="RefreshEvents">
+                <span class="oi oi-reload"></span> Refresh
+            </button>
+        </div>
+    </div>
+
+    <div class="row">
+        <div class="col-12">
+            <div class="card fade-in">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <h5 class="card-title mb-0">Recent Events (@filteredEvents.Count())</h5>
+                    <div class="btn-group btn-group-sm">
+                        <button class="btn @(viewMode == "table" ? "btn-primary" : "btn-outline-primary")" @onclick="@(() => SetViewMode("table"))">
+                            <span class="oi oi-spreadsheet"></span> Table
+                        </button>
+                        <button class="btn @(viewMode == "cards" ? "btn-primary" : "btn-outline-primary")" @onclick="@(() => SetViewMode("cards"))">
+                            <span class="oi oi-grid-three-up"></span> Cards
+                        </button>
+                    </div>
+                </div>
+                <div class="card-body">
+                    @if (viewMode == "table")
+                    {
+                        @if (filteredEvents.Any())
+                        {
+                            <div class="table-responsive">
+                                <table class="table table-striped table-hover">
+                                    <thead>
+                                        <tr>
+                                            <th>Timestamp</th>
+                                            <th>Reader</th>
+                                            <th>Card Number</th>
+                                            <th>Bit Length</th>
+                                            <th>Status</th>
+                                            <th>Actions</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        @foreach (var cardEvent in filteredEvents.Take(pageSize))
+                                        {
+                                            <tr>
+                                                <td>@cardEvent.Timestamp.ToString("MM/dd/yyyy HH:mm:ss")</td>
+                                                <td>
+                                                    <span class="badge bg-secondary">@cardEvent.ReaderName</span>
+                                                </td>
+                                                <td>
+                                                    <code>@cardEvent.CardNumber</code>
+                                                </td>
+                                                <td>@cardEvent.BitLength bits</td>
+                                                <td>
+                                                    <span class="badge bg-success">Processed</span>
+                                                </td>
+                                                <td>
+                                                    <button class="btn btn-sm btn-outline-primary" @onclick="() => ViewEventDetails(cardEvent)">
+                                                        <span class="oi oi-eye"></span>
+                                                    </button>
+                                                </td>
+                                            </tr>
+                                        }
+                                    </tbody>
+                                </table>
+                            </div>
+                        }
+                        else
+                        {
+                            <div class="text-center py-5">
+                                <span class="oi oi-credit-card" style="font-size: 3rem; color: #6c757d;"></span>
+                                <h4 class="mt-3">No Events Found</h4>
+                                <p class="text-muted">No card events match your current filters.</p>
+                            </div>
+                        }
+                    }
+                    else
+                    {
+                        @if (filteredEvents.Any())
+                        {
+                            <div class="row">
+                                @foreach (var cardEvent in filteredEvents.Take(pageSize))
+                                {
+                                    <div class="col-md-6 col-lg-4 mb-3">
+                                        <div class="card border-left-success">
+                                            <div class="card-body">
+                                                <div class="d-flex justify-content-between">
+                                                    <div>
+                                                        <h6 class="card-title">@cardEvent.ReaderName</h6>
+                                                        <p class="card-text">
+                                                            <strong>Card:</strong> <code>@cardEvent.CardNumber</code><br/>
+                                                            <strong>Time:</strong> @cardEvent.Timestamp.ToString("HH:mm:ss")<br/>
+                                                            <strong>Bits:</strong> @cardEvent.BitLength
+                                                        </p>
+                                                    </div>
+                                                    <div class="text-end">
+                                                        <span class="badge bg-success">OK</span>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                }
+                            </div>
+                        }
+                        else
+                        {
+                            <div class="text-center py-5">
+                                <span class="oi oi-credit-card" style="font-size: 3rem; color: #6c757d;"></span>
+                                <h4 class="mt-3">No Events Found</h4>
+                                <p class="text-muted">No card events match your current filters.</p>
+                            </div>
+                        }
+                    }
+                    
+                    @if (filteredEvents.Count() > pageSize)
+                    {
+                        <div class="d-flex justify-content-between align-items-center mt-3">
+                            <span class="text-muted">Showing @pageSize of @filteredEvents.Count() events</span>
+                            <button class="btn btn-outline-primary" @onclick="LoadMoreEvents">
+                                Load More
+                            </button>
+                        </div>
+                    }
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+@code {
+    private List<CardReadEvent> allEvents = new();
+    private List<ReaderConfiguration> readers = new();
+    private string searchTerm = "";
+    private string selectedReader = "";
+    private string viewMode = "table";
+    private int pageSize = 20;
+
+    private IEnumerable<CardReadEvent> filteredEvents => FilterEvents();
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadData();
+    }
+
+    private async Task LoadData()
+    {
+        try
+        {
+            // Load readers
+            var readerConfigs = await ReaderService.GetReadersAsync();
+            readers = readerConfigs.ToList();
+
+            // Generate sample events for demonstration
+            GenerateSampleEvents();
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error loading data: {ex.Message}");
+        }
+    }
+
+    private void GenerateSampleEvents()
+    {
+        var random = new Random();
+        var now = DateTime.Now;
+        
+        allEvents.Clear();
+        
+        for (int i = 0; i < 150; i++)
+        {
+            var readerIndex = random.Next(0, Math.Max(1, readers.Count));
+            var readerName = readers.Any() ? readers[readerIndex % readers.Count].ReaderName : $"Reader {random.Next(1, 5)}";
+            
+            allEvents.Add(new CardReadEvent
+            {
+                ReaderId = Guid.NewGuid(),
+                CardNumber = $"{random.Next(10000, 99999)}{random.Next(100, 999)}",
+                ReaderName = readerName,
+                Timestamp = now.AddMinutes(-random.Next(0, 1440 * 7)), // Last 7 days
+                BitLength = random.Next(0, 10) < 8 ? 26 : 37 // 80% 26-bit, 20% 37-bit
+            });
+        }
+        
+        allEvents = allEvents.OrderByDescending(e => e.Timestamp).ToList();
+    }
+
+    private IEnumerable<CardReadEvent> FilterEvents()
+    {
+        var filtered = allEvents.AsEnumerable();
+
+        if (!string.IsNullOrWhiteSpace(searchTerm))
+        {
+            filtered = filtered.Where(e => 
+                e.CardNumber.Contains(searchTerm, StringComparison.OrdinalIgnoreCase) ||
+                e.ReaderName.Contains(searchTerm, StringComparison.OrdinalIgnoreCase));
+        }
+
+        if (!string.IsNullOrWhiteSpace(selectedReader))
+        {
+            filtered = filtered.Where(e => e.ReaderName == selectedReader);
+        }
+
+        return filtered;
+    }
+
+    private void OnSearchChanged(ChangeEventArgs e)
+    {
+        searchTerm = e.Value?.ToString() ?? "";
+        StateHasChanged();
+    }
+
+    private void SetViewMode(string mode)
+    {
+        viewMode = mode;
+    }
+
+    private async Task RefreshEvents()
+    {
+        await LoadData();
+        StateHasChanged();
+    }
+
+    private void LoadMoreEvents()
+    {
+        pageSize += 20;
+    }
+
+    private void ViewEventDetails(CardReadEvent cardEvent)
+    {
+        // TODO: Implement event details modal or navigation
+        Console.WriteLine($"Viewing details for event: {cardEvent.CardNumber} at {cardEvent.Timestamp}");
+    }
+}

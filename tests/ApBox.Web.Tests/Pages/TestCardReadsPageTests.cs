@@ -1,10 +1,5 @@
-using ApBox.Core.Services;
 using ApBox.Plugins;
 using Bunit;
-using Microsoft.Extensions.DependencyInjection;
-using Moq;
-using NUnit.Framework;
-using AngleSharp.Dom;
 
 namespace ApBox.Web.Tests.Pages;
 
@@ -154,7 +149,7 @@ public class TestCardReadsPageTests : ApBoxTestContext
     public void TestCardReadsPage_ShouldLoadReadersOnInitialization()
     {
         // Act
-        var component = RenderComponent<ApBox.Web.Pages.TestCardReads>();
+        RenderComponent<ApBox.Web.Pages.TestCardReads>();
 
         // Assert - Verify the service was called
         MockReaderService.Verify(x => x.GetReadersAsync(), Times.Once);

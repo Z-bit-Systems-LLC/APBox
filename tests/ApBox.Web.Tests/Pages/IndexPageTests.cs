@@ -1,9 +1,5 @@
 using Bunit;
-using ApBox.Web.Pages;
 using ApBox.Plugins;
-using Microsoft.Extensions.DependencyInjection;
-using Moq;
-using AngleSharp.Dom;
 
 namespace ApBox.Web.Tests.Pages;
 
@@ -120,7 +116,7 @@ public class IndexPageTests : ApBoxTestContext
     public void Index_LoadsDataOnInitialization()
     {
         // Act
-        var component = RenderComponent<ApBox.Web.Pages.Index>();
+        RenderComponent<ApBox.Web.Pages.Index>();
 
         // Assert - Verify service calls were made
         MockReaderService.Verify(x => x.GetReadersAsync(), Times.Once);
