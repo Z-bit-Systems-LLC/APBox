@@ -5,8 +5,6 @@
 CREATE TABLE reader_configurations (
     reader_id TEXT PRIMARY KEY,
     reader_name TEXT NOT NULL,
-    default_feedback_json TEXT NOT NULL,
-    result_feedback_json TEXT,
     created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
     updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
 );

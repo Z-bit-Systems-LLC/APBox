@@ -26,26 +26,12 @@ public class ConfigurationPageTests : ApBoxTestContext
             new ReaderConfiguration
             {
                 ReaderId = Guid.Parse("12345678-1234-1234-1234-123456789abc"),
-                ReaderName = "Main Entrance",
-                DefaultFeedback = new ReaderFeedbackConfiguration
-                {
-                    Type = ReaderFeedbackType.Success,
-                    LedColor = LedColor.Green,
-                    BeepCount = 1,
-                    DisplayMessage = "SUCCESS"
-                }
+                ReaderName = "Main Entrance"
             },
             new ReaderConfiguration
             {
                 ReaderId = Guid.Parse("87654321-4321-4321-4321-cba987654321"),
-                ReaderName = "Back Door",
-                DefaultFeedback = new ReaderFeedbackConfiguration
-                {
-                    Type = ReaderFeedbackType.Failure,
-                    LedColor = LedColor.Red,
-                    BeepCount = 3,
-                    DisplayMessage = "DENIED"
-                }
+                ReaderName = "Back Door"
             }
         };
 

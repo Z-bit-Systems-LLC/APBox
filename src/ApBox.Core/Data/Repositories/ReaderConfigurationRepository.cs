@@ -42,8 +42,8 @@ public class ReaderConfigurationRepository(IApBoxDbContext dbContext, ILogger<Re
         
         var sql = @"
             INSERT INTO reader_configurations 
-            (reader_id, reader_name, default_feedback_json, result_feedback_json, created_at, updated_at)
-            VALUES (@ReaderId, @ReaderName, @DefaultFeedbackJson, @ResultFeedbackJson, @CreatedAt, @UpdatedAt)";
+            (reader_id, reader_name, created_at, updated_at)
+            VALUES (@ReaderId, @ReaderName, @CreatedAt, @UpdatedAt)";
         
         await connection.ExecuteAsync(sql, entity);
         
@@ -64,8 +64,6 @@ public class ReaderConfigurationRepository(IApBoxDbContext dbContext, ILogger<Re
         var sql = @"
             UPDATE reader_configurations 
             SET reader_name = @ReaderName, 
-                default_feedback_json = @DefaultFeedbackJson, 
-                result_feedback_json = @ResultFeedbackJson,
                 updated_at = @UpdatedAt
             WHERE reader_id = @ReaderId";
         

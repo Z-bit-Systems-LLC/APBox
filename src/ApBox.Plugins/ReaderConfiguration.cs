@@ -4,8 +4,6 @@ public class ReaderConfiguration
 {
     public Guid ReaderId { get; set; }
     public string ReaderName { get; set; } = string.Empty;
-    public ReaderFeedbackConfiguration? DefaultFeedback { get; set; }
-    public Dictionary<string, ReaderFeedbackConfiguration> ResultFeedback { get; set; } = new();
 }
 
 public class ReaderFeedbackConfiguration

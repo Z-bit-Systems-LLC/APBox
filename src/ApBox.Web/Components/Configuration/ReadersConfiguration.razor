@@ -1,7 +1,6 @@
 @using ApBox.Core.Services
 @using ApBox.Plugins
 @inject IReaderConfigurationService ReaderConfigurationService
-@inject IJSRuntime JSRuntime
 
 <Container Fluid>
     <Row Margin="Margin.Is3.FromBottom">
@@ -19,10 +18,10 @@
             </Row>
         </Column>
     </Row>
-    @if (readers.Any())
+    @if (_readers.Any())
     {
         <Row>
-            @foreach (var reader in readers)
+            @foreach (var reader in _readers)
             {
                 <Column ColumnSize="ColumnSize.Is6.OnTablet.Is4.OnDesktop" Margin="Margin.Is4.FromBottom">
                     <Card Height="Height.Is100">
@@ -73,22 +72,22 @@
 </Container>
 
 <!-- Add/Edit Reader Modal -->
-<Modal @ref="readerModal" ElementId="reader-modal">
+<Modal @ref="_readerModal" ElementId="reader-modal">
     <ModalContent Size="ModalSize.Large">
         <ModalHeader>
-            <ModalTitle>@(editingReader != null ? "Edit Reader" : "Add Reader")</ModalTitle>
+            <ModalTitle>@(_editingReader != null ? "Edit Reader" : "Add Reader")</ModalTitle>
             <CloseButton />
         </ModalHeader>
         <ModalBody>
             <Field>
                 <FieldLabel>Reader Name</FieldLabel>
-                <TextEdit @bind-Text="readerForm.ReaderName" Placeholder="e.g., Main Entrance" ElementId="reader-name-input" />
+                <TextEdit @bind-Text="_readerForm.ReaderName" Placeholder="e.g., Main Entrance" ElementId="reader-name-input" />
                 <FieldHelp>Enter a descriptive name for this reader</FieldHelp>
             </Field>
         </ModalBody>
         <ModalFooter>
             <Button Color="Color.Secondary" Clicked="CloseReaderModal">Cancel</Button>
-            <Button Color="Color.Primary" Clicked="SaveReader" Loading="saving" ElementId="save-reader-button">
+            <Button Color="Color.Primary" Clicked="SaveReader" Loading="_saving" ElementId="save-reader-button">
                 Save Reader
             </Button>
         </ModalFooter>
@@ -96,19 +95,19 @@
 </Modal>
 
 <!-- Delete Confirmation Modal -->
-<Modal @ref="deleteModal" ElementId="delete-modal">
+<Modal @ref="_deleteModal" ElementId="delete-modal">
     <ModalContent>
         <ModalHeader>
             <ModalTitle>Confirm Deletion</ModalTitle>
             <CloseButton />
         </ModalHeader>
         <ModalBody>
-            <Paragraph>Are you sure you want to delete the reader <Strong>@readerToDelete?.ReaderName</Strong>?</Paragraph>
+            <Paragraph>Are you sure you want to delete the reader <Strong>@_readerToDelete?.ReaderName</Strong>?</Paragraph>
             <Paragraph TextColor="TextColor.Muted">This action cannot be undone.</Paragraph>
         </ModalBody>
         <ModalFooter>
             <Button Color="Color.Secondary" Clicked="CloseDeleteModal">Cancel</Button>
-            <Button Color="Color.Danger" Clicked="ConfirmDeleteReader" Loading="deleting" ElementId="confirm-delete-button">
+            <Button Color="Color.Danger" Clicked="ConfirmDeleteReader" Loading="_deleting" ElementId="confirm-delete-button">
                 Delete Reader
             </Button>
         </ModalFooter>
@@ -118,18 +117,18 @@
 @code {
     [Parameter] public EventCallback<string> OnShowMessage { get; set; }
     
-    private List<ReaderConfiguration> readers = new();
+    private List<ReaderConfiguration> _readers = new();
     
     // Modal references
-    private Modal? readerModal;
-    private Modal? deleteModal;
-    private bool saving = false;
-    private bool deleting = false;
+    private Modal? _readerModal;
+    private Modal? _deleteModal;
+    private bool _saving;
+    private bool _deleting;
     
     // Form data
-    private ReaderFormModel readerForm = new();
-    private ReaderConfiguration? editingReader = null;
-    private ReaderConfiguration? readerToDelete = null;
+    private ReaderFormModel _readerForm = new();
+    private ReaderConfiguration? _editingReader;
+    private ReaderConfiguration? _readerToDelete;
 
     protected override async Task OnInitializedAsync()
     {
@@ -140,7 +139,7 @@
     {
         try
         {
-            readers = (await ReaderConfigurationService.GetAllReadersAsync()).ToList();
+            _readers = (await ReaderConfigurationService.GetAllReadersAsync()).ToList();
         }
         catch (Exception ex)
         {
@@ -150,66 +149,59 @@
 
     private async Task ShowAddReaderModal()
     {
-        editingReader = null;
-        readerForm = new ReaderFormModel();
-        await readerModal!.Show();
+        _editingReader = null;
+        _readerForm = new ReaderFormModel();
+        await _readerModal!.Show();
     }
 
     private async Task EditReader(ReaderConfiguration reader)
     {
-        editingReader = reader;
-        readerForm = ReaderFormModel.FromReaderConfiguration(reader);
-        await readerModal!.Show();
+        _editingReader = reader;
+        _readerForm = ReaderFormModel.FromReaderConfiguration(reader);
+        await _readerModal!.Show();
     }
 
     private async Task DeleteReader(ReaderConfiguration reader)
     {
-        readerToDelete = reader;
-        await deleteModal!.Show();
+        _readerToDelete = reader;
+        await _deleteModal!.Show();
     }
     
     private async Task CloseReaderModal()
     {
-        editingReader = null;
-        readerForm = new ReaderFormModel();
-        await readerModal!.Hide();
+        _editingReader = null;
+        _readerForm = new ReaderFormModel();
+        await _readerModal!.Hide();
     }
     
     private async Task CloseDeleteModal()
     {
-        readerToDelete = null;
-        await deleteModal!.Hide();
+        _readerToDelete = null;
+        await _deleteModal!.Hide();
     }
     
     private async Task SaveReader()
     {
-        if (string.IsNullOrWhiteSpace(readerForm.ReaderName))
+        if (string.IsNullOrWhiteSpace(_readerForm.ReaderName))
         {
             await OnShowMessage.InvokeAsync("Reader name is required|danger");
             return;
         }
         
-        saving = true;
+        _saving = true;
         StateHasChanged();
         
         try
         {
-            var readerConfig = readerForm.ToReaderConfiguration();
+            var readerConfig = _readerForm.ToReaderConfiguration();
             
             // Auto-generate GUID for new readers
-            if (editingReader == null)
-            {
-                readerConfig.ReaderId = Guid.NewGuid();
-            }
-            else
-            {
-                readerConfig.ReaderId = editingReader.ReaderId;
-            }
+            readerConfig.ReaderId = _editingReader?.ReaderId ?? Guid.NewGuid();
             
             // Save reader (handles both create and update)
             await ReaderConfigurationService.SaveReaderAsync(readerConfig);
             
-            if (editingReader != null)
+            if (_editingReader != null)
             {
                 await OnShowMessage.InvokeAsync($"Reader '{readerConfig.ReaderName}' updated successfully|success");
             }
@@ -227,22 +219,22 @@
         }
         finally
         {
-            saving = false;
+            _saving = false;
             StateHasChanged();
         }
     }
     
     private async Task ConfirmDeleteReader()
     {
-        if (readerToDelete == null) return;
+        if (_readerToDelete == null) return;
         
-        deleting = true;
+        _deleting = true;
         StateHasChanged();
         
         try
         {
-            await ReaderConfigurationService.DeleteReaderAsync(readerToDelete.ReaderId);
-            await OnShowMessage.InvokeAsync($"Reader '{readerToDelete.ReaderName}' deleted successfully|success");
+            await ReaderConfigurationService.DeleteReaderAsync(_readerToDelete.ReaderId);
+            await OnShowMessage.InvokeAsync($"Reader '{_readerToDelete.ReaderName}' deleted successfully|success");
             
             await CloseDeleteModal();
             await LoadData();
@@ -253,7 +245,7 @@
         }
         finally
         {
-            deleting = false;
+            _deleting = false;
             StateHasChanged();
         }
     }
@@ -276,16 +268,7 @@
             return new ReaderConfiguration
             {
                 ReaderId = Guid.Empty, // Will be set in SaveReader method
-                ReaderName = ReaderName,
-                DefaultFeedback = new ReaderFeedbackConfiguration
-                {
-                    Type = ReaderFeedbackType.Success,
-                    LedColor = LedColor.Green,
-                    BeepCount = 1,
-                    LedDurationMs = 1000,
-                    DisplayMessage = "ACCESS GRANTED"
-                },
-                ResultFeedback = new Dictionary<string, ReaderFeedbackConfiguration>()
+                ReaderName = ReaderName
             };
         }
     }

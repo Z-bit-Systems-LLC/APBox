@@ -69,39 +69,12 @@ public static class ServiceCollectionExtensions
             new ReaderConfiguration
             {
                 ReaderId = Guid.Parse("12345678-1234-1234-1234-123456789abc"),
-                ReaderName = "Main Entrance",
-                DefaultFeedback = new ReaderFeedbackConfiguration
-                {
-                    Type = ReaderFeedbackType.Success,
-                    BeepCount = 1,
-                    LedColor = LedColor.Green,
-                    LedDurationMs = 1000,
-                    DisplayMessage = "ACCESS GRANTED"
-                },
-                ResultFeedback = new Dictionary<string, ReaderFeedbackConfiguration>
-                {
-                    ["AccessDenied"] = new ReaderFeedbackConfiguration
-                    {
-                        Type = ReaderFeedbackType.Failure,
-                        BeepCount = 3,
-                        LedColor = LedColor.Red,
-                        LedDurationMs = 2000,
-                        DisplayMessage = "ACCESS DENIED"
-                    }
-                }
+                ReaderName = "Main Entrance"
             },
             new ReaderConfiguration
             {
                 ReaderId = Guid.Parse("87654321-4321-4321-4321-cba987654321"),
-                ReaderName = "Loading Dock",
-                DefaultFeedback = new ReaderFeedbackConfiguration
-                {
-                    Type = ReaderFeedbackType.Success,
-                    BeepCount = 2,
-                    LedColor = LedColor.Amber,
-                    LedDurationMs = 1500,
-                    DisplayMessage = "AUTHORIZED"
-                }
+                ReaderName = "Loading Dock"
             }
         };
         
