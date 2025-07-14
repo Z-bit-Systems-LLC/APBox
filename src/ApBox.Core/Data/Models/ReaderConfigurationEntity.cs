@@ -13,9 +13,14 @@ public class ReaderConfigurationEntity
     
     public ReaderConfiguration ToReaderConfiguration()
     {
+        if (!Guid.TryParse(ReaderId, out var readerId))
+        {
+            throw new InvalidOperationException($"Invalid GUID format for ReaderId: '{ReaderId}'");
+        }
+        
         var config = new ReaderConfiguration
         {
-            ReaderId = Guid.Parse(ReaderId),
+            ReaderId = readerId,
             ReaderName = ReaderName
         };
         

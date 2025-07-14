@@ -21,7 +21,16 @@ public class ReaderConfigurationRepository : IReaderConfigurationRepository
         using var connection = _dbContext.CreateDbConnectionAsync();
         connection.Open();
 
-        var sql = "SELECT * FROM reader_configurations ORDER BY reader_name";
+        var sql = @"
+            SELECT 
+                reader_id as ReaderId,
+                reader_name as ReaderName,
+                default_feedback_json as DefaultFeedbackJson,
+                result_feedback_json as ResultFeedbackJson,
+                created_at as CreatedAt,
+                updated_at as UpdatedAt
+            FROM reader_configurations 
+            ORDER BY reader_name";
         var entities = await connection.QueryAsync<ReaderConfigurationEntity>(sql);
         
         return entities.Select(e => e.ToReaderConfiguration());
@@ -32,7 +41,16 @@ public class ReaderConfigurationRepository : IReaderConfigurationRepository
         using var connection = _dbContext.CreateDbConnectionAsync();
         connection.Open();
 
-        var sql = "SELECT * FROM reader_configurations WHERE reader_id = @ReaderId";
+        var sql = @"
+            SELECT 
+                reader_id as ReaderId,
+                reader_name as ReaderName,
+                default_feedback_json as DefaultFeedbackJson,
+                result_feedback_json as ResultFeedbackJson,
+                created_at as CreatedAt,
+                updated_at as UpdatedAt
+            FROM reader_configurations 
+            WHERE reader_id = @ReaderId";
         var entity = await connection.QueryFirstOrDefaultAsync<ReaderConfigurationEntity>(sql, new { ReaderId = readerId.ToString() });
         
         return entity?.ToReaderConfiguration();
