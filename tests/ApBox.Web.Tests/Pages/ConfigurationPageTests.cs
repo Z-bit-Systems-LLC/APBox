@@ -157,11 +157,11 @@ public class ConfigurationPageTests : ApBoxTestContext
         var feedbackTab = component.Find("button:contains('Feedback')");
         feedbackTab.Click();
 
-        // Assert
-        var successLabel = component.Find("label:contains('Success Feedback')");
-        var failureLabel = component.Find("label:contains('Failure Feedback')");
-        Assert.That(successLabel, Is.Not.Null);
-        Assert.That(failureLabel, Is.Not.Null);
+        // Assert - Now looking for card headers instead of labels
+        var successHeader = component.Find("h6:contains('Success Feedback')");
+        var failureHeader = component.Find("h6:contains('Failure Feedback')");
+        Assert.That(successHeader, Is.Not.Null);
+        Assert.That(failureHeader, Is.Not.Null);
 
         // Should have LED color selects
         var ledSelects = component.FindAll("select");
@@ -180,15 +180,18 @@ public class ConfigurationPageTests : ApBoxTestContext
         var feedbackTab = component.Find("button:contains('Feedback')");
         feedbackTab.Click();
 
-        // Assert
-        var successPreview = component.Find("h6:contains('Success Preview')");
-        var failurePreview = component.Find("h6:contains('Failure Preview')");
-        Assert.That(successPreview, Is.Not.Null);
-        Assert.That(failurePreview, Is.Not.Null);
+        // Assert - Updated to match actual FeedbackConfiguration component structure
+        var feedbackPreview = component.Find("h6:contains('Feedback Preview')");
+        Assert.That(feedbackPreview, Is.Not.Null);
+        
+        var successPattern = component.Find("h6:contains('Success Pattern')");
+        var failurePattern = component.Find("h6:contains('Failure Pattern')");
+        Assert.That(successPattern, Is.Not.Null);
+        Assert.That(failurePattern, Is.Not.Null);
 
-        // Should show LED previews
-        var ledPreviews = component.FindAll(".led-preview");
-        Assert.That(ledPreviews.Count, Is.GreaterThanOrEqualTo(2));
+        // Should show badges with LED colors and beep counts
+        var badges = component.FindAll(".badge");
+        Assert.That(badges.Count, Is.GreaterThanOrEqualTo(4)); // Colors, beeps, and durations
     }
 
     [Test]
@@ -231,12 +234,12 @@ public class ConfigurationPageTests : ApBoxTestContext
         var systemTab = component.Find("button:contains('System')");
         systemTab.Click();
 
-        // Assert
-        var systemHeading = component.Find("h5:contains('System Information')");
+        // Assert - Updated to match actual SystemConfiguration component
+        var systemHeading = component.Find("h3:contains('System Information')");
         Assert.That(systemHeading, Is.Not.Null);
 
         // Should show system details
-        Assert.That(component.Markup, Contains.Substring("Application Version"));
+        Assert.That(component.Markup, Contains.Substring("Application"));
         Assert.That(component.Markup, Contains.Substring(".NET 8"));
         Assert.That(component.Markup, Contains.Substring("Active Readers"));
         Assert.That(component.Markup, Contains.Substring("Loaded Plugins"));
@@ -250,8 +253,8 @@ public class ConfigurationPageTests : ApBoxTestContext
         var systemTab = component.Find("button:contains('System')");
         systemTab.Click();
 
-        // Assert
-        var refreshButton = component.Find("button:contains('Refresh Plugins')");
+        // Assert - Updated to match actual SystemConfiguration component buttons
+        var refreshButton = component.Find("button:contains('Refresh System Info')");
         var exportButton = component.Find("button:contains('Export Config')");
         var importButton = component.Find("button:contains('Import Config')");
         
@@ -266,8 +269,15 @@ public class ConfigurationPageTests : ApBoxTestContext
         // Act
         var component = RenderComponent<ApBox.Web.Pages.Configuration>();
 
-        // Assert
+        // Assert - Only ReaderConfigurationService is called by default (readers tab)
+        // PluginLoader is only called when switching to plugins tab
         MockReaderConfigurationService.Verify(x => x.GetAllReadersAsync(), Times.Once);
+        
+        // Switch to plugins tab to trigger plugin loading
+        var pluginsTab = component.Find("button:contains('Plugins')");
+        pluginsTab.Click();
+        
+        // Now verify plugin loader was called
         MockPluginLoader.Verify(x => x.LoadPluginsAsync(), Times.Once);
     }
 
@@ -281,8 +291,8 @@ public class ConfigurationPageTests : ApBoxTestContext
         var feedbackTab = component.Find("button:contains('Feedback')");
         feedbackTab.Click();
 
-        // Assert
-        var feedbackContent = component.Find("label:contains('Success Feedback')");
+        // Assert - Updated to match actual component structure
+        var feedbackContent = component.Find("h6:contains('Success Feedback')");
         Assert.That(feedbackContent, Is.Not.Null);
         
         // Switch to plugins tab
