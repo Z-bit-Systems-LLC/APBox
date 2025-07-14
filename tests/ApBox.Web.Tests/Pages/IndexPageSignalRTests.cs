@@ -1,4 +1,6 @@
 using ApBox.Core.Services;
+using ApBox.Core.Data.Repositories;
+using ApBox.Core.Data.Models;
 using ApBox.Plugins;
 using ApBox.Web.Hubs;
 using Bunit;
@@ -41,6 +43,41 @@ public class IndexPageSignalRTests : ApBoxTestContext
         
         MockPluginLoader.Setup(x => x.LoadPluginsAsync())
             .ReturnsAsync(plugins);
+
+        // Setup mock card events
+        var cardEvents = new List<CardEventEntity>
+        {
+            new CardEventEntity
+            {
+                Id = 1,
+                ReaderId = "12345678-1234-1234-1234-123456789abc",
+                CardNumber = "123456789",
+                BitLength = 26,
+                ReaderName = "Test Reader 1",
+                Success = true,
+                Message = "Success",
+                ProcessedByPlugin = "Test Plugin",
+                Timestamp = DateTime.Now.AddMinutes(-5)
+            },
+            new CardEventEntity
+            {
+                Id = 2,
+                ReaderId = "87654321-4321-4321-4321-cba987654321",
+                CardNumber = "987654321",
+                BitLength = 26,
+                ReaderName = "Test Reader 2",
+                Success = true,
+                Message = "Success",
+                ProcessedByPlugin = "Test Plugin",
+                Timestamp = DateTime.Now.AddMinutes(-10)
+            }
+        };
+
+        MockCardEventRepository.Setup(x => x.GetRecentAsync(It.IsAny<int>()))
+            .ReturnsAsync(cardEvents);
+
+        MockCardEventRepository.Setup(x => x.GetByDateRangeAsync(It.IsAny<DateTime>(), It.IsAny<DateTime>(), It.IsAny<int>()))
+            .ReturnsAsync(cardEvents.Take(5));
     }
 
     [Test]

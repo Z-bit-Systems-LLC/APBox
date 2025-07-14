@@ -1,10 +1,12 @@
 @page "/"
 @using ApBox.Core.Services
+@using ApBox.Core.Data.Repositories
 @using ApBox.Plugins
 @using ApBox.Web.Hubs
 @using Microsoft.AspNetCore.SignalR.Client
 @inject IReaderService ReaderService
 @inject IPluginLoader PluginLoader
+@inject ICardEventRepository CardEventRepository
 @inject NavigationManager Navigation
 @implements IAsyncDisposable
 
@@ -251,9 +253,11 @@
             var plugins = await PluginLoader.LoadPluginsAsync();
             _loadedPlugins = plugins.Count();
 
-            // Generate sample events for demonstration
-            GenerateSampleEvents();
-            _totalEvents = _recentEvents.Count;
+            // Load recent card events from database
+            await LoadRecentEventsAsync();
+            
+            // Get today's event count
+            _totalEvents = await GetTodaysEventCountAsync();
         }
         catch (Exception ex)
         {
@@ -262,24 +266,34 @@
         }
     }
 
-    private void GenerateSampleEvents()
+    private async Task LoadRecentEventsAsync()
     {
-        var random = new Random();
-        var now = DateTime.Now;
-        
-        for (int i = 0; i < 25; i++)
+        try
         {
-            _recentEvents.Add(new CardReadEvent
-            {
-                ReaderId = Guid.NewGuid(),
-                CardNumber = $"12345{random.Next(100, 999)}",
-                ReaderName = $"Reader {random.Next(1, 4)}",
-                Timestamp = now.AddMinutes(-random.Next(0, 480)),
-                BitLength = 26
-            });
+            var eventEntities = await CardEventRepository.GetRecentAsync(25);
+            _recentEvents = eventEntities.Select(e => e.ToCardReadEvent()).ToList();
         }
-        
-        _recentEvents = _recentEvents.OrderByDescending(e => e.Timestamp).ToList();
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error loading recent events: {ex.Message}");
+            _recentEvents = [];
+        }
+    }
+
+    private async Task<int> GetTodaysEventCountAsync()
+    {
+        try
+        {
+            var todayStart = DateTime.Today;
+            var todayEnd = todayStart.AddDays(1);
+            var todaysEvents = await CardEventRepository.GetByDateRangeAsync(todayStart, todayEnd);
+            return todaysEvents.Count();
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error getting today's event count: {ex.Message}");
+            return 0;
+        }
     }
 
     public async ValueTask DisposeAsync()

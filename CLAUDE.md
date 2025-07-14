@@ -185,3 +185,7 @@ The detailed implementation plan is in `apbox_project_plan.md` (excluded from gi
 - No code exists yet - this is a greenfield project
 - Focus on MVP implementation following the 8-week sprint plan
 - Hardware dependencies: ensure compatibility with both Raspberry Pi and Strato Pi CM Duo v3
+
+## Testing Best Practices
+
+- Use ElementId attribute for finding components in UI tests
