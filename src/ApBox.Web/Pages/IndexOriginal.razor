@@ -1,0 +1,283 @@
+﻿@page "/indexoriginal"
+@using ApBox.Core.Services
+@using ApBox.Plugins
+@using ApBox.Web.Hubs
+@using Microsoft.AspNetCore.SignalR.Client
+@inject IReaderService ReaderService
+@inject ICardProcessingService CardProcessingService
+@inject IPluginLoader PluginLoader
+@inject IJSRuntime JSRuntime
+@inject NavigationManager Navigation
+@implements IAsyncDisposable
+
+<PageTitle>ApBox Dashboard (Original)</PageTitle>
+
+<div class="container-fluid">
+    <div class="row mb-4">
+        <div class="col-12">
+            <h1 class="display-4">ApBox Dashboard</h1>
+            <p class="text-muted">Card Reader Management System</p>
+        </div>
+    </div>
+
+    <div class="row mb-4">
+        <div class="col-md-3">
+            <div class="card metric-card bg-primary text-white">
+                <div class="d-flex justify-content-between align-items-center">
+                    <div>
+                        <div class="metric-value">@activeReaders</div>
+                        <div class="metric-label">Active Readers</div>
+                    </div>
+                    <div class="metric-icon">
+                        <span class="oi oi-monitor" style="font-size: 1.5rem;"></span>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="col-md-3">
+            <div class="card metric-card bg-success text-white">
+                <div class="d-flex justify-content-between align-items-center">
+                    <div>
+                        <div class="metric-value">@loadedPlugins</div>
+                        <div class="metric-label">Loaded Plugins</div>
+                    </div>
+                    <div class="metric-icon">
+                        <span class="oi oi-puzzle-piece" style="font-size: 1.5rem;"></span>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="col-md-3">
+            <div class="card metric-card bg-info text-white">
+                <div class="d-flex justify-content-between align-items-center">
+                    <div>
+                        <div class="metric-value">@totalEvents</div>
+                        <div class="metric-label">Card Events Today</div>
+                    </div>
+                    <div class="metric-icon">
+                        <span class="oi oi-credit-card" style="font-size: 1.5rem;"></span>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="col-md-3">
+            <div class="card metric-card bg-warning text-white">
+                <div class="d-flex justify-content-between align-items-center">
+                    <div>
+                        <div class="metric-value">@systemStatus</div>
+                        <div class="metric-label">System Status</div>
+                    </div>
+                    <div class="metric-icon">
+                        <span class="oi oi-circle-check" style="font-size: 1.5rem;"></span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="row mt-4">
+        <div class="col-md-8">
+            <div class="card fade-in">
+                <div class="card-header">
+                    <h5 class="card-title mb-0">Recent Card Events</h5>
+                </div>
+                <div class="card-body">
+                    @if (recentEvents.Any())
+                    {
+                        <div class="table-responsive">
+                            <table class="table table-striped">
+                                <thead>
+                                    <tr>
+                                        <th>Time</th>
+                                        <th>Reader</th>
+                                        <th>Card Number</th>
+                                        <th>Status</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    @foreach (var cardEvent in recentEvents.Take(10))
+                                    {
+                                        <tr>
+                                            <td>@cardEvent.Timestamp.ToString("HH:mm:ss")</td>
+                                            <td>@cardEvent.ReaderName</td>
+                                            <td>@cardEvent.CardNumber</td>
+                                            <td>
+                                                <span class="badge bg-success">Processed</span>
+                                            </td>
+                                        </tr>
+                                    }
+                                </tbody>
+                            </table>
+                        </div>
+                    }
+                    else
+                    {
+                        <p class="text-muted">No recent card events</p>
+                    }
+                </div>
+            </div>
+        </div>
+        
+        <div class="col-md-4">
+            <div class="card fade-in">
+                <div class="card-header">
+                    <h5 class="card-title mb-0">Reader Status</h5>
+                </div>
+                <div class="card-body">
+                    @if (readers.Any())
+                    {
+                        @foreach (var reader in readers)
+                        {
+                            <div class="d-flex justify-content-between align-items-center mb-2">
+                                <span>@reader.ReaderName</span>
+                                <span class="badge bg-success">Online</span>
+                            </div>
+                        }
+                    }
+                    else
+                    {
+                        <p class="text-muted">No readers configured</p>
+                    }
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+@code {
+    private int activeReaders = 0;
+    private int loadedPlugins = 0;
+    private int totalEvents = 0;
+    private string systemStatus = "Online";
+    private List<CardReadEvent> recentEvents = new();
+    private List<ReaderConfiguration> readers = new();
+    private HubConnection? hubConnection;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadDashboardData();
+        await InitializeSignalR();
+    }
+
+    private async Task InitializeSignalR()
+    {
+        try
+        {
+            hubConnection = new HubConnectionBuilder()
+                .WithUrl(Navigation.ToAbsoluteUri("/cardevents"))
+                .Build();
+
+            // Handle card event notifications
+            hubConnection.On<CardEventNotification>("CardEventProcessed", async (notification) =>
+            {
+                await InvokeAsync(() =>
+                {
+                    // Add new event to the beginning of the list
+                    var newEvent = new CardReadEvent
+                    {
+                        ReaderId = notification.ReaderId,
+                        ReaderName = notification.ReaderName,
+                        CardNumber = notification.CardNumber,
+                        BitLength = notification.BitLength,
+                        Timestamp = notification.Timestamp
+                    };
+
+                    recentEvents.Insert(0, newEvent);
+                    
+                    // Keep only the latest 25 events
+                    if (recentEvents.Count > 25)
+                    {
+                        recentEvents = recentEvents.Take(25).ToList();
+                    }
+
+                    totalEvents++;
+                    StateHasChanged();
+                });
+            });
+
+            // Handle reader status notifications
+            hubConnection.On<ReaderStatusNotification>("ReaderStatusChanged", async (notification) =>
+            {
+                await InvokeAsync(() =>
+                {
+                    // Update reader status if needed
+                    StateHasChanged();
+                });
+            });
+
+            // Handle statistics updates
+            hubConnection.On<StatisticsNotification>("StatisticsUpdated", async (notification) =>
+            {
+                await InvokeAsync(() =>
+                {
+                    activeReaders = notification.ActiveReaders;
+                    loadedPlugins = notification.LoadedPlugins;
+                    totalEvents = notification.TotalEventsToday;
+                    systemStatus = notification.SystemStatus;
+                    StateHasChanged();
+                });
+            });
+
+            await hubConnection.StartAsync();
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error initializing SignalR: {ex.Message}");
+        }
+    }
+
+    private async Task LoadDashboardData()
+    {
+        try
+        {
+            // Load readers
+            var readerConfigs = await ReaderService.GetReadersAsync();
+            readers = readerConfigs.ToList();
+            activeReaders = readers.Count;
+
+            // Load plugins
+            var plugins = await PluginLoader.LoadPluginsAsync();
+            loadedPlugins = plugins.Count();
+
+            // Generate sample events for demonstration
+            GenerateSampleEvents();
+            totalEvents = recentEvents.Count;
+        }
+        catch (Exception ex)
+        {
+            systemStatus = "Error";
+            Console.WriteLine($"Dashboard error: {ex.Message}");
+        }
+    }
+
+    private void GenerateSampleEvents()
+    {
+        var random = new Random();
+        var now = DateTime.Now;
+        
+        for (int i = 0; i < 25; i++)
+        {
+            recentEvents.Add(new CardReadEvent
+            {
+                ReaderId = Guid.NewGuid(),
+                CardNumber = $"12345{random.Next(100, 999)}",
+                ReaderName = $"Reader {random.Next(1, 4)}",
+                Timestamp = now.AddMinutes(-random.Next(0, 480)),
+                BitLength = 26
+            });
+        }
+        
+        recentEvents = recentEvents.OrderByDescending(e => e.Timestamp).ToList();
+    }
+
+    public async ValueTask DisposeAsync()
+    {
+        if (hubConnection is not null)
+        {
+            await hubConnection.DisposeAsync();
+        }
+    }
+}

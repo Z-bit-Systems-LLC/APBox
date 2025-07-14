@@ -1,12 +1,24 @@
 using ApBox.Web.Services;
 using ApBox.Web.Hubs;
 using ApBox.Core.Data;
+using Blazorise;
+using Blazorise.Bootstrap5;
+using Blazorise.Icons.FontAwesome;
 
 var builder = WebApplication.CreateBuilder(args);
 
 // Add services to the container
 builder.Services.AddRazorPages();
 builder.Services.AddServerSideBlazor();
+
+// Add Blazorise
+builder.Services
+    .AddBlazorise( options =>
+    {
+        options.Immediate = true;
+    } )
+    .AddBootstrap5Providers()
+    .AddFontAwesomeIcons();
 
 // Add SignalR
 builder.Services.AddSignalR();
