@@ -1,0 +1,223 @@
+@using ApBox.Plugins
+@inject IPluginLoader PluginLoader
+
+<div class="tab-pane fade show active">
+    <div class="row mb-3">
+        <div class="col-12">
+            <h3>Loaded Plugins</h3>
+            <p class="text-muted">Plugins are automatically loaded from the plugins directory</p>
+        </div>
+    </div>
+    @if (loadedPlugins.Any())
+    {
+        <div class="row">
+            @foreach (var plugin in loadedPlugins)
+            {
+                <div class="col-md-6 col-lg-4 mb-4">
+                    <div class="card h-100">
+                        <div class="card-header">
+                            <h6 class="mb-0">@plugin.Name</h6>
+                            <small class="text-muted">v@plugin.Version</small>
+                        </div>
+                        <div class="card-body">
+                            <p class="card-text">@plugin.Description</p>
+                            <div class="mt-auto">
+                                <span class="badge bg-success">
+                                    <span class="oi oi-check me-1"></span>Loaded
+                                </span>
+                            </div>
+                        </div>
+                        <div class="card-footer">
+                            <div class="btn-group w-100">
+                                <button class="btn btn-outline-primary btn-sm" @onclick="() => ConfigurePlugin(plugin)">
+                                    <span class="oi oi-cog me-1"></span>Configure
+                                </button>
+                                <button class="btn btn-outline-secondary btn-sm" @onclick="() => ViewPluginDetails(plugin)">
+                                    <span class="oi oi-info me-1"></span>Details
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            }
+        </div>
+    }
+    else
+    {
+        <div class="text-center py-5">
+            <span class="oi oi-puzzle-piece display-1 text-muted"></span>
+            <h4 class="mt-3">No Plugins Loaded</h4>
+            <p class="text-muted">Place plugin DLLs in the plugins directory and restart the application</p>
+        </div>
+    }
+
+    <div class="row mt-4">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header">
+                    <h6 class="card-title mb-0">Plugin Management</h6>
+                </div>
+                <div class="card-body">
+                    <div class="d-grid gap-2 d-md-flex">
+                        <button class="btn btn-outline-primary" @onclick="RefreshPlugins" disabled="@refreshing">
+                            @if (refreshing)
+                            {
+                                <span class="spinner-border spinner-border-sm me-2"></span>
+                            }
+                            else
+                            {
+                                <span class="oi oi-reload me-2"></span>
+                            }
+                            Refresh Plugins
+                        </button>
+                        <button class="btn btn-outline-info" @onclick="OpenPluginDirectory">
+                            <span class="oi oi-folder-open me-2"></span>Open Plugin Directory
+                        </button>
+                        <button class="btn btn-outline-secondary" @onclick="InstallPlugin">
+                            <span class="oi oi-plus me-2"></span>Install Plugin
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Plugin Configuration Modal -->
+<div class="modal fade @(showConfigModal ? "show d-block" : "")" tabindex="-1" style="@(showConfigModal ? "background: rgba(0,0,0,0.5);" : "")">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Configure @selectedPlugin?.Name</h5>
+                <button type="button" class="btn-close" @onclick="CloseConfigModal"></button>
+            </div>
+            <div class="modal-body">
+                <p class="text-muted">Plugin configuration interface will be implemented here.</p>
+                <div class="alert alert-info">
+                    <span class="oi oi-info me-2"></span>
+                    Plugin-specific configuration options would be dynamically loaded based on the plugin's configuration schema.
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" @onclick="CloseConfigModal">Close</button>
+                <button type="button" class="btn btn-primary">Save Configuration</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Plugin Details Modal -->
+<div class="modal fade @(showDetailsModal ? "show d-block" : "")" tabindex="-1" style="@(showDetailsModal ? "background: rgba(0,0,0,0.5);" : "")">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">@selectedPlugin?.Name Details</h5>
+                <button type="button" class="btn-close" @onclick="CloseDetailsModal"></button>
+            </div>
+            <div class="modal-body">
+                @if (selectedPlugin != null)
+                {
+                    <dl class="row">
+                        <dt class="col-sm-4">Name</dt>
+                        <dd class="col-sm-8">@selectedPlugin.Name</dd>
+                        
+                        <dt class="col-sm-4">Version</dt>
+                        <dd class="col-sm-8">@selectedPlugin.Version</dd>
+                        
+                        <dt class="col-sm-4">Description</dt>
+                        <dd class="col-sm-8">@selectedPlugin.Description</dd>
+                    </dl>
+                }
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" @onclick="CloseDetailsModal">Close</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+@code {
+    [Parameter] public EventCallback<string> OnShowMessage { get; set; }
+    
+    private List<IApBoxPlugin> loadedPlugins = new();
+    private bool refreshing = false;
+    private bool showConfigModal = false;
+    private bool showDetailsModal = false;
+    private IApBoxPlugin? selectedPlugin = null;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadPlugins();
+    }
+
+    private async Task LoadPlugins()
+    {
+        try
+        {
+            loadedPlugins = (await PluginLoader.LoadPluginsAsync()).ToList();
+        }
+        catch (Exception ex)
+        {
+            await OnShowMessage.InvokeAsync($"Error loading plugins: {ex.Message}|danger");
+        }
+    }
+
+    private async Task RefreshPlugins()
+    {
+        refreshing = true;
+        StateHasChanged();
+        
+        try
+        {
+            loadedPlugins = (await PluginLoader.LoadPluginsAsync()).ToList();
+            await OnShowMessage.InvokeAsync("Plugins refreshed successfully|success");
+        }
+        catch (Exception ex)
+        {
+            await OnShowMessage.InvokeAsync($"Error refreshing plugins: {ex.Message}|danger");
+        }
+        finally
+        {
+            refreshing = false;
+            StateHasChanged();
+        }
+    }
+
+    private void ConfigurePlugin(IApBoxPlugin plugin)
+    {
+        selectedPlugin = plugin;
+        showConfigModal = true;
+        StateHasChanged();
+    }
+
+    private void ViewPluginDetails(IApBoxPlugin plugin)
+    {
+        selectedPlugin = plugin;
+        showDetailsModal = true;
+        StateHasChanged();
+    }
+
+    private void CloseConfigModal()
+    {
+        showConfigModal = false;
+        selectedPlugin = null;
+        StateHasChanged();
+    }
+
+    private void CloseDetailsModal()
+    {
+        showDetailsModal = false;
+        selectedPlugin = null;
+        StateHasChanged();
+    }
+
+    private async Task OpenPluginDirectory()
+    {
+        await OnShowMessage.InvokeAsync("Plugin directory functionality coming soon|info");
+    }
+
+    private async Task InstallPlugin()
+    {
+        await OnShowMessage.InvokeAsync("Plugin installation functionality coming soon|info");
+    }
+}

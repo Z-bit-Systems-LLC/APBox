@@ -1,0 +1,202 @@
+@using ApBox.Plugins
+
+<div class="tab-pane fade show active">
+    <div class="row mb-4">
+        <div class="col-12">
+            <h3>Default Feedback Configuration</h3>
+            <p class="text-muted">Configure default feedback patterns for successful and failed card reads</p>
+        </div>
+    </div>
+
+    <div class="row">
+        <div class="col-md-6">
+            <div class="card">
+                <div class="card-header bg-success text-white">
+                    <h6 class="card-title mb-0">
+                        <span class="oi oi-check me-2"></span>Success Feedback
+                    </h6>
+                </div>
+                <div class="card-body">
+                    <form>
+                        <div class="mb-3">
+                            <label class="form-label">LED Color</label>
+                            <select class="form-select" @bind="defaultSuccessFeedback.LedColor">
+                                <option value="@LedColor.Green">Green</option>
+                                <option value="@LedColor.Red">Red</option>
+                                <option value="@LedColor.Amber">Amber</option>
+                                <option value="@LedColor.Blue">Blue</option>
+                            </select>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">Beep Count</label>
+                            <input type="number" class="form-control" @bind="defaultSuccessFeedback.BeepCount" min="0" max="10" />
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">LED Duration (ms)</label>
+                            <input type="number" class="form-control" @bind="defaultSuccessFeedback.LedDurationMs" min="100" max="10000" step="100" />
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">Display Message</label>
+                            <input type="text" class="form-control" @bind="defaultSuccessFeedback.DisplayMessage" maxlength="16" />
+                            <div class="form-text">Maximum 16 characters for OSDP display</div>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-md-6">
+            <div class="card">
+                <div class="card-header bg-danger text-white">
+                    <h6 class="card-title mb-0">
+                        <span class="oi oi-x me-2"></span>Failure Feedback
+                    </h6>
+                </div>
+                <div class="card-body">
+                    <form>
+                        <div class="mb-3">
+                            <label class="form-label">LED Color</label>
+                            <select class="form-select" @bind="defaultFailureFeedback.LedColor">
+                                <option value="@LedColor.Green">Green</option>
+                                <option value="@LedColor.Red">Red</option>
+                                <option value="@LedColor.Amber">Amber</option>
+                                <option value="@LedColor.Blue">Blue</option>
+                            </select>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">Beep Count</label>
+                            <input type="number" class="form-control" @bind="defaultFailureFeedback.BeepCount" min="0" max="10" />
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">LED Duration (ms)</label>
+                            <input type="number" class="form-control" @bind="defaultFailureFeedback.LedDurationMs" min="100" max="10000" step="100" />
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">Display Message</label>
+                            <input type="text" class="form-control" @bind="defaultFailureFeedback.DisplayMessage" maxlength="16" />
+                            <div class="form-text">Maximum 16 characters for OSDP display</div>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="row mt-4">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header">
+                    <h6 class="card-title mb-0">Feedback Preview</h6>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-6">
+                            <h6>Success Pattern</h6>
+                            <div class="d-flex align-items-center mb-2">
+                                <span class="badge bg-@GetFeedbackColorClass(defaultSuccessFeedback.LedColor) me-2">
+                                    @defaultSuccessFeedback.LedColor
+                                </span>
+                                <span class="badge bg-secondary me-2">@defaultSuccessFeedback.BeepCount beeps</span>
+                                <span class="badge bg-info">@defaultSuccessFeedback.LedDurationMs ms</span>
+                            </div>
+                            <div class="border p-2 bg-light">
+                                <small class="text-monospace">@defaultSuccessFeedback.DisplayMessage</small>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <h6>Failure Pattern</h6>
+                            <div class="d-flex align-items-center mb-2">
+                                <span class="badge bg-@GetFeedbackColorClass(defaultFailureFeedback.LedColor) me-2">
+                                    @defaultFailureFeedback.LedColor
+                                </span>
+                                <span class="badge bg-secondary me-2">@defaultFailureFeedback.BeepCount beeps</span>
+                                <span class="badge bg-info">@defaultFailureFeedback.LedDurationMs ms</span>
+                            </div>
+                            <div class="border p-2 bg-light">
+                                <small class="text-monospace">@defaultFailureFeedback.DisplayMessage</small>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="row mt-4">
+        <div class="col-12">
+            <button class="btn btn-primary" @onclick="SaveDefaultFeedback" disabled="@saving">
+                @if (saving)
+                {
+                    <span class="spinner-border spinner-border-sm me-2"></span>
+                }
+                <span class="oi oi-check me-2"></span>Save Default Feedback Settings
+            </button>
+        </div>
+    </div>
+</div>
+
+@code {
+    [Parameter] public EventCallback<string> OnShowMessage { get; set; }
+    
+    private bool saving = false;
+    
+    private ReaderFeedback defaultSuccessFeedback = new() 
+    { 
+        Type = ReaderFeedbackType.Success,
+        LedColor = LedColor.Green, 
+        BeepCount = 1, 
+        LedDurationMs = 1000,
+        DisplayMessage = "ACCESS GRANTED" 
+    };
+    
+    private ReaderFeedback defaultFailureFeedback = new() 
+    { 
+        Type = ReaderFeedbackType.Failure,
+        LedColor = LedColor.Red, 
+        BeepCount = 3, 
+        LedDurationMs = 2000,
+        DisplayMessage = "ACCESS DENIED" 
+    };
+
+    private async Task SaveDefaultFeedback()
+    {
+        saving = true;
+        StateHasChanged();
+        
+        try
+        {
+            // TODO: Save to configuration service when available
+            await Task.Delay(1000); // Simulate save operation
+            await OnShowMessage.InvokeAsync("Default feedback settings saved successfully|success");
+        }
+        catch (Exception ex)
+        {
+            await OnShowMessage.InvokeAsync($"Error saving feedback settings: {ex.Message}|danger");
+        }
+        finally
+        {
+            saving = false;
+            StateHasChanged();
+        }
+    }
+
+    private string GetFeedbackColorClass(LedColor? color)
+    {
+        return color switch
+        {
+            LedColor.Red => "red",
+            LedColor.Green => "green",
+            LedColor.Amber => "amber",
+            LedColor.Blue => "blue",
+            _ => "off"
+        };
+    }
+}
+
+<style>
+    .bg-red { background-color: #dc3545 !important; }
+    .bg-green { background-color: #28a745 !important; }
+    .bg-amber { background-color: #ffc107 !important; }
+    .bg-blue { background-color: #007bff !important; }
+    .bg-off { background-color: #6c757d !important; }
+</style>

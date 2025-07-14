@@ -1,0 +1,413 @@
+@using ApBox.Core.Services
+@using ApBox.Plugins
+@inject IReaderConfigurationService ReaderConfigurationService
+@inject IJSRuntime JSRuntime
+
+<div class="tab-pane fade show active">
+    <div class="row mb-3">
+        <div class="col-12">
+            <div class="d-flex justify-content-between align-items-center">
+                <h3>Reader Configuration</h3>
+                <button class="btn btn-primary" @onclick="ShowAddReaderModal">
+                    <span class="oi oi-plus me-2"></span>Add Reader
+                </button>
+            </div>
+        </div>
+    </div>
+    @if (readers.Any())
+    {
+        <div class="row">
+            @foreach (var reader in readers)
+            {
+                <div class="col-md-6 col-lg-4 mb-4">
+                    <div class="card h-100">
+                        <div class="card-header d-flex justify-content-between align-items-center">
+                            <h6 class="mb-0">@reader.ReaderName</h6>
+                            <div class="btn-group btn-group-sm">
+                                <button class="btn btn-outline-primary" @onclick="() => EditReader(reader)">
+                                    <span class="oi oi-pencil"></span>
+                                </button>
+                                <button class="btn btn-outline-danger" @onclick="() => DeleteReader(reader)">
+                                    <span class="oi oi-trash"></span>
+                                </button>
+                            </div>
+                        </div>
+                        <div class="card-body">
+                            <p class="text-muted small mb-2">ID: @reader.ReaderId.ToString()[..8]...</p>
+                            <div class="mb-2">
+                                <small class="text-muted">Reader ID:</small><br>
+                                <span class="badge bg-info">@reader.ReaderId.ToString()[..8]...</span>
+                            </div>
+                            <div class="mb-2">
+                                <small class="text-muted">Default Feedback:</small><br>
+                                <span class="badge bg-@GetFeedbackColorClass(reader.DefaultFeedback?.LedColor)">
+                                    @(reader.DefaultFeedback?.LedColor?.ToString() ?? "None")
+                                </span>
+                                @if (reader.DefaultFeedback?.BeepCount > 0)
+                                {
+                                    <span class="badge bg-secondary ms-1">@reader.DefaultFeedback.BeepCount beeps</span>
+                                }
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            }
+        </div>
+    }
+    else
+    {
+        <div class="text-center py-5">
+            <span class="oi oi-monitor display-1 text-muted"></span>
+            <h4 class="mt-3">No Readers Configured</h4>
+            <p class="text-muted">Add your first reader to get started</p>
+            <button class="btn btn-primary" @onclick="ShowAddReaderModal">
+                <span class="oi oi-plus me-2"></span>Add Reader
+            </button>
+        </div>
+    }
+</div>
+
+<!-- Add/Edit Reader Modal -->
+<div class="modal fade @(showReaderModal ? "show d-block" : "")" tabindex="-1" style="@(showReaderModal ? "background: rgba(0,0,0,0.5);" : "")">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">@(editingReader != null ? "Edit Reader" : "Add Reader")</h5>
+                <button type="button" class="btn-close" @onclick="CloseReaderModal"></button>
+            </div>
+            <div class="modal-body">
+                <form>
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label class="form-label">Reader Name</label>
+                                <input type="text" class="form-control" @bind="readerForm.ReaderName" placeholder="e.g., Main Entrance" />
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label class="form-label">Reader ID</label>
+                                <input type="text" class="form-control" @bind="readerForm.ReaderIdString" placeholder="e.g., 12345678-1234-1234-1234-123456789abc" />
+                                <div class="form-text">Enter a valid GUID for the reader</div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <h6 class="mt-4 mb-3">Default Feedback Configuration</h6>
+                    <div class="row">
+                        <div class="col-md-3">
+                            <div class="mb-3">
+                                <label class="form-label">Feedback Type</label>
+                                <select class="form-select" @bind="readerForm.DefaultFeedback.Type">
+                                    <option value="@ReaderFeedbackType.Success">Success</option>
+                                    <option value="@ReaderFeedbackType.Failure">Failure</option>
+                                    <option value="@ReaderFeedbackType.Custom">Custom</option>
+                                </select>
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="mb-3">
+                                <label class="form-label">LED Color</label>
+                                <select class="form-select" @bind="readerForm.DefaultFeedback.LedColor">
+                                    <option value="@LedColor.Green">Green</option>
+                                    <option value="@LedColor.Red">Red</option>
+                                    <option value="@LedColor.Amber">Amber</option>
+                                    <option value="@LedColor.Blue">Blue</option>
+                                </select>
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="mb-3">
+                                <label class="form-label">Beep Count</label>
+                                <input type="number" class="form-control" @bind="readerForm.DefaultFeedback.BeepCount" min="0" max="10" />
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="mb-3">
+                                <label class="form-label">LED Duration (ms)</label>
+                                <input type="number" class="form-control" @bind="readerForm.DefaultFeedback.LedDurationMs" min="100" max="10000" step="100" />
+                            </div>
+                        </div>
+                    </div>
+                    <div class="row">
+                        <div class="col-12">
+                            <div class="mb-3">
+                                <label class="form-label">Display Message</label>
+                                <input type="text" class="form-control" @bind="readerForm.DefaultFeedback.DisplayMessage" placeholder="e.g., ACCESS GRANTED" maxlength="16" />
+                                <div class="form-text">Maximum 16 characters for OSDP display</div>
+                            </div>
+                        </div>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" @onclick="CloseReaderModal">Cancel</button>
+                <button type="button" class="btn btn-primary" @onclick="SaveReader" disabled="@saving">
+                    @if (saving)
+                    {
+                        <span class="spinner-border spinner-border-sm me-2"></span>
+                    }
+                    Save Reader
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Delete Confirmation Modal -->
+<div class="modal fade @(showDeleteModal ? "show d-block" : "")" tabindex="-1" style="@(showDeleteModal ? "background: rgba(0,0,0,0.5);" : "")">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Confirm Deletion</h5>
+                <button type="button" class="btn-close" @onclick="CloseDeleteModal"></button>
+            </div>
+            <div class="modal-body">
+                <p>Are you sure you want to delete the reader <strong>@readerToDelete?.ReaderName</strong>?</p>
+                <p class="text-muted">This action cannot be undone.</p>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" @onclick="CloseDeleteModal">Cancel</button>
+                <button type="button" class="btn btn-danger" @onclick="ConfirmDeleteReader" disabled="@deleting">
+                    @if (deleting)
+                    {
+                        <span class="spinner-border spinner-border-sm me-2"></span>
+                    }
+                    Delete Reader
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+@code {
+    [Parameter] public EventCallback<string> OnShowMessage { get; set; }
+    
+    private List<ReaderConfiguration> readers = new();
+    
+    // Modal state
+    private bool showReaderModal = false;
+    private bool showDeleteModal = false;
+    private bool saving = false;
+    private bool deleting = false;
+    
+    // Form data
+    private ReaderFormModel readerForm = new();
+    private ReaderConfiguration? editingReader = null;
+    private ReaderConfiguration? readerToDelete = null;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadData();
+    }
+
+    private async Task LoadData()
+    {
+        try
+        {
+            readers = (await ReaderConfigurationService.GetAllReadersAsync()).ToList();
+        }
+        catch (Exception ex)
+        {
+            await OnShowMessage.InvokeAsync($"Error loading readers: {ex.Message}|danger");
+        }
+    }
+
+    private void ShowAddReaderModal()
+    {
+        editingReader = null;
+        readerForm = new ReaderFormModel();
+        showReaderModal = true;
+        StateHasChanged();
+    }
+
+    private void EditReader(ReaderConfiguration reader)
+    {
+        editingReader = reader;
+        readerForm = ReaderFormModel.FromReaderConfiguration(reader);
+        showReaderModal = true;
+        StateHasChanged();
+    }
+
+    private void DeleteReader(ReaderConfiguration reader)
+    {
+        readerToDelete = reader;
+        showDeleteModal = true;
+        StateHasChanged();
+    }
+    
+    private void CloseReaderModal()
+    {
+        showReaderModal = false;
+        editingReader = null;
+        readerForm = new ReaderFormModel();
+        StateHasChanged();
+    }
+    
+    private void CloseDeleteModal()
+    {
+        showDeleteModal = false;
+        readerToDelete = null;
+        StateHasChanged();
+    }
+    
+    private async Task SaveReader()
+    {
+        if (string.IsNullOrWhiteSpace(readerForm.ReaderName))
+        {
+            await OnShowMessage.InvokeAsync("Reader name is required|danger");
+            return;
+        }
+        
+        if (!Guid.TryParse(readerForm.ReaderIdString, out var readerId))
+        {
+            await OnShowMessage.InvokeAsync("Please enter a valid GUID for Reader ID|danger");
+            return;
+        }
+        
+        saving = true;
+        StateHasChanged();
+        
+        try
+        {
+            var readerConfig = readerForm.ToReaderConfiguration();
+            
+            // Save reader (handles both create and update)
+            await ReaderConfigurationService.SaveReaderAsync(readerConfig);
+            
+            if (editingReader != null)
+            {
+                await OnShowMessage.InvokeAsync($"Reader '{readerConfig.ReaderName}' updated successfully|success");
+            }
+            else
+            {
+                await OnShowMessage.InvokeAsync($"Reader '{readerConfig.ReaderName}' created successfully|success");
+            }
+            
+            CloseReaderModal();
+            await LoadData();
+        }
+        catch (Exception ex)
+        {
+            await OnShowMessage.InvokeAsync($"Error saving reader: {ex.Message}|danger");
+        }
+        finally
+        {
+            saving = false;
+            StateHasChanged();
+        }
+    }
+    
+    private async Task ConfirmDeleteReader()
+    {
+        if (readerToDelete == null) return;
+        
+        deleting = true;
+        StateHasChanged();
+        
+        try
+        {
+            await ReaderConfigurationService.DeleteReaderAsync(readerToDelete.ReaderId);
+            await OnShowMessage.InvokeAsync($"Reader '{readerToDelete.ReaderName}' deleted successfully|success");
+            
+            CloseDeleteModal();
+            await LoadData();
+        }
+        catch (Exception ex)
+        {
+            await OnShowMessage.InvokeAsync($"Error deleting reader: {ex.Message}|danger");
+        }
+        finally
+        {
+            deleting = false;
+            StateHasChanged();
+        }
+    }
+
+    private string GetFeedbackColorClass(LedColor? color)
+    {
+        return color switch
+        {
+            LedColor.Red => "red",
+            LedColor.Green => "green",
+            LedColor.Amber => "amber",
+            LedColor.Blue => "blue",
+            _ => "off"
+        };
+    }
+
+    // Form model for reader data binding
+    public class ReaderFormModel
+    {
+        public string ReaderName { get; set; } = string.Empty;
+        public string ReaderIdString { get; set; } = string.Empty;
+        public ReaderFeedbackModel DefaultFeedback { get; set; } = new();
+
+        public static ReaderFormModel FromReaderConfiguration(ReaderConfiguration reader)
+        {
+            return new ReaderFormModel
+            {
+                ReaderName = reader.ReaderName,
+                ReaderIdString = reader.ReaderId.ToString(),
+                DefaultFeedback = ReaderFeedbackModel.FromReaderFeedback(reader.DefaultFeedback)
+            };
+        }
+
+        public ReaderConfiguration ToReaderConfiguration()
+        {
+            return new ReaderConfiguration
+            {
+                ReaderId = Guid.Parse(ReaderIdString),
+                ReaderName = ReaderName,
+                DefaultFeedback = DefaultFeedback.ToReaderFeedback(),
+                ResultFeedback = new Dictionary<string, ReaderFeedbackConfiguration>()
+            };
+        }
+    }
+
+    public class ReaderFeedbackModel
+    {
+        public ReaderFeedbackType Type { get; set; } = ReaderFeedbackType.Success;
+        public LedColor LedColor { get; set; } = LedColor.Green;
+        public int BeepCount { get; set; } = 1;
+        public int LedDurationMs { get; set; } = 1000;
+        public string DisplayMessage { get; set; } = "ACCESS GRANTED";
+
+        public static ReaderFeedbackModel FromReaderFeedback(ReaderFeedbackConfiguration? feedback)
+        {
+            if (feedback == null)
+            {
+                return new ReaderFeedbackModel();
+            }
+
+            return new ReaderFeedbackModel
+            {
+                Type = feedback.Type,
+                LedColor = feedback.LedColor ?? LedColor.Green,
+                BeepCount = feedback.BeepCount ?? 1,
+                LedDurationMs = feedback.LedDurationMs ?? 1000,
+                DisplayMessage = feedback.DisplayMessage ?? "ACCESS GRANTED"
+            };
+        }
+
+        public ReaderFeedbackConfiguration ToReaderFeedback()
+        {
+            return new ReaderFeedbackConfiguration
+            {
+                Type = Type,
+                LedColor = LedColor,
+                BeepCount = BeepCount,
+                LedDurationMs = LedDurationMs,
+                DisplayMessage = DisplayMessage
+            };
+        }
+    }
+}
+
+<style>
+    .bg-red { background-color: #dc3545 !important; }
+    .bg-green { background-color: #28a745 !important; }
+    .bg-amber { background-color: #ffc107 !important; }
+    .bg-blue { background-color: #007bff !important; }
+    .bg-off { background-color: #6c757d !important; }
+</style>
