@@ -3,9 +3,7 @@
 @using ApBox.Plugins
 @using ApBox.Web.Hubs
 @using Microsoft.AspNetCore.SignalR.Client
-@using Blazorise
 @inject IReaderService ReaderService
-@inject ICardProcessingService CardProcessingService
 @inject IPluginLoader PluginLoader
 @inject NavigationManager Navigation
 @implements IAsyncDisposable
@@ -26,7 +24,7 @@
                 <CardBody>
                     <Div Flex="Flex.JustifyContent.Between.AlignItems.Center">
                         <Div>
-                            <Heading Size="HeadingSize.Is2" Margin="Margin.Is0">@activeReaders</Heading>
+                            <Heading Size="HeadingSize.Is2" Margin="Margin.Is0">@_activeReaders</Heading>
                             <Small>Active Readers</Small>
                         </Div>
                         <Div>
@@ -42,7 +40,7 @@
                 <CardBody>
                     <Div Flex="Flex.JustifyContent.Between.AlignItems.Center">
                         <Div>
-                            <Heading Size="HeadingSize.Is2" Margin="Margin.Is0">@loadedPlugins</Heading>
+                            <Heading Size="HeadingSize.Is2" Margin="Margin.Is0">@_loadedPlugins</Heading>
                             <Small>Loaded Plugins</Small>
                         </Div>
                         <Div>
@@ -58,7 +56,7 @@
                 <CardBody>
                     <Div Flex="Flex.JustifyContent.Between.AlignItems.Center">
                         <Div>
-                            <Heading Size="HeadingSize.Is2" Margin="Margin.Is0">@totalEvents</Heading>
+                            <Heading Size="HeadingSize.Is2" Margin="Margin.Is0">@_totalEvents</Heading>
                             <Small>Card Events Today</Small>
                         </Div>
                         <Div>
@@ -74,7 +72,7 @@
                 <CardBody>
                     <Div Flex="Flex.JustifyContent.Between.AlignItems.Center">
                         <Div>
-                            <Heading Size="HeadingSize.Is2" Margin="Margin.Is0">@systemStatus</Heading>
+                            <Heading Size="HeadingSize.Is2" Margin="Margin.Is0">@_systemStatus</Heading>
                             <Small>System Status</Small>
                         </Div>
                         <Div>
@@ -93,7 +91,7 @@
                     <CardTitle Size="5" Margin="Margin.Is0.FromBottom">Recent Card Events</CardTitle>
                 </CardHeader>
                 <CardBody>
-                    @if (recentEvents.Any())
+                    @if (_recentEvents.Any())
                     {
                         <Table Responsive Striped>
                             <TableHeader>
@@ -105,7 +103,7 @@
                                 </TableRow>
                             </TableHeader>
                             <TableBody>
-                                @foreach (var cardEvent in recentEvents.Take(10))
+                                @foreach (var cardEvent in _recentEvents.Take(10))
                                 {
                                     <TableRow>
                                         <TableRowCell>@cardEvent.Timestamp.ToString("HH:mm:ss")</TableRowCell>
@@ -136,9 +134,9 @@
                     <CardTitle Size="5" Margin="Margin.Is0.FromBottom">Reader Status</CardTitle>
                 </CardHeader>
                 <CardBody>
-                    @if (readers.Any())
+                    @if (_readers.Any())
                     {
-                        @foreach (var reader in readers)
+                        @foreach (var reader in _readers)
                         {
                             <Div Flex="Flex.JustifyContent.Between.AlignItems.Center" Margin="Margin.Is2.FromBottom">
                                 <Span>@reader.ReaderName</Span>
@@ -163,13 +161,13 @@
 </Container>
 
 @code {
-    private int activeReaders = 0;
-    private int loadedPlugins = 0;
-    private int totalEvents = 0;
-    private string systemStatus = "Online";
-    private List<CardReadEvent> recentEvents = new();
-    private List<ReaderConfiguration> readers = new();
-    private HubConnection? hubConnection;
+    private int _activeReaders;
+    private int _loadedPlugins;
+    private int _totalEvents;
+    private string _systemStatus = "Online";
+    private List<CardReadEvent> _recentEvents = [];
+    private List<ReaderConfiguration> _readers = [];
+    private HubConnection? _hubConnection;
 
     protected override async Task OnInitializedAsync()
     {
@@ -181,12 +179,12 @@
     {
         try
         {
-            hubConnection = new HubConnectionBuilder()
+            _hubConnection = new HubConnectionBuilder()
                 .WithUrl(Navigation.ToAbsoluteUri("/cardevents"))
                 .Build();
 
             // Handle card event notifications
-            hubConnection.On<CardEventNotification>("CardEventProcessed", async (notification) =>
+            _hubConnection.On<CardEventNotification>("CardEventProcessed", async (notification) =>
             {
                 await InvokeAsync(() =>
                 {
@@ -200,43 +198,39 @@
                         Timestamp = notification.Timestamp
                     };
 
-                    recentEvents.Insert(0, newEvent);
+                    _recentEvents.Insert(0, newEvent);
                     
                     // Keep only the latest 25 events
-                    if (recentEvents.Count > 25)
+                    if (_recentEvents.Count > 25)
                     {
-                        recentEvents = recentEvents.Take(25).ToList();
+                        _recentEvents = _recentEvents.Take(25).ToList();
                     }
 
-                    totalEvents++;
+                    _totalEvents++;
                     StateHasChanged();
                 });
             });
 
             // Handle reader status notifications
-            hubConnection.On<ReaderStatusNotification>("ReaderStatusChanged", async (notification) =>
+            _hubConnection.On<ReaderStatusNotification>("ReaderStatusChanged", async (_) =>
             {
-                await InvokeAsync(() =>
-                {
-                    // Update reader status if needed
-                    StateHasChanged();
-                });
+                await InvokeAsync(StateHasChanged);
             });
 
             // Handle statistics updates
-            hubConnection.On<StatisticsNotification>("StatisticsUpdated", async (notification) =>
+            _hubConnection.On<StatisticsNotification>("StatisticsUpdated", async (notification) =>
             {
                 await InvokeAsync(() =>
                 {
-                    activeReaders = notification.ActiveReaders;
-                    loadedPlugins = notification.LoadedPlugins;
-                    totalEvents = notification.TotalEventsToday;
-                    systemStatus = notification.SystemStatus;
+                    _activeReaders = notification.ActiveReaders;
+                    _loadedPlugins = notification.LoadedPlugins;
+                    _totalEvents = notification.TotalEventsToday;
+                    _systemStatus = notification.SystemStatus;
                     StateHasChanged();
                 });
             });
 
-            await hubConnection.StartAsync();
+            await _hubConnection.StartAsync();
         }
         catch (Exception ex)
         {
@@ -250,20 +244,20 @@
         {
             // Load readers
             var readerConfigs = await ReaderService.GetReadersAsync();
-            readers = readerConfigs.ToList();
-            activeReaders = readers.Count;
+            _readers = readerConfigs.ToList();
+            _activeReaders = _readers.Count;
 
             // Load plugins
             var plugins = await PluginLoader.LoadPluginsAsync();
-            loadedPlugins = plugins.Count();
+            _loadedPlugins = plugins.Count();
 
             // Generate sample events for demonstration
             GenerateSampleEvents();
-            totalEvents = recentEvents.Count;
+            _totalEvents = _recentEvents.Count;
         }
         catch (Exception ex)
         {
-            systemStatus = "Error";
+            _systemStatus = "Error";
             Console.WriteLine($"Dashboard error: {ex.Message}");
         }
     }
@@ -275,7 +269,7 @@
         
         for (int i = 0; i < 25; i++)
         {
-            recentEvents.Add(new CardReadEvent
+            _recentEvents.Add(new CardReadEvent
             {
                 ReaderId = Guid.NewGuid(),
                 CardNumber = $"12345{random.Next(100, 999)}",
@@ -285,14 +279,14 @@
             });
         }
         
-        recentEvents = recentEvents.OrderByDescending(e => e.Timestamp).ToList();
+        _recentEvents = _recentEvents.OrderByDescending(e => e.Timestamp).ToList();
     }
 
     public async ValueTask DisposeAsync()
     {
-        if (hubConnection is not null)
+        if (_hubConnection is not null)
         {
-            await hubConnection.DisposeAsync();
+            await _hubConnection.DisposeAsync();
         }
     }
 }
