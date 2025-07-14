@@ -18,8 +18,9 @@ public class ReaderConfigurationRepository : IReaderConfigurationRepository
 
     public async Task<IEnumerable<ReaderConfiguration>> GetAllAsync()
     {
-        using var connection = await _dbContext.CreateConnectionAsync();
-        
+        using var connection = _dbContext.CreateDbConnectionAsync();
+        connection.Open();
+
         var sql = "SELECT * FROM reader_configurations ORDER BY reader_name";
         var entities = await connection.QueryAsync<ReaderConfigurationEntity>(sql);
         
@@ -28,8 +29,9 @@ public class ReaderConfigurationRepository : IReaderConfigurationRepository
 
     public async Task<ReaderConfiguration?> GetByIdAsync(Guid readerId)
     {
-        using var connection = await _dbContext.CreateConnectionAsync();
-        
+        using var connection = _dbContext.CreateDbConnectionAsync();
+        connection.Open();
+
         var sql = "SELECT * FROM reader_configurations WHERE reader_id = @ReaderId";
         var entity = await connection.QueryFirstOrDefaultAsync<ReaderConfigurationEntity>(sql, new { ReaderId = readerId.ToString() });
         
@@ -38,8 +40,9 @@ public class ReaderConfigurationRepository : IReaderConfigurationRepository
 
     public async Task<ReaderConfiguration> CreateAsync(ReaderConfiguration readerConfiguration)
     {
-        using var connection = await _dbContext.CreateConnectionAsync();
-        
+        using var connection = _dbContext.CreateDbConnectionAsync();
+        connection.Open();
+
         var entity = ReaderConfigurationEntity.FromReaderConfiguration(readerConfiguration);
         
         var sql = @"
@@ -57,8 +60,9 @@ public class ReaderConfigurationRepository : IReaderConfigurationRepository
 
     public async Task<ReaderConfiguration> UpdateAsync(ReaderConfiguration readerConfiguration)
     {
-        using var connection = await _dbContext.CreateConnectionAsync();
-        
+        using var connection = _dbContext.CreateDbConnectionAsync();
+        connection.Open();
+
         var entity = ReaderConfigurationEntity.FromReaderConfiguration(readerConfiguration);
         entity.UpdatedAt = DateTime.UtcNow;
         
@@ -85,8 +89,9 @@ public class ReaderConfigurationRepository : IReaderConfigurationRepository
 
     public async Task<bool> DeleteAsync(Guid readerId)
     {
-        using var connection = await _dbContext.CreateConnectionAsync();
-        
+        using var connection = _dbContext.CreateDbConnectionAsync();
+        connection.Open();
+
         var sql = "DELETE FROM reader_configurations WHERE reader_id = @ReaderId";
         var rowsAffected = await connection.ExecuteAsync(sql, new { ReaderId = readerId.ToString() });
         
@@ -100,8 +105,9 @@ public class ReaderConfigurationRepository : IReaderConfigurationRepository
 
     public async Task<bool> ExistsAsync(Guid readerId)
     {
-        using var connection = await _dbContext.CreateConnectionAsync();
-        
+        using var connection = _dbContext.CreateDbConnectionAsync();
+        connection.Open();
+
         var sql = "SELECT COUNT(1) FROM reader_configurations WHERE reader_id = @ReaderId";
         var count = await connection.QuerySingleAsync<int>(sql, new { ReaderId = readerId.ToString() });
         

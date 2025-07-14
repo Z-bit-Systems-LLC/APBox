@@ -1,9 +1,10 @@
-using Microsoft.Data.Sqlite;
+using System.Data;
 
 namespace ApBox.Core.Data;
 
 public interface IApBoxDbContext
 {
-    Task<SqliteConnection> CreateConnectionAsync();
+    IDbConnection CreateDbConnectionAsync();
+    
     Task InitializeDatabaseAsync();
 }

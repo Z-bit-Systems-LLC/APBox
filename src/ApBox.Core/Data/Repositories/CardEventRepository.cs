@@ -18,7 +18,8 @@ public class CardEventRepository : ICardEventRepository
 
     public async Task<IEnumerable<CardEventEntity>> GetRecentAsync(int limit = 100)
     {
-        using var connection = await _dbContext.CreateConnectionAsync();
+        using var connection = _dbContext.CreateDbConnectionAsync();
+        connection.Open();
         
         var sql = @"
             SELECT * FROM card_events 
@@ -30,7 +31,8 @@ public class CardEventRepository : ICardEventRepository
 
     public async Task<IEnumerable<CardEventEntity>> GetByReaderAsync(Guid readerId, int limit = 100)
     {
-        using var connection = await _dbContext.CreateConnectionAsync();
+        using var connection = _dbContext.CreateDbConnectionAsync();
+        connection.Open();
         
         var sql = @"
             SELECT * FROM card_events 
@@ -43,7 +45,8 @@ public class CardEventRepository : ICardEventRepository
 
     public async Task<IEnumerable<CardEventEntity>> GetByDateRangeAsync(DateTime startDate, DateTime endDate, int limit = 1000)
     {
-        using var connection = await _dbContext.CreateConnectionAsync();
+        using var connection = _dbContext.CreateDbConnectionAsync();
+        connection.Open();
         
         var sql = @"
             SELECT * FROM card_events 
@@ -61,8 +64,9 @@ public class CardEventRepository : ICardEventRepository
 
     public async Task<CardEventEntity> CreateAsync(CardReadEvent cardEvent, CardReadResult? result = null)
     {
-        using var connection = await _dbContext.CreateConnectionAsync();
-        
+        using var connection = _dbContext.CreateDbConnectionAsync();
+        connection.Open();
+
         var entity = CardEventEntity.FromCardReadEvent(cardEvent, result);
         
         var sql = @"
@@ -93,16 +97,18 @@ public class CardEventRepository : ICardEventRepository
 
     public async Task<long> GetCountAsync()
     {
-        using var connection = await _dbContext.CreateConnectionAsync();
-        
+        using var connection = _dbContext.CreateDbConnectionAsync();
+        connection.Open();
+
         var sql = "SELECT COUNT(*) FROM card_events";
         return await connection.QuerySingleAsync<long>(sql);
     }
 
     public async Task<long> GetCountByReaderAsync(Guid readerId)
     {
-        using var connection = await _dbContext.CreateConnectionAsync();
-        
+        using var connection = _dbContext.CreateDbConnectionAsync();
+        connection.Open();
+
         var sql = "SELECT COUNT(*) FROM card_events WHERE reader_id = @ReaderId";
         return await connection.QuerySingleAsync<long>(sql, new { ReaderId = readerId.ToString() });
     }

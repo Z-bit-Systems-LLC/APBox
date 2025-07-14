@@ -15,5 +15,11 @@
     <PackageReference Include="Microsoft.Data.Sqlite" Version="9.0.7" />
   </ItemGroup>
 
+  <ItemGroup>
+    <None Include="Data\Migrations\*.sql">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </None>
+  </ItemGroup>
+
 
 </Project>

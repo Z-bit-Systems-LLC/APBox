@@ -17,7 +17,8 @@ public class PluginConfigurationRepository : IPluginConfigurationRepository
 
     public async Task<string?> GetConfigurationAsync(string pluginName, string key)
     {
-        using var connection = await _dbContext.CreateConnectionAsync();
+        using var connection = _dbContext.CreateDbConnectionAsync();
+        connection.Open();
         
         var sql = @"
             SELECT configuration_value 
@@ -29,8 +30,9 @@ public class PluginConfigurationRepository : IPluginConfigurationRepository
 
     public async Task SetConfigurationAsync(string pluginName, string key, string value)
     {
-        using var connection = await _dbContext.CreateConnectionAsync();
-        
+        using var connection = _dbContext.CreateDbConnectionAsync();
+        connection.Open();
+
         var now = DateTime.UtcNow.ToString("yyyy-MM-dd HH:mm:ss");
         
         var sql = @"
@@ -54,8 +56,9 @@ public class PluginConfigurationRepository : IPluginConfigurationRepository
 
     public async Task<Dictionary<string, string>> GetAllConfigurationAsync(string pluginName)
     {
-        using var connection = await _dbContext.CreateConnectionAsync();
-        
+        using var connection = _dbContext.CreateDbConnectionAsync();
+        connection.Open();
+
         var sql = @"
             SELECT configuration_key, configuration_value 
             FROM plugin_configurations 
@@ -71,8 +74,9 @@ public class PluginConfigurationRepository : IPluginConfigurationRepository
 
     public async Task<bool> DeleteConfigurationAsync(string pluginName, string key)
     {
-        using var connection = await _dbContext.CreateConnectionAsync();
-        
+        using var connection = _dbContext.CreateDbConnectionAsync();
+        connection.Open();
+
         var sql = @"
             DELETE FROM plugin_configurations 
             WHERE plugin_name = @PluginName AND configuration_key = @Key";
@@ -89,8 +93,9 @@ public class PluginConfigurationRepository : IPluginConfigurationRepository
 
     public async Task<bool> DeleteAllConfigurationAsync(string pluginName)
     {
-        using var connection = await _dbContext.CreateConnectionAsync();
-        
+        using var connection = _dbContext.CreateDbConnectionAsync();
+        connection.Open();
+
         var sql = "DELETE FROM plugin_configurations WHERE plugin_name = @PluginName";
         var rowsAffected = await connection.ExecuteAsync(sql, new { PluginName = pluginName });
         

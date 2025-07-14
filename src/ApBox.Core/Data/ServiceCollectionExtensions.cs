@@ -1,4 +1,5 @@
 using ApBox.Core.Data.Repositories;
+using ApBox.Core.Data.Migrations;
 using ApBox.Core.Services;
 using ApBox.Plugins;
 using Microsoft.Extensions.DependencyInjection;
@@ -10,11 +11,22 @@ public static class ServiceCollectionExtensions
 {
     public static IServiceCollection AddApBoxDatabase(this IServiceCollection services, string connectionString)
     {
+        // Register migration runner first (no dependencies)
+        services.AddSingleton<IMigrationRunner>(provider =>
+        {
+            var migrationLogger = provider.GetRequiredService<ILogger<MigrationRunner>>();
+            var dbLogger = provider.GetRequiredService<ILogger<ApBoxDbContext>>();
+            // Create a simple context for migration runner to avoid circular dependency
+            var simpleContext = new ApBoxDbContext(connectionString, dbLogger);
+            return new MigrationRunner(simpleContext, migrationLogger);
+        });
+        
         // Register database context
         services.AddSingleton<IApBoxDbContext>(provider =>
         {
             var logger = provider.GetRequiredService<ILogger<ApBoxDbContext>>();
-            return new ApBoxDbContext(connectionString, logger);
+            var migrationRunner = provider.GetRequiredService<IMigrationRunner>();
+            return new ApBoxDbContext(connectionString, logger, migrationRunner);
         });
         
         // Register repositories
