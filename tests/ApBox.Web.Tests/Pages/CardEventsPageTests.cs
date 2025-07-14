@@ -1,8 +1,6 @@
 using Bunit;
 using ApBox.Web.Pages;
 using ApBox.Plugins;
-using Microsoft.Extensions.DependencyInjection;
-using Moq;
 
 namespace ApBox.Web.Tests.Pages;
 
@@ -88,7 +86,7 @@ public class CardEventsPageTests : ApBoxTestContext
     public void CardEvents_LoadsDataOnInitialization()
     {
         // Act
-        var component = RenderComponent<CardEvents>();
+        RenderComponent<CardEvents>();
 
         // Assert - Verify service call was made to load readers
         MockReaderService.Verify(x => x.GetReadersAsync(), Times.Once);

@@ -2,20 +2,12 @@ using Dapper;
 
 namespace ApBox.Core.Data.Repositories;
 
-public class PluginConfigurationRepository : IPluginConfigurationRepository
+public class PluginConfigurationRepository(IApBoxDbContext dbContext, ILogger<PluginConfigurationRepository> logger)
+    : IPluginConfigurationRepository
 {
-    private readonly IApBoxDbContext _dbContext;
-    private readonly ILogger<PluginConfigurationRepository> _logger;
-
-    public PluginConfigurationRepository(IApBoxDbContext dbContext, ILogger<PluginConfigurationRepository> logger)
-    {
-        _dbContext = dbContext;
-        _logger = logger;
-    }
-
     public async Task<string?> GetConfigurationAsync(string pluginName, string key)
     {
-        using var connection = _dbContext.CreateDbConnectionAsync();
+        using var connection = dbContext.CreateDbConnectionAsync();
         connection.Open();
         
         var sql = @"
@@ -28,7 +20,7 @@ public class PluginConfigurationRepository : IPluginConfigurationRepository
 
     public async Task SetConfigurationAsync(string pluginName, string key, string value)
     {
-        using var connection = _dbContext.CreateDbConnectionAsync();
+        using var connection = dbContext.CreateDbConnectionAsync();
         connection.Open();
 
         var now = DateTime.UtcNow.ToString("yyyy-MM-dd HH:mm:ss");
@@ -49,12 +41,12 @@ public class PluginConfigurationRepository : IPluginConfigurationRepository
             Now = now 
         });
         
-        _logger.LogDebug("Set configuration {Key} for plugin {PluginName}", key, pluginName);
+        logger.LogDebug("Set configuration {Key} for plugin {PluginName}", key, pluginName);
     }
 
     public async Task<Dictionary<string, string>> GetAllConfigurationAsync(string pluginName)
     {
-        using var connection = _dbContext.CreateDbConnectionAsync();
+        using var connection = dbContext.CreateDbConnectionAsync();
         connection.Open();
 
         var sql = @"
@@ -72,7 +64,7 @@ public class PluginConfigurationRepository : IPluginConfigurationRepository
 
     public async Task<bool> DeleteConfigurationAsync(string pluginName, string key)
     {
-        using var connection = _dbContext.CreateDbConnectionAsync();
+        using var connection = dbContext.CreateDbConnectionAsync();
         connection.Open();
 
         var sql = @"
@@ -83,7 +75,7 @@ public class PluginConfigurationRepository : IPluginConfigurationRepository
         
         if (rowsAffected > 0)
         {
-            _logger.LogDebug("Deleted configuration {Key} for plugin {PluginName}", key, pluginName);
+            logger.LogDebug("Deleted configuration {Key} for plugin {PluginName}", key, pluginName);
         }
         
         return rowsAffected > 0;
@@ -91,7 +83,7 @@ public class PluginConfigurationRepository : IPluginConfigurationRepository
 
     public async Task<bool> DeleteAllConfigurationAsync(string pluginName)
     {
-        using var connection = _dbContext.CreateDbConnectionAsync();
+        using var connection = dbContext.CreateDbConnectionAsync();
         connection.Open();
 
         var sql = "DELETE FROM plugin_configurations WHERE plugin_name = @PluginName";
@@ -99,7 +91,7 @@ public class PluginConfigurationRepository : IPluginConfigurationRepository
         
         if (rowsAffected > 0)
         {
-            _logger.LogInformation("Deleted all configurations for plugin {PluginName}", pluginName);
+            logger.LogInformation("Deleted all configurations for plugin {PluginName}", pluginName);
         }
         
         return rowsAffected > 0;
