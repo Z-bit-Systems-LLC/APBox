@@ -1,5 +1,6 @@
 @using ApBox.Core.Services
 @using ApBox.Plugins
+@using System.ComponentModel.DataAnnotations
 @inject IReaderConfigurationService ReaderConfigurationService
 
 <Container Fluid>
@@ -47,12 +48,7 @@
                             </Row>
                         </CardHeader>
                         <CardBody>
-                            <Paragraph TextColor="TextColor.Muted" Margin="Margin.Is2.FromBottom">
-                                <Small>Reader ID: @reader.ReaderId.ToString()[..8]...</Small>
-                            </Paragraph>
-                            <Badge Color="Color.Info" Margin="Margin.Is2.FromBottom">
-                                @reader.ReaderId.ToString()[..8]...
-                            </Badge>
+                            <!-- Reader details can be added here in the future -->
                         </CardBody>
                     </Card>
                 </Column>
@@ -83,15 +79,23 @@
             <CloseButton />
         </ModalHeader>
         <ModalBody>
-            <Field>
-                <FieldLabel>Reader Name</FieldLabel>
-                <TextEdit @bind-Text="_readerForm.ReaderName" Placeholder="e.g., Main Entrance" ElementId="reader-name-input" />
-                <FieldHelp>Enter a descriptive name for this reader</FieldHelp>
-            </Field>
+            <Validations @ref="_validations" Model="_readerForm" ValidateOnLoad="false">
+                <Validation>
+                    <Field>
+                        <FieldLabel>Reader Name</FieldLabel>
+                        <TextEdit @bind-Text="_readerForm.ReaderName" Placeholder="e.g., Main Entrance" ElementId="reader-name-input">
+                            <Feedback>
+                                <ValidationError />
+                            </Feedback>
+                        </TextEdit>
+                        <FieldHelp>Enter a descriptive name for this reader</FieldHelp>
+                    </Field>
+                </Validation>
+            </Validations>
         </ModalBody>
         <ModalFooter>
             <Button Color="Color.Secondary" Clicked="CloseReaderModal">Cancel</Button>
-            <Button Color="Color.Primary" Clicked="SaveReader" Loading="_saving" ElementId="save-reader-button">
+            <Button Color="Color.Primary" Clicked="SaveReader" Loading="_saving" ElementId="save-reader-button" Disabled="_saving">
                 Save Reader
             </Button>
         </ModalFooter>
@@ -138,6 +142,9 @@
     Snackbar? _snackbar;
     string? _snackBarMessage;
     
+    // Validation reference
+    private Validations? _validations;
+    
     // Form data
     private ReaderFormModel _readerForm = new();
     private ReaderConfiguration? _editingReader;
@@ -165,6 +172,12 @@
         _editingReader = null;
         _readerForm = new ReaderFormModel();
         await _readerModal!.Show();
+        
+        // Clear previous validation state
+        if (_validations != null)
+        {
+            await _validations.ClearAll();
+        }
     }
 
     private async Task EditReader(ReaderConfiguration reader)
@@ -172,6 +185,12 @@
         _editingReader = reader;
         _readerForm = ReaderFormModel.FromReaderConfiguration(reader);
         await _readerModal!.Show();
+        
+        // Clear previous validation state
+        if (_validations != null)
+        {
+            await _validations.ClearAll();
+        }
     }
 
     private async Task DeleteReader(ReaderConfiguration reader)
@@ -195,9 +214,10 @@
     
     private async Task SaveReader()
     {
-        if (string.IsNullOrWhiteSpace(_readerForm.ReaderName))
+        // Validate the form using Blazorise validation
+        if (_validations != null && !await _validations.ValidateAll())
         {
-            await ShowSnackbar("Reader name is required", SnackbarColor.Danger);
+            await ShowSnackbar("Please correct the validation errors", SnackbarColor.Danger);
             return;
         }
         
@@ -276,6 +296,9 @@
     // Form model for reader data binding
     public class ReaderFormModel
     {
+        [Required(ErrorMessage = "Reader name is required")]
+        [StringLength(100, MinimumLength = 2, ErrorMessage = "Reader name must be between 2 and 100 characters")]
+        [Display(Name = "Reader Name")]
         public string ReaderName { get; set; } = string.Empty;
 
         public static ReaderFormModel FromReaderConfiguration(ReaderConfiguration reader)

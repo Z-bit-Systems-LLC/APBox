@@ -434,7 +434,7 @@ public class ReadersConfigurationTests : ApBoxTestContext
     }
 
     [Test]
-    public void ReadersConfiguration_DisplaysReaderIdTruncated()
+    public void ReadersConfiguration_DisplaysReaderCards_WithoutReaderIdDisplay()
     {
         // Arrange
         var testReaderId = Guid.Parse("12345678-1234-1234-1234-123456789012");
@@ -448,9 +448,116 @@ public class ReadersConfigurationTests : ApBoxTestContext
         var component = RenderComponent<ApBox.Web.Components.Configuration.ReadersConfiguration>();
 
         // Assert
+        // Verify Reader ID is not displayed in the card body
         var readerIdDisplay = component.FindAll("small").FirstOrDefault(s => s.TextContent.Contains("Reader ID:"));
-        Assert.That(readerIdDisplay, Is.Not.Null);
-        Assert.That(readerIdDisplay.TextContent, Does.Contain("12345678...")); // Should be truncated
+        Assert.That(readerIdDisplay, Is.Null);
+        
+        // Verify the reader name is still displayed in the card title
+        var cardTitle = component.Find(".card-title");
+        Assert.That(cardTitle.TextContent, Is.EqualTo("Test Reader"));
+    }
+
+    #endregion
+
+    #region Validation Tests
+
+    [Test]
+    public async Task ReadersConfiguration_CreateReader_TooShortName_ShowsValidationError()
+    {
+        // Arrange
+        var component = RenderComponent<ApBox.Web.Components.Configuration.ReadersConfiguration>();
+        var addButton = component.Find("#add-reader-button");
+        await addButton.ClickAsync(new MouseEventArgs());
+
+        var nameInput = component.Find("#reader-name-input");
+        var saveButton = component.Find("#save-reader-button");
+
+        // Act
+        await nameInput.InputAsync(new ChangeEventArgs { Value = "A" }); // Too short (minimum 2 chars)
+        await saveButton.ClickAsync(new MouseEventArgs());
+
+        // Assert
+        // Should not call the service with invalid input
+        MockReaderConfigurationService.Verify(x => x.SaveReaderAsync(It.IsAny<ReaderConfiguration>()), Times.Never);
+    }
+
+    [Test]
+    public async Task ReadersConfiguration_CreateReader_TooLongName_ShowsValidationError()
+    {
+        // Arrange
+        var component = RenderComponent<ApBox.Web.Components.Configuration.ReadersConfiguration>();
+        var addButton = component.Find("#add-reader-button");
+        await addButton.ClickAsync(new MouseEventArgs());
+
+        var nameInput = component.Find("#reader-name-input");
+        var saveButton = component.Find("#save-reader-button");
+
+        // Act - Create a name longer than 100 characters
+        var longName = new string('A', 101);
+        await nameInput.InputAsync(new ChangeEventArgs { Value = longName });
+        await saveButton.ClickAsync(new MouseEventArgs());
+
+        // Assert
+        // Should not call the service with invalid input
+        MockReaderConfigurationService.Verify(x => x.SaveReaderAsync(It.IsAny<ReaderConfiguration>()), Times.Never);
+    }
+
+    [Test]
+    public async Task ReadersConfiguration_CreateReader_ValidNameLength_CallsService()
+    {
+        // Arrange
+        var component = RenderComponent<ApBox.Web.Components.Configuration.ReadersConfiguration>();
+        var addButton = component.Find("#add-reader-button");
+        await addButton.ClickAsync(new MouseEventArgs());
+
+        var nameInput = component.Find("#reader-name-input");
+        var saveButton = component.Find("#save-reader-button");
+
+        // Act - Valid name length (between 2 and 100 characters)
+        await nameInput.InputAsync(new ChangeEventArgs { Value = "Valid Reader Name" });
+        await saveButton.ClickAsync(new MouseEventArgs());
+
+        // Assert
+        MockReaderConfigurationService.Verify(x => x.SaveReaderAsync(It.IsAny<ReaderConfiguration>()), Times.Once);
+    }
+
+    [Test]
+    public async Task ReadersConfiguration_CreateReader_ExactlyMinLength_CallsService()
+    {
+        // Arrange
+        var component = RenderComponent<ApBox.Web.Components.Configuration.ReadersConfiguration>();
+        var addButton = component.Find("#add-reader-button");
+        await addButton.ClickAsync(new MouseEventArgs());
+
+        var nameInput = component.Find("#reader-name-input");
+        var saveButton = component.Find("#save-reader-button");
+
+        // Act - Exactly minimum length (2 characters)
+        await nameInput.InputAsync(new ChangeEventArgs { Value = "AB" });
+        await saveButton.ClickAsync(new MouseEventArgs());
+
+        // Assert
+        MockReaderConfigurationService.Verify(x => x.SaveReaderAsync(It.IsAny<ReaderConfiguration>()), Times.Once);
+    }
+
+    [Test]
+    public async Task ReadersConfiguration_CreateReader_ExactlyMaxLength_CallsService()
+    {
+        // Arrange
+        var component = RenderComponent<ApBox.Web.Components.Configuration.ReadersConfiguration>();
+        var addButton = component.Find("#add-reader-button");
+        await addButton.ClickAsync(new MouseEventArgs());
+
+        var nameInput = component.Find("#reader-name-input");
+        var saveButton = component.Find("#save-reader-button");
+
+        // Act - Exactly maximum length (100 characters)
+        var maxName = new string('A', 100);
+        await nameInput.InputAsync(new ChangeEventArgs { Value = maxName });
+        await saveButton.ClickAsync(new MouseEventArgs());
+
+        // Assert
+        MockReaderConfigurationService.Verify(x => x.SaveReaderAsync(It.IsAny<ReaderConfiguration>()), Times.Once);
     }
 
     #endregion
