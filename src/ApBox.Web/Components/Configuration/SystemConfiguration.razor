@@ -303,6 +303,11 @@
 @code {
     [Parameter] public EventCallback<string> OnShowMessage { get; set; }
     
+    public void Dispose()
+    {
+        _uptimeTimer?.Dispose();
+    }
+    
     private int _readerCount = 0;
     private int _pluginCount = 0;
     private SystemInfo _systemInfo = new();
@@ -312,7 +317,7 @@
     private bool _importing = false;
     private bool _restarting = false;
     private bool _exportingLogs = false;
-    private DateTime _startTime = DateTime.UtcNow;
+    private Timer? _uptimeTimer;
     
     // Modal reference
     private Modal? _restartModal;
@@ -327,6 +332,9 @@
     {
         await LoadSystemInfo();
         await LoadRecentLogs();
+        
+        // Start uptime timer to update every 30 seconds
+        _uptimeTimer = new Timer(async _ => await InvokeAsync(StateHasChanged), null, TimeSpan.Zero, TimeSpan.FromSeconds(30));
     }
 
     private async Task LoadSystemInfo()
@@ -470,8 +478,22 @@
 
     private string GetSystemUptime()
     {
-        var uptime = DateTime.UtcNow - _startTime;
-        return $"{uptime.Days}d {uptime.Hours}h {uptime.Minutes}m";
+        try
+        {
+            var process = System.Diagnostics.Process.GetCurrentProcess();
+            var uptime = DateTime.UtcNow - process.StartTime.ToUniversalTime();
+            
+            if (uptime.Days > 0)
+                return $"{uptime.Days}d {uptime.Hours}h {uptime.Minutes}m";
+            else if (uptime.Hours > 0)
+                return $"{uptime.Hours}h {uptime.Minutes}m";
+            else
+                return $"{uptime.Minutes}m {uptime.Seconds}s";
+        }
+        catch
+        {
+            return "Unknown";
+        }
     }
     
     private async Task LoadRecentLogs()
