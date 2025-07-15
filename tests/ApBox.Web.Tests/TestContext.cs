@@ -21,6 +21,9 @@ public class ApBoxTestContext : Bunit.TestContext
     public Mock<IReaderConfigurationService> MockReaderConfigurationService { get; private set; }
     public Mock<ICardEventRepository> MockCardEventRepository { get; private set; }
     public Mock<IFeedbackConfigurationService> MockFeedbackConfigurationService { get; private set; }
+    public Mock<ILogService> MockLogService { get; private set; }
+    public Mock<IConfigurationExportService> MockConfigurationExportService { get; private set; }
+    public Mock<ISystemRestartService> MockSystemRestartService { get; private set; }
 
     public ApBoxTestContext()
     {
@@ -31,6 +34,9 @@ public class ApBoxTestContext : Bunit.TestContext
         MockReaderConfigurationService = new Mock<IReaderConfigurationService>();
         MockCardEventRepository = new Mock<ICardEventRepository>();
         MockFeedbackConfigurationService = new Mock<IFeedbackConfigurationService>();
+        MockLogService = new Mock<ILogService>();
+        MockConfigurationExportService = new Mock<IConfigurationExportService>();
+        MockSystemRestartService = new Mock<ISystemRestartService>();
 
         // Configure Blazorise for testing
         Services
@@ -45,6 +51,9 @@ public class ApBoxTestContext : Bunit.TestContext
         Services.AddSingleton(MockReaderConfigurationService.Object);
         Services.AddSingleton(MockCardEventRepository.Object);
         Services.AddSingleton(MockFeedbackConfigurationService.Object);
+        Services.AddSingleton(MockLogService.Object);
+        Services.AddSingleton(MockConfigurationExportService.Object);
+        Services.AddSingleton(MockSystemRestartService.Object);
 
         // Add other required services
         Services.AddLogging();
@@ -58,6 +67,9 @@ public class ApBoxTestContext : Bunit.TestContext
         MockReaderConfigurationService.Reset();
         MockCardEventRepository.Reset();
         MockFeedbackConfigurationService.Reset();
+        MockLogService.Reset();
+        MockConfigurationExportService.Reset();
+        MockSystemRestartService.Reset();
     }
 
     public void SetupDefaultMocks()
@@ -92,6 +104,27 @@ public class ApBoxTestContext : Bunit.TestContext
 
         MockFeedbackConfigurationService.Setup(x => x.SaveDefaultConfigurationAsync(It.IsAny<FeedbackConfiguration>()))
             .Returns(Task.CompletedTask);
+
+        MockLogService.Setup(x => x.GetRecentLogsAsync(It.IsAny<int>()))
+            .ReturnsAsync(new List<LogEntry>());
+
+        MockConfigurationExportService.Setup(x => x.ExportConfigurationAsync())
+            .ReturnsAsync(new ConfigurationExport());
+
+        MockSystemRestartService.Setup(x => x.CanRestartAsync())
+            .ReturnsAsync(true);
+        
+        MockSystemRestartService.Setup(x => x.PrepareRestartAsync())
+            .Returns(Task.CompletedTask);
+            
+        MockSystemRestartService.Setup(x => x.RestartApplicationAsync())
+            .Returns(Task.CompletedTask);
+            
+        MockSystemRestartService.Setup(x => x.GetEstimatedRestartTimeAsync())
+            .ReturnsAsync(TimeSpan.FromSeconds(5));
+            
+        MockSystemRestartService.Setup(x => x.IsRestartInProgress)
+            .Returns(false);
     }
 
     private static IEnumerable<ReaderConfiguration> GetDefaultReaderConfigurations()
