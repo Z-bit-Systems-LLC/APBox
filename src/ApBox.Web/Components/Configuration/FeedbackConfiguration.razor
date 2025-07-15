@@ -1,202 +1,295 @@
 @using ApBox.Plugins
+@using System.ComponentModel.DataAnnotations
 
-<div class="tab-pane fade show active">
-    <div class="row mb-4">
-        <div class="col-12">
-            <h3>Default Feedback Configuration</h3>
-            <p class="text-muted">Configure default feedback patterns for successful and failed card reads</p>
-        </div>
-    </div>
+<Container Fluid>
+    <Row Margin="Margin.Is3.FromBottom">
+        <Column>
+            <Heading Size="HeadingSize.Is3" ElementId="feedback-title">Default Feedback Configuration</Heading>
+            <Paragraph TextColor="TextColor.Muted">Configure default feedback patterns for successful and failed card reads</Paragraph>
+        </Column>
+    </Row>
 
-    <div class="row">
-        <div class="col-md-6">
-            <div class="card">
-                <div class="card-header bg-success text-white">
-                    <h6 class="card-title mb-0">
-                        <span class="oi oi-check me-2"></span>Success Feedback
-                    </h6>
-                </div>
-                <div class="card-body">
-                    <form>
-                        <div class="mb-3">
-                            <label class="form-label">LED Color</label>
-                            <select class="form-select" @bind="defaultSuccessFeedback.LedColor">
-                                <option value="@LedColor.Green">Green</option>
-                                <option value="@LedColor.Red">Red</option>
-                                <option value="@LedColor.Amber">Amber</option>
-                                <option value="@LedColor.Blue">Blue</option>
-                            </select>
-                        </div>
-                        <div class="mb-3">
-                            <label class="form-label">Beep Count</label>
-                            <input type="number" class="form-control" @bind="defaultSuccessFeedback.BeepCount" min="0" max="10" />
-                        </div>
-                        <div class="mb-3">
-                            <label class="form-label">LED Duration (ms)</label>
-                            <input type="number" class="form-control" @bind="defaultSuccessFeedback.LedDurationMs" min="100" max="10000" step="100" />
-                        </div>
-                        <div class="mb-3">
-                            <label class="form-label">Display Message</label>
-                            <input type="text" class="form-control" @bind="defaultSuccessFeedback.DisplayMessage" maxlength="16" />
-                            <div class="form-text">Maximum 16 characters for OSDP display</div>
-                        </div>
-                    </form>
-                </div>
-            </div>
-        </div>
+    <Row>
+        <Column ColumnSize="ColumnSize.Is6.OnTablet">
+            <Card>
+                <CardHeader Background="Background.Success" TextColor="TextColor.White">
+                    <CardTitle Size="6" Margin="Margin.Is0.FromBottom">
+                        <Icon Name="IconName.Check" Margin="Margin.Is2.FromEnd" />Success Feedback
+                    </CardTitle>
+                </CardHeader>
+                <CardBody>
+                    <Validations @ref="_successValidations" Model="_successForm" ValidateOnLoad="false">
+                        <Validation>
+                            <Field>
+                                <FieldLabel>LED Color</FieldLabel>
+                                <Select @bind-SelectedValue="_successForm.LedColor" ElementId="success-led-color">
+                                    <SelectItem Value="LedColor.Green">Green</SelectItem>
+                                    <SelectItem Value="LedColor.Red">Red</SelectItem>
+                                    <SelectItem Value="LedColor.Amber">Amber</SelectItem>
+                                    <SelectItem Value="LedColor.Blue">Blue</SelectItem>
+                                </Select>
+                            </Field>
+                        </Validation>
+                        <Validation>
+                            <Field>
+                                <FieldLabel>Beep Count</FieldLabel>
+                                <NumericEdit @bind-Value="_successForm.BeepCount" Min="0" Max="10" ElementId="success-beep-count">
+                                    <Feedback>
+                                        <ValidationError />
+                                    </Feedback>
+                                </NumericEdit>
+                            </Field>
+                        </Validation>
+                        <Validation>
+                            <Field>
+                                <FieldLabel>LED Duration (ms)</FieldLabel>
+                                <NumericEdit @bind-Value="_successForm.LedDurationMs" Min="100" Max="10000" Step="100" ElementId="success-led-duration">
+                                    <Feedback>
+                                        <ValidationError />
+                                    </Feedback>
+                                </NumericEdit>
+                            </Field>
+                        </Validation>
+                        <Validation>
+                            <Field>
+                                <FieldLabel>Display Message</FieldLabel>
+                                <TextEdit @bind-Text="_successForm.DisplayMessage" MaxLength="16" ElementId="success-display-message">
+                                    <Feedback>
+                                        <ValidationError />
+                                    </Feedback>
+                                </TextEdit>
+                                <FieldHelp>Maximum 16 characters for OSDP display</FieldHelp>
+                            </Field>
+                        </Validation>
+                    </Validations>
+                </CardBody>
+            </Card>
+        </Column>
 
-        <div class="col-md-6">
-            <div class="card">
-                <div class="card-header bg-danger text-white">
-                    <h6 class="card-title mb-0">
-                        <span class="oi oi-x me-2"></span>Failure Feedback
-                    </h6>
-                </div>
-                <div class="card-body">
-                    <form>
-                        <div class="mb-3">
-                            <label class="form-label">LED Color</label>
-                            <select class="form-select" @bind="defaultFailureFeedback.LedColor">
-                                <option value="@LedColor.Green">Green</option>
-                                <option value="@LedColor.Red">Red</option>
-                                <option value="@LedColor.Amber">Amber</option>
-                                <option value="@LedColor.Blue">Blue</option>
-                            </select>
-                        </div>
-                        <div class="mb-3">
-                            <label class="form-label">Beep Count</label>
-                            <input type="number" class="form-control" @bind="defaultFailureFeedback.BeepCount" min="0" max="10" />
-                        </div>
-                        <div class="mb-3">
-                            <label class="form-label">LED Duration (ms)</label>
-                            <input type="number" class="form-control" @bind="defaultFailureFeedback.LedDurationMs" min="100" max="10000" step="100" />
-                        </div>
-                        <div class="mb-3">
-                            <label class="form-label">Display Message</label>
-                            <input type="text" class="form-control" @bind="defaultFailureFeedback.DisplayMessage" maxlength="16" />
-                            <div class="form-text">Maximum 16 characters for OSDP display</div>
-                        </div>
-                    </form>
-                </div>
-            </div>
-        </div>
-    </div>
+        <Column ColumnSize="ColumnSize.Is6.OnTablet">
+            <Card>
+                <CardHeader Background="Background.Danger" TextColor="TextColor.White">
+                    <CardTitle Size="6" Margin="Margin.Is0.FromBottom">
+                        <Icon Name="IconName.Times" Margin="Margin.Is2.FromEnd" />Failure Feedback
+                    </CardTitle>
+                </CardHeader>
+                <CardBody>
+                    <Validations @ref="_failureValidations" Model="_failureForm" ValidateOnLoad="false">
+                        <Validation>
+                            <Field>
+                                <FieldLabel>LED Color</FieldLabel>
+                                <Select @bind-SelectedValue="_failureForm.LedColor" ElementId="failure-led-color">
+                                    <SelectItem Value="LedColor.Green">Green</SelectItem>
+                                    <SelectItem Value="LedColor.Red">Red</SelectItem>
+                                    <SelectItem Value="LedColor.Amber">Amber</SelectItem>
+                                    <SelectItem Value="LedColor.Blue">Blue</SelectItem>
+                                </Select>
+                            </Field>
+                        </Validation>
+                        <Validation>
+                            <Field>
+                                <FieldLabel>Beep Count</FieldLabel>
+                                <NumericEdit @bind-Value="_failureForm.BeepCount" Min="0" Max="10" ElementId="failure-beep-count">
+                                    <Feedback>
+                                        <ValidationError />
+                                    </Feedback>
+                                </NumericEdit>
+                            </Field>
+                        </Validation>
+                        <Validation>
+                            <Field>
+                                <FieldLabel>LED Duration (ms)</FieldLabel>
+                                <NumericEdit @bind-Value="_failureForm.LedDurationMs" Min="100" Max="10000" Step="100" ElementId="failure-led-duration">
+                                    <Feedback>
+                                        <ValidationError />
+                                    </Feedback>
+                                </NumericEdit>
+                            </Field>
+                        </Validation>
+                        <Validation>
+                            <Field>
+                                <FieldLabel>Display Message</FieldLabel>
+                                <TextEdit @bind-Text="_failureForm.DisplayMessage" MaxLength="16" ElementId="failure-display-message">
+                                    <Feedback>
+                                        <ValidationError />
+                                    </Feedback>
+                                </TextEdit>
+                                <FieldHelp>Maximum 16 characters for OSDP display</FieldHelp>
+                            </Field>
+                        </Validation>
+                    </Validations>
+                </CardBody>
+            </Card>
+        </Column>
+    </Row>
 
-    <div class="row mt-4">
-        <div class="col-12">
-            <div class="card">
-                <div class="card-header">
-                    <h6 class="card-title mb-0">Feedback Preview</h6>
-                </div>
-                <div class="card-body">
-                    <div class="row">
-                        <div class="col-md-6">
-                            <h6>Success Pattern</h6>
-                            <div class="d-flex align-items-center mb-2">
-                                <span class="badge bg-@GetFeedbackColorClass(defaultSuccessFeedback.LedColor) me-2">
-                                    @defaultSuccessFeedback.LedColor
-                                </span>
-                                <span class="badge bg-secondary me-2">@defaultSuccessFeedback.BeepCount beeps</span>
-                                <span class="badge bg-info">@defaultSuccessFeedback.LedDurationMs ms</span>
-                            </div>
-                            <div class="border p-2 bg-light">
-                                <small class="text-monospace">@defaultSuccessFeedback.DisplayMessage</small>
-                            </div>
-                        </div>
-                        <div class="col-md-6">
-                            <h6>Failure Pattern</h6>
-                            <div class="d-flex align-items-center mb-2">
-                                <span class="badge bg-@GetFeedbackColorClass(defaultFailureFeedback.LedColor) me-2">
-                                    @defaultFailureFeedback.LedColor
-                                </span>
-                                <span class="badge bg-secondary me-2">@defaultFailureFeedback.BeepCount beeps</span>
-                                <span class="badge bg-info">@defaultFailureFeedback.LedDurationMs ms</span>
-                            </div>
-                            <div class="border p-2 bg-light">
-                                <small class="text-monospace">@defaultFailureFeedback.DisplayMessage</small>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </div>
+    <Row Margin="Margin.Is4.FromTop">
+        <Column>
+            <Card>
+                <CardHeader>
+                    <CardTitle Size="6" Margin="Margin.Is0.FromBottom">Feedback Preview</CardTitle>
+                </CardHeader>
+                <CardBody>
+                    <Row>
+                        <Column ColumnSize="ColumnSize.Is6.OnTablet">
+                            <Heading Size="HeadingSize.Is6">Success Pattern</Heading>
+                            <Div Flex="Flex.JustifyContent.Start.AlignItems.Center" Margin="Margin.Is2.FromBottom">
+                                <Badge Color="@GetFeedbackBadgeColor(_successForm.LedColor)" Margin="Margin.Is2.FromEnd">
+                                    @_successForm.LedColor
+                                </Badge>
+                                <Badge Color="Color.Secondary" Margin="Margin.Is2.FromEnd">@_successForm.BeepCount beeps</Badge>
+                                <Badge Color="Color.Info">@_successForm.LedDurationMs ms</Badge>
+                            </Div>
+                            <Div Border="Border.Is1" Padding="Padding.Is2" Background="Background.Light">
+                                <Small TextColor="TextColor.Dark" Style="font-family: monospace;">@_successForm.DisplayMessage</Small>
+                            </Div>
+                        </Column>
+                        <Column ColumnSize="ColumnSize.Is6.OnTablet">
+                            <Heading Size="HeadingSize.Is6">Failure Pattern</Heading>
+                            <Div Flex="Flex.JustifyContent.Start.AlignItems.Center" Margin="Margin.Is2.FromBottom">
+                                <Badge Color="@GetFeedbackBadgeColor(_failureForm.LedColor)" Margin="Margin.Is2.FromEnd">
+                                    @_failureForm.LedColor
+                                </Badge>
+                                <Badge Color="Color.Secondary" Margin="Margin.Is2.FromEnd">@_failureForm.BeepCount beeps</Badge>
+                                <Badge Color="Color.Info">@_failureForm.LedDurationMs ms</Badge>
+                            </Div>
+                            <Div Border="Border.Is1" Padding="Padding.Is2" Background="Background.Light">
+                                <Small TextColor="TextColor.Dark" Style="font-family: monospace;">@_failureForm.DisplayMessage</Small>
+                            </Div>
+                        </Column>
+                    </Row>
+                </CardBody>
+            </Card>
+        </Column>
+    </Row>
 
-    <div class="row mt-4">
-        <div class="col-12">
-            <button class="btn btn-primary" @onclick="SaveDefaultFeedback" disabled="@saving">
-                @if (saving)
-                {
-                    <span class="spinner-border spinner-border-sm me-2"></span>
-                }
-                <span class="oi oi-check me-2"></span>Save Default Feedback Settings
-            </button>
-        </div>
-    </div>
-</div>
+    <Row Margin="Margin.Is4.FromTop">
+        <Column>
+            <Button Color="Color.Primary" Clicked="SaveDefaultFeedback" Loading="_saving" ElementId="save-feedback-button" Disabled="_saving">
+                <Icon Name="IconName.Check" Margin="Margin.Is2.FromEnd" />Save Default Feedback Settings
+            </Button>
+        </Column>
+    </Row>
+</Container>
+
+<Snackbar @ref="_snackbar">
+    <SnackbarBody>
+        @_snackbarMessage
+    </SnackbarBody>
+</Snackbar>
 
 @code {
     [Parameter] public EventCallback<string> OnShowMessage { get; set; }
     
-    private bool saving = false;
+    private bool _saving = false;
     
-    private ReaderFeedback defaultSuccessFeedback = new() 
-    { 
-        Type = ReaderFeedbackType.Success,
-        LedColor = LedColor.Green, 
-        BeepCount = 1, 
+    // Validation references
+    private Validations? _successValidations;
+    private Validations? _failureValidations;
+    
+    // Snackbar
+    private Snackbar? _snackbar;
+    private string? _snackbarMessage;
+    
+    // Form models
+    private FeedbackFormModel _successForm = new()
+    {
+        LedColor = LedColor.Green,
+        BeepCount = 1,
         LedDurationMs = 1000,
-        DisplayMessage = "ACCESS GRANTED" 
+        DisplayMessage = "ACCESS GRANTED"
     };
     
-    private ReaderFeedback defaultFailureFeedback = new() 
-    { 
-        Type = ReaderFeedbackType.Failure,
-        LedColor = LedColor.Red, 
-        BeepCount = 3, 
+    private FeedbackFormModel _failureForm = new()
+    {
+        LedColor = LedColor.Red,
+        BeepCount = 3,
         LedDurationMs = 2000,
-        DisplayMessage = "ACCESS DENIED" 
+        DisplayMessage = "ACCESS DENIED"
     };
 
     private async Task SaveDefaultFeedback()
     {
-        saving = true;
+        // Validate both forms
+        var successValid = _successValidations == null || await _successValidations.ValidateAll();
+        var failureValid = _failureValidations == null || await _failureValidations.ValidateAll();
+        
+        if (!successValid || !failureValid)
+        {
+            await ShowSnackbar("Please correct the validation errors", SnackbarColor.Danger);
+            return;
+        }
+        
+        _saving = true;
         StateHasChanged();
         
         try
         {
             // TODO: Save to configuration service when available
             await Task.Delay(1000); // Simulate save operation
-            await OnShowMessage.InvokeAsync("Default feedback settings saved successfully|success");
+            await ShowSnackbar("Default feedback settings saved successfully", SnackbarColor.Success);
         }
         catch (Exception ex)
         {
-            await OnShowMessage.InvokeAsync($"Error saving feedback settings: {ex.Message}|danger");
+            await ShowSnackbar($"Error saving feedback settings: {ex.Message}", SnackbarColor.Danger);
         }
         finally
         {
-            saving = false;
+            _saving = false;
             StateHasChanged();
         }
     }
 
-    private string GetFeedbackColorClass(LedColor? color)
+    private async Task ShowSnackbar(string message, SnackbarColor color)
+    {
+        if (_snackbar != null)
+        {
+            _snackbar.Color = color;
+            _snackbarMessage = message;
+            await _snackbar.Show();
+        }
+    }
+
+    private Color GetFeedbackBadgeColor(LedColor? color)
     {
         return color switch
         {
-            LedColor.Red => "red",
-            LedColor.Green => "green",
-            LedColor.Amber => "amber",
-            LedColor.Blue => "blue",
-            _ => "off"
+            LedColor.Red => Color.Danger,
+            LedColor.Green => Color.Success,
+            LedColor.Amber => Color.Warning,
+            LedColor.Blue => Color.Primary,
+            _ => Color.Secondary
         };
     }
-}
 
-<style>
-    .bg-red { background-color: #dc3545 !important; }
-    .bg-green { background-color: #28a745 !important; }
-    .bg-amber { background-color: #ffc107 !important; }
-    .bg-blue { background-color: #007bff !important; }
-    .bg-off { background-color: #6c757d !important; }
-</style>
+    // Form model for feedback data binding
+    public class FeedbackFormModel
+    {
+        [Required(ErrorMessage = "LED Color is required")]
+        public LedColor LedColor { get; set; }
+        
+        [Required(ErrorMessage = "Beep count is required")]
+        [Range(0, 10, ErrorMessage = "Beep count must be between 0 and 10")]
+        public int BeepCount { get; set; }
+        
+        [Required(ErrorMessage = "LED duration is required")]
+        [Range(100, 10000, ErrorMessage = "LED duration must be between 100 and 10000 milliseconds")]
+        public int LedDurationMs { get; set; }
+        
+        [Required(ErrorMessage = "Display message is required")]
+        [StringLength(16, ErrorMessage = "Display message cannot exceed 16 characters")]
+        public string DisplayMessage { get; set; } = string.Empty;
+
+        public ReaderFeedback ToReaderFeedback(ReaderFeedbackType type)
+        {
+            return new ReaderFeedback
+            {
+                Type = type,
+                LedColor = LedColor,
+                BeepCount = BeepCount,
+                LedDurationMs = LedDurationMs,
+                DisplayMessage = DisplayMessage
+            };
+        }
+    }
+}
