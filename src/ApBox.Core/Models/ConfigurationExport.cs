@@ -17,9 +17,52 @@ public class ConfigurationExport
 /// </summary>
 public class SystemInfo
 {
-    public string ApBoxVersion { get; set; } = "1.0.0";
-    public string Framework { get; set; } = ".NET 8";
-    public string Platform { get; set; } = Environment.OSVersion.Platform.ToString();
+    public string ApBoxVersion { get; set; } = GetApBoxVersion();
+    public string Framework { get; set; } = GetFrameworkVersion();
+    public string Platform { get; set; } = GetPlatformInfo();
+    public string MachineName { get; set; } = Environment.MachineName;
+    public string OSVersion { get; set; } = Environment.OSVersion.ToString();
+    public int ProcessorCount { get; set; } = Environment.ProcessorCount;
+    public string WorkingDirectory { get; set; } = Environment.CurrentDirectory;
+    public DateTime StartTime { get; set; } = DateTime.UtcNow;
+    
+    private static string GetApBoxVersion()
+    {
+        try
+        {
+            var assembly = System.Reflection.Assembly.GetExecutingAssembly();
+            var version = assembly.GetName().Version;
+            return version?.ToString() ?? "1.0.0";
+        }
+        catch
+        {
+            return "1.0.0";
+        }
+    }
+    
+    private static string GetFrameworkVersion()
+    {
+        try
+        {
+            return System.Runtime.InteropServices.RuntimeInformation.FrameworkDescription;
+        }
+        catch
+        {
+            return ".NET 8";
+        }
+    }
+    
+    private static string GetPlatformInfo()
+    {
+        try
+        {
+            return $"{Environment.OSVersion.Platform} ({System.Runtime.InteropServices.RuntimeInformation.OSDescription})";
+        }
+        catch
+        {
+            return Environment.OSVersion.Platform.ToString();
+        }
+    }
 }
 
 

@@ -8,6 +8,7 @@
 @inject ISystemRestartService SystemRestartService
 @inject ILogService LogService
 @inject IJSRuntime JSRuntime
+@inject IConfiguration Configuration
 
 <Container Fluid>
     <Row Margin="Margin.Is3.FromBottom">
@@ -33,7 +34,7 @@
                             <Text Weight="TextWeight.Bold">Application</Text>
                         </Column>
                         <Column ColumnSize="ColumnSize.Is9.OnTablet">
-                            <Text>ApBox Gateway v1.0.0</Text>
+                            <Text>ApBox Gateway v@_systemInfo.ApBoxVersion</Text>
                         </Column>
                     </Row>
 
@@ -42,7 +43,34 @@
                             <Text Weight="TextWeight.Bold">Framework</Text>
                         </Column>
                         <Column ColumnSize="ColumnSize.Is9.OnTablet">
-                            <Text>.NET 8</Text>
+                            <Text>@_systemInfo.Framework</Text>
+                        </Column>
+                    </Row>
+
+                    <Row Margin="Margin.Is2.FromBottom">
+                        <Column ColumnSize="ColumnSize.Is3.OnTablet">
+                            <Text Weight="TextWeight.Bold">Platform</Text>
+                        </Column>
+                        <Column ColumnSize="ColumnSize.Is9.OnTablet">
+                            <Text>@_systemInfo.Platform</Text>
+                        </Column>
+                    </Row>
+
+                    <Row Margin="Margin.Is2.FromBottom">
+                        <Column ColumnSize="ColumnSize.Is3.OnTablet">
+                            <Text Weight="TextWeight.Bold">Machine Name</Text>
+                        </Column>
+                        <Column ColumnSize="ColumnSize.Is9.OnTablet">
+                            <Text>@_systemInfo.MachineName</Text>
+                        </Column>
+                    </Row>
+
+                    <Row Margin="Margin.Is2.FromBottom">
+                        <Column ColumnSize="ColumnSize.Is3.OnTablet">
+                            <Text Weight="TextWeight.Bold">Processor Count</Text>
+                        </Column>
+                        <Column ColumnSize="ColumnSize.Is9.OnTablet">
+                            <Text>@_systemInfo.ProcessorCount</Text>
                         </Column>
                     </Row>
 
@@ -69,7 +97,7 @@
                             <Text Weight="TextWeight.Bold">Plugin Directory</Text>
                         </Column>
                         <Column ColumnSize="ColumnSize.Is9.OnTablet">
-                            <Code>plugins/</Code>
+                            <Code>@_pluginDirectory</Code>
                         </Column>
                     </Row>
 
@@ -277,6 +305,8 @@
     
     private int _readerCount = 0;
     private int _pluginCount = 0;
+    private SystemInfo _systemInfo = new();
+    private string _pluginDirectory = "plugins/";
     private bool _refreshing = false;
     private bool _exporting = false;
     private bool _importing = false;
@@ -308,6 +338,12 @@
             
             var plugins = await PluginLoader.LoadPluginsAsync();
             _pluginCount = plugins.Count();
+            
+            // Get plugin directory from configuration
+            _pluginDirectory = Configuration.GetValue<string>("PluginSettings:Directory") ?? "plugins/";
+            
+            // Initialize system info with current values
+            _systemInfo = new SystemInfo();
         }
         catch (Exception ex)
         {

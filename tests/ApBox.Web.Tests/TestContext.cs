@@ -1,5 +1,6 @@
 using Bunit;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Configuration;
 using ApBox.Core.Services;
 using ApBox.Core.Data.Repositories;
 using ApBox.Core.Data.Models;
@@ -57,6 +58,14 @@ public class ApBoxTestContext : Bunit.TestContext
 
         // Add other required services
         Services.AddLogging();
+        
+        // Add mock configuration
+        var configurationBuilder = new ConfigurationBuilder();
+        configurationBuilder.AddInMemoryCollection(new Dictionary<string, string?>
+        {
+            ["PluginSettings:Directory"] = "plugins/"
+        });
+        Services.AddSingleton<IConfiguration>(configurationBuilder.Build());
     }
 
     public void ResetMocks()
