@@ -3,199 +3,244 @@
 @inject IReaderConfigurationService ReaderConfigurationService
 @inject IPluginLoader PluginLoader
 
-<div class="tab-pane fade show active">
-    <div class="row mb-4">
-        <div class="col-12">
-            <h3>System Information</h3>
-            <p class="text-muted">System status, diagnostics, and configuration management</p>
-        </div>
-    </div>
+<Container Fluid>
+    <Row Margin="Margin.Is3.FromBottom">
+        <Column>
+            <Heading Size="HeadingSize.Is3" ElementId="system-title">System Information</Heading>
+            <Paragraph TextColor="TextColor.Muted">System status, diagnostics, and configuration management</Paragraph>
+        </Column>
+    </Row>
 
-    <div class="row">
-        <div class="col-md-8">
-            <div class="card">
-                <div class="card-header">
-                    <h6 class="card-title mb-0">System Status</h6>
-                </div>
-                <div class="card-body">
-                    <dl class="row">
-                        <dt class="col-sm-3">Application</dt>
-                        <dd class="col-sm-9">ApBox Gateway v1.0.0</dd>
+    <Row>
+        <!-- System Status Card -->
+        <Column ColumnSize="ColumnSize.Is8.OnTablet">
+            <Card>
+                <CardHeader>
+                    <CardTitle Size="6" Margin="Margin.Is0.FromBottom">
+                        <Icon Name="IconName.Info" Margin="Margin.Is2.FromEnd" />
+                        System Status
+                    </CardTitle>
+                </CardHeader>
+                <CardBody>
+                    <Row Margin="Margin.Is2.FromBottom">
+                        <Column ColumnSize="ColumnSize.Is3.OnTablet">
+                            <Text Weight="TextWeight.Bold">Application</Text>
+                        </Column>
+                        <Column ColumnSize="ColumnSize.Is9.OnTablet">
+                            <Text>ApBox Gateway v1.0.0</Text>
+                        </Column>
+                    </Row>
 
-                        <dt class="col-sm-3">Framework</dt>
-                        <dd class="col-sm-9">.NET 8</dd>
+                    <Row Margin="Margin.Is2.FromBottom">
+                        <Column ColumnSize="ColumnSize.Is3.OnTablet">
+                            <Text Weight="TextWeight.Bold">Framework</Text>
+                        </Column>
+                        <Column ColumnSize="ColumnSize.Is9.OnTablet">
+                            <Text>.NET 8</Text>
+                        </Column>
+                    </Row>
 
-                        <dt class="col-sm-3">Active Readers</dt>
-                        <dd class="col-sm-9">@readerCount</dd>
+                    <Row Margin="Margin.Is2.FromBottom">
+                        <Column ColumnSize="ColumnSize.Is3.OnTablet">
+                            <Text Weight="TextWeight.Bold">Active Readers</Text>
+                        </Column>
+                        <Column ColumnSize="ColumnSize.Is9.OnTablet">
+                            <Text ElementId="reader-count">@_readerCount</Text>
+                        </Column>
+                    </Row>
 
-                        <dt class="col-sm-3">Loaded Plugins</dt>
-                        <dd class="col-sm-9">@pluginCount</dd>
+                    <Row Margin="Margin.Is2.FromBottom">
+                        <Column ColumnSize="ColumnSize.Is3.OnTablet">
+                            <Text Weight="TextWeight.Bold">Loaded Plugins</Text>
+                        </Column>
+                        <Column ColumnSize="ColumnSize.Is9.OnTablet">
+                            <Text ElementId="plugin-count">@_pluginCount</Text>
+                        </Column>
+                    </Row>
 
-                        <dt class="col-sm-3">Plugin Directory</dt>
-                        <dd class="col-sm-9">
-                            <code>plugins/</code>
-                        </dd>
+                    <Row Margin="Margin.Is2.FromBottom">
+                        <Column ColumnSize="ColumnSize.Is3.OnTablet">
+                            <Text Weight="TextWeight.Bold">Plugin Directory</Text>
+                        </Column>
+                        <Column ColumnSize="ColumnSize.Is9.OnTablet">
+                            <Code>plugins/</Code>
+                        </Column>
+                    </Row>
 
-                        <dt class="col-sm-3">System Status</dt>
-                        <dd class="col-sm-9">
-                            <span class="badge bg-success">
-                                <span class="oi oi-circle-check me-1"></span>Online
-                            </span>
-                        </dd>
+                    <Row Margin="Margin.Is2.FromBottom">
+                        <Column ColumnSize="ColumnSize.Is3.OnTablet">
+                            <Text Weight="TextWeight.Bold">System Status</Text>
+                        </Column>
+                        <Column ColumnSize="ColumnSize.Is9.OnTablet">
+                            <Badge Color="Color.Success" ElementId="system-status">
+                                <Icon Name="IconName.Check" Margin="Margin.Is1.FromEnd" />
+                                Online
+                            </Badge>
+                        </Column>
+                    </Row>
 
-                        <dt class="col-sm-3">Uptime</dt>
-                        <dd class="col-sm-9">@GetSystemUptime()</dd>
+                    <Row Margin="Margin.Is2.FromBottom">
+                        <Column ColumnSize="ColumnSize.Is3.OnTablet">
+                            <Text Weight="TextWeight.Bold">Uptime</Text>
+                        </Column>
+                        <Column ColumnSize="ColumnSize.Is9.OnTablet">
+                            <Text ElementId="system-uptime">@GetSystemUptime()</Text>
+                        </Column>
+                    </Row>
 
-                        <dt class="col-sm-3">Database</dt>
-                        <dd class="col-sm-9">
-                            <span class="badge bg-success">
-                                <span class="oi oi-data-transfer-download me-1"></span>Connected
-                            </span>
-                        </dd>
-                    </dl>
-                </div>
-            </div>
-        </div>
+                    <Row>
+                        <Column ColumnSize="ColumnSize.Is3.OnTablet">
+                            <Text Weight="TextWeight.Bold">Database</Text>
+                        </Column>
+                        <Column ColumnSize="ColumnSize.Is9.OnTablet">
+                            <Badge Color="Color.Success" ElementId="database-status">
+                                <Icon Name="IconName.Server" Margin="Margin.Is1.FromEnd" />
+                                Connected
+                            </Badge>
+                        </Column>
+                    </Row>
+                </CardBody>
+            </Card>
+        </Column>
 
-        <div class="col-md-4">
-            <div class="card">
-                <div class="card-header">
-                    <h6 class="card-title mb-0">Actions</h6>
-                </div>
-                <div class="card-body">
-                    <div class="d-grid gap-2">
-                        <button class="btn btn-outline-primary" @onclick="RefreshSystemInfo" disabled="@refreshing">
-                            @if (refreshing)
-                            {
-                                <span class="spinner-border spinner-border-sm me-2"></span>
-                            }
-                            else
-                            {
-                                <span class="oi oi-reload me-2"></span>
-                            }
+        <!-- Actions and Quick Stats Column -->
+        <Column ColumnSize="ColumnSize.Is4.OnTablet">
+            <!-- Actions Card -->
+            <Card Margin="Margin.Is3.FromBottom">
+                <CardHeader>
+                    <CardTitle Size="6" Margin="Margin.Is0.FromBottom">
+                        <Icon Name="IconName.Settings" Margin="Margin.Is2.FromEnd" />
+                        Actions
+                    </CardTitle>
+                </CardHeader>
+                <CardBody>
+                    <Div Display="Display.Flex" Flex="Flex.Column" Gap="Gap.Is2">
+                        <Button Color="Color.Primary" Outline="true" @onclick="RefreshSystemInfo" Loading="_refreshing" ElementId="refresh-system-btn">
+                            <Icon Name="IconName.Sync" Margin="Margin.Is2.FromEnd" />
                             Refresh System Info
-                        </button>
-                        <button class="btn btn-outline-info" @onclick="ExportConfiguration" disabled="@exporting">
-                            @if (exporting)
-                            {
-                                <span class="spinner-border spinner-border-sm me-2"></span>
-                            }
-                            else
-                            {
-                                <span class="oi oi-data-transfer-download me-2"></span>
-                            }
+                        </Button>
+                        
+                        <Button Color="Color.Info" Outline="true" @onclick="ExportConfiguration" Loading="_exporting" ElementId="export-config-btn">
+                            <Icon Name="IconName.Download" Margin="Margin.Is2.FromEnd" />
                             Export Config
-                        </button>
-                        <button class="btn btn-outline-warning" @onclick="ImportConfiguration" disabled="@importing">
-                            @if (importing)
-                            {
-                                <span class="spinner-border spinner-border-sm me-2"></span>
-                            }
-                            else
-                            {
-                                <span class="oi oi-data-transfer-upload me-2"></span>
-                            }
+                        </Button>
+                        
+                        <Button Color="Color.Warning" Outline="true" @onclick="ImportConfiguration" Loading="_importing" ElementId="import-config-btn">
+                            <Icon Name="IconName.FileUpload" Margin="Margin.Is2.FromEnd" />
                             Import Config
-                        </button>
-                        <button class="btn btn-outline-danger" @onclick="ShowRestartModal">
-                            <span class="oi oi-power-standby me-2"></span>Restart System
-                        </button>
-                    </div>
-                </div>
-            </div>
+                        </Button>
+                        
+                        <Button Color="Color.Danger" Outline="true" @onclick="ShowRestartModal" ElementId="restart-system-btn">
+                            <Icon Name="IconName.Stop" Margin="Margin.Is2.FromEnd" />
+                            Restart System
+                        </Button>
+                    </Div>
+                </CardBody>
+            </Card>
 
-            <div class="card mt-3">
-                <div class="card-header">
-                    <h6 class="card-title mb-0">Quick Stats</h6>
-                </div>
-                <div class="card-body">
-                    <div class="row text-center">
-                        <div class="col-6">
-                            <div class="border-end">
-                                <h4 class="text-primary mb-1">@readerCount</h4>
-                                <small class="text-muted">Readers</small>
-                            </div>
-                        </div>
-                        <div class="col-6">
-                            <h4 class="text-success mb-1">@pluginCount</h4>
-                            <small class="text-muted">Plugins</small>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </div>
+            <!-- Quick Stats Card -->
+            <Card>
+                <CardHeader>
+                    <CardTitle Size="6" Margin="Margin.Is0.FromBottom">
+                        <Icon Name="IconName.ChartBar" Margin="Margin.Is2.FromEnd" />
+                        Quick Stats
+                    </CardTitle>
+                </CardHeader>
+                <CardBody TextAlignment="TextAlignment.Center">
+                    <Row>
+                        <Column ColumnSize="ColumnSize.Is6" Style="border-right: 1px solid var(--bs-border-color);">
+                            <Heading Size="HeadingSize.Is4" TextColor="TextColor.Primary" Margin="Margin.Is1.FromBottom">@_readerCount</Heading>
+                            <Small TextColor="TextColor.Muted">Readers</Small>
+                        </Column>
+                        <Column ColumnSize="ColumnSize.Is6">
+                            <Heading Size="HeadingSize.Is4" TextColor="TextColor.Success" Margin="Margin.Is1.FromBottom">@_pluginCount</Heading>
+                            <Small TextColor="TextColor.Muted">Plugins</Small>
+                        </Column>
+                    </Row>
+                </CardBody>
+            </Card>
+        </Column>
+    </Row>
 
-    <div class="row mt-4">
-        <div class="col-12">
-            <div class="card">
-                <div class="card-header">
-                    <h6 class="card-title mb-0">System Logs</h6>
-                </div>
-                <div class="card-body">
-                    <div class="alert alert-info">
-                        <span class="oi oi-info me-2"></span>
-                        System logging viewer will be implemented here. This will show recent application logs, errors, and diagnostic information.
-                    </div>
-                    <div class="d-flex justify-content-between">
-                        <button class="btn btn-outline-primary btn-sm">
-                            <span class="oi oi-eye me-1"></span>View Logs
-                        </button>
-                        <button class="btn btn-outline-secondary btn-sm">
-                            <span class="oi oi-data-transfer-download me-1"></span>Download Logs
-                        </button>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </div>
-</div>
+    <!-- System Logs Section -->
+    <Row Margin="Margin.Is4.FromTop">
+        <Column>
+            <Card>
+                <CardHeader>
+                    <CardTitle Size="6" Margin="Margin.Is0.FromBottom">
+                        <Icon Name="IconName.List" Margin="Margin.Is2.FromEnd" />
+                        System Logs
+                    </CardTitle>
+                </CardHeader>
+                <CardBody>
+                    <Alert Color="Color.Info" Visible="true">
+                        <AlertMessage>
+                            <Icon Name="IconName.Info" Margin="Margin.Is2.FromEnd" />
+                            System logging viewer will be implemented here. This will show recent application logs, errors, and diagnostic information.
+                        </AlertMessage>
+                    </Alert>
+                    <Div Display="Display.Flex" JustifyContent="JustifyContent.Between">
+                        <Button Color="Color.Primary" Outline="true" Size="Size.Small" ElementId="view-logs-btn">
+                            <Icon Name="IconName.Eye" Margin="Margin.Is1.FromEnd" />
+                            View Logs
+                        </Button>
+                        <Button Color="Color.Secondary" Outline="true" Size="Size.Small" ElementId="download-logs-btn">
+                            <Icon Name="IconName.Download" Margin="Margin.Is1.FromEnd" />
+                            Download Logs
+                        </Button>
+                    </Div>
+                </CardBody>
+            </Card>
+        </Column>
+    </Row>
+</Container>
 
 <!-- Restart Confirmation Modal -->
-<div class="modal fade @(showRestartModal ? "show d-block" : "")" tabindex="-1" style="@(showRestartModal ? "background: rgba(0,0,0,0.5);" : "")">
-    <div class="modal-dialog">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h5 class="modal-title">Restart System</h5>
-                <button type="button" class="btn-close" @onclick="CloseRestartModal"></button>
-            </div>
-            <div class="modal-body">
-                <div class="alert alert-warning">
-                    <span class="oi oi-warning me-2"></span>
+<Modal @ref="_restartModal" ElementId="restart-confirmation-modal">
+    <ModalContent Size="ModalSize.Default">
+        <ModalHeader>
+            <ModalTitle>Restart System</ModalTitle>
+            <CloseButton />
+        </ModalHeader>
+        <ModalBody>
+            <Alert Color="Color.Warning" Visible="true">
+                <AlertMessage>
+                    <Icon Name="IconName.ExclamationTriangle" Margin="Margin.Is2.FromEnd" />
                     <strong>Warning:</strong> This will restart the ApBox application and temporarily interrupt service.
-                </div>
-                <p>Are you sure you want to restart the system?</p>
-                <ul class="text-muted">
-                    <li>All active connections will be closed</li>
-                    <li>Plugin states will be reset</li>
-                    <li>The restart should complete within 30 seconds</li>
-                </ul>
-            </div>
-            <div class="modal-footer">
-                <button type="button" class="btn btn-secondary" @onclick="CloseRestartModal">Cancel</button>
-                <button type="button" class="btn btn-danger" @onclick="ConfirmRestart" disabled="@restarting">
-                    @if (restarting)
-                    {
-                        <span class="spinner-border spinner-border-sm me-2"></span>
-                    }
-                    Restart System
-                </button>
-            </div>
-        </div>
-    </div>
-</div>
+                </AlertMessage>
+            </Alert>
+            <Paragraph>Are you sure you want to restart the system?</Paragraph>
+            <UnorderedList TextColor="TextColor.Muted">
+                <UnorderedListItem>All active connections will be closed</UnorderedListItem>
+                <UnorderedListItem>Plugin states will be reset</UnorderedListItem>
+                <UnorderedListItem>The restart should complete within 30 seconds</UnorderedListItem>
+            </UnorderedList>
+        </ModalBody>
+        <ModalFooter>
+            <Button Color="Color.Secondary" @onclick="CloseRestartModal" ElementId="restart-cancel-btn">
+                Cancel
+            </Button>
+            <Button Color="Color.Danger" @onclick="ConfirmRestart" Loading="_restarting" ElementId="restart-confirm-btn">
+                <Icon Name="IconName.Stop" Margin="Margin.Is2.FromEnd" />
+                Restart System
+            </Button>
+        </ModalFooter>
+    </ModalContent>
+</Modal>
 
 @code {
     [Parameter] public EventCallback<string> OnShowMessage { get; set; }
     
-    private int readerCount = 0;
-    private int pluginCount = 0;
-    private bool refreshing = false;
-    private bool exporting = false;
-    private bool importing = false;
-    private bool showRestartModal = false;
-    private bool restarting = false;
-    private DateTime startTime = DateTime.UtcNow;
+    private int _readerCount = 0;
+    private int _pluginCount = 0;
+    private bool _refreshing = false;
+    private bool _exporting = false;
+    private bool _importing = false;
+    private bool _restarting = false;
+    private DateTime _startTime = DateTime.UtcNow;
+    
+    // Modal reference
+    private Modal? _restartModal;
 
     protected override async Task OnInitializedAsync()
     {
@@ -207,10 +252,10 @@
         try
         {
             var readers = await ReaderConfigurationService.GetAllReadersAsync();
-            readerCount = readers.Count();
+            _readerCount = readers.Count();
             
             var plugins = await PluginLoader.LoadPluginsAsync();
-            pluginCount = plugins.Count();
+            _pluginCount = plugins.Count();
         }
         catch (Exception ex)
         {
@@ -220,7 +265,7 @@
 
     private async Task RefreshSystemInfo()
     {
-        refreshing = true;
+        _refreshing = true;
         StateHasChanged();
         
         try
@@ -234,14 +279,14 @@
         }
         finally
         {
-            refreshing = false;
+            _refreshing = false;
             StateHasChanged();
         }
     }
 
     private async Task ExportConfiguration()
     {
-        exporting = true;
+        _exporting = true;
         StateHasChanged();
         
         try
@@ -252,14 +297,14 @@
         }
         finally
         {
-            exporting = false;
+            _exporting = false;
             StateHasChanged();
         }
     }
 
     private async Task ImportConfiguration()
     {
-        importing = true;
+        _importing = true;
         StateHasChanged();
         
         try
@@ -270,26 +315,30 @@
         }
         finally
         {
-            importing = false;
+            _importing = false;
             StateHasChanged();
         }
     }
 
-    private void ShowRestartModal()
+    private async Task ShowRestartModal()
     {
-        showRestartModal = true;
-        StateHasChanged();
+        if (_restartModal != null)
+        {
+            await _restartModal.Show();
+        }
     }
 
-    private void CloseRestartModal()
+    private async Task CloseRestartModal()
     {
-        showRestartModal = false;
-        StateHasChanged();
+        if (_restartModal != null)
+        {
+            await _restartModal.Hide();
+        }
     }
 
     private async Task ConfirmRestart()
     {
-        restarting = true;
+        _restarting = true;
         StateHasChanged();
         
         try
@@ -300,14 +349,14 @@
         }
         finally
         {
-            restarting = false;
-            CloseRestartModal();
+            _restarting = false;
+            await CloseRestartModal();
         }
     }
 
     private string GetSystemUptime()
     {
-        var uptime = DateTime.UtcNow - startTime;
+        var uptime = DateTime.UtcNow - _startTime;
         return $"{uptime.Days}d {uptime.Hours}h {uptime.Minutes}m";
     }
 }
