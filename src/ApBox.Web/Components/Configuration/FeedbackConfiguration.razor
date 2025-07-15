@@ -62,6 +62,23 @@
                             </Field>
                         </Validation>
                     </Validations>
+                    
+                    <!-- Success Preview -->
+                    <Card Background="Background.Light" Margin="Margin.Is3.FromTop">
+                        <CardBody>
+                            <Heading Size="HeadingSize.Is6">Preview</Heading>
+                            <Div Flex="Flex.JustifyContent.Start.AlignItems.Center" Margin="Margin.Is2.FromBottom">
+                                <Badge Color="@GetFeedbackBadgeColor(_successForm.LedColor)" Margin="Margin.Is2.FromEnd">
+                                    @_successForm.LedColor
+                                </Badge>
+                                <Badge Color="Color.Secondary" Margin="Margin.Is2.FromEnd">@_successForm.BeepCount beeps</Badge>
+                                <Badge Color="Color.Info">@_successForm.LedDurationSeconds sec</Badge>
+                            </Div>
+                            <Div Border="Border.Is1" Padding="Padding.Is2" Background="Background.White">
+                                <Small TextColor="TextColor.Dark" Style="font-family: monospace;">@_successForm.DisplayMessage</Small>
+                            </Div>
+                        </CardBody>
+                    </Card>
                 </CardBody>
             </Card>
         </Column>
@@ -118,6 +135,23 @@
                             </Field>
                         </Validation>
                     </Validations>
+                    
+                    <!-- Failure Preview -->
+                    <Card Background="Background.Light" Margin="Margin.Is3.FromTop">
+                        <CardBody>
+                            <Heading Size="HeadingSize.Is6">Preview</Heading>
+                            <Div Flex="Flex.JustifyContent.Start.AlignItems.Center" Margin="Margin.Is2.FromBottom">
+                                <Badge Color="@GetFeedbackBadgeColor(_failureForm.LedColor)" Margin="Margin.Is2.FromEnd">
+                                    @_failureForm.LedColor
+                                </Badge>
+                                <Badge Color="Color.Secondary" Margin="Margin.Is2.FromEnd">@_failureForm.BeepCount beeps</Badge>
+                                <Badge Color="Color.Info">@_failureForm.LedDurationSeconds sec</Badge>
+                            </Div>
+                            <Div Border="Border.Is1" Padding="Padding.Is2" Background="Background.White">
+                                <Small TextColor="TextColor.Dark" Style="font-family: monospace;">@_failureForm.DisplayMessage</Small>
+                            </Div>
+                        </CardBody>
+                    </Card>
                 </CardBody>
             </Card>
         </Column>
@@ -194,45 +228,6 @@
         </Column>
     </Row>
 
-    <Row Margin="Margin.Is4.FromTop">
-        <Column>
-            <Card>
-                <CardHeader>
-                    <CardTitle Size="6" Margin="Margin.Is0.FromBottom">Feedback Preview</CardTitle>
-                </CardHeader>
-                <CardBody>
-                    <Row>
-                        <Column ColumnSize="ColumnSize.Is6.OnTablet">
-                            <Heading Size="HeadingSize.Is6">Success Pattern</Heading>
-                            <Div Flex="Flex.JustifyContent.Start.AlignItems.Center" Margin="Margin.Is2.FromBottom">
-                                <Badge Color="@GetFeedbackBadgeColor(_successForm.LedColor)" Margin="Margin.Is2.FromEnd">
-                                    @_successForm.LedColor
-                                </Badge>
-                                <Badge Color="Color.Secondary" Margin="Margin.Is2.FromEnd">@_successForm.BeepCount beeps</Badge>
-                                <Badge Color="Color.Info">@_successForm.LedDurationSeconds sec</Badge>
-                            </Div>
-                            <Div Border="Border.Is1" Padding="Padding.Is2" Background="Background.Light">
-                                <Small TextColor="TextColor.Dark" Style="font-family: monospace;">@_successForm.DisplayMessage</Small>
-                            </Div>
-                        </Column>
-                        <Column ColumnSize="ColumnSize.Is6.OnTablet">
-                            <Heading Size="HeadingSize.Is6">Failure Pattern</Heading>
-                            <Div Flex="Flex.JustifyContent.Start.AlignItems.Center" Margin="Margin.Is2.FromBottom">
-                                <Badge Color="@GetFeedbackBadgeColor(_failureForm.LedColor)" Margin="Margin.Is2.FromEnd">
-                                    @_failureForm.LedColor
-                                </Badge>
-                                <Badge Color="Color.Secondary" Margin="Margin.Is2.FromEnd">@_failureForm.BeepCount beeps</Badge>
-                                <Badge Color="Color.Info">@_failureForm.LedDurationSeconds sec</Badge>
-                            </Div>
-                            <Div Border="Border.Is1" Padding="Padding.Is2" Background="Background.Light">
-                                <Small TextColor="TextColor.Dark" Style="font-family: monospace;">@_failureForm.DisplayMessage</Small>
-                            </Div>
-                        </Column>
-                    </Row>
-                </CardBody>
-            </Card>
-        </Column>
-    </Row>
 
     <Row Margin="Margin.Is4.FromTop">
         <Column>
