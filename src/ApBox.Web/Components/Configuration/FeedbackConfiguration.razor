@@ -32,8 +32,8 @@
                         </Validation>
                         <Validation>
                             <Field>
-                                <FieldLabel>LED Duration (ms)</FieldLabel>
-                                <NumericEdit @bind-Value="_successForm.LedDurationMs" Min="100" Max="10000" Step="100" ElementId="success-led-duration">
+                                <FieldLabel>LED Duration (seconds)</FieldLabel>
+                                <NumericEdit @bind-Value="_successForm.LedDurationSeconds" Min="1" Max="10" Step="1" ElementId="success-led-duration">
                                     <Feedback>
                                         <ValidationError />
                                     </Feedback>
@@ -88,8 +88,8 @@
                         </Validation>
                         <Validation>
                             <Field>
-                                <FieldLabel>LED Duration (ms)</FieldLabel>
-                                <NumericEdit @bind-Value="_failureForm.LedDurationMs" Min="100" Max="10000" Step="100" ElementId="failure-led-duration">
+                                <FieldLabel>LED Duration (seconds)</FieldLabel>
+                                <NumericEdit @bind-Value="_failureForm.LedDurationSeconds" Min="1" Max="10" Step="1" ElementId="failure-led-duration">
                                     <Feedback>
                                         <ValidationError />
                                     </Feedback>
@@ -138,7 +138,7 @@
                                     @_successForm.LedColor
                                 </Badge>
                                 <Badge Color="Color.Secondary" Margin="Margin.Is2.FromEnd">@_successForm.BeepCount beeps</Badge>
-                                <Badge Color="Color.Info">@_successForm.LedDurationMs ms</Badge>
+                                <Badge Color="Color.Info">@_successForm.LedDurationSeconds sec</Badge>
                             </Div>
                             <Div Border="Border.Is1" Padding="Padding.Is2" Background="Background.Light">
                                 <Small TextColor="TextColor.Dark" Style="font-family: monospace;">@_successForm.DisplayMessage</Small>
@@ -151,7 +151,7 @@
                                     @_failureForm.LedColor
                                 </Badge>
                                 <Badge Color="Color.Secondary" Margin="Margin.Is2.FromEnd">@_failureForm.BeepCount beeps</Badge>
-                                <Badge Color="Color.Info">@_failureForm.LedDurationMs ms</Badge>
+                                <Badge Color="Color.Info">@_failureForm.LedDurationSeconds sec</Badge>
                             </Div>
                             <Div Border="Border.Is1" Padding="Padding.Is2" Background="Background.Light">
                                 <Small TextColor="TextColor.Dark" Style="font-family: monospace;">@_failureForm.DisplayMessage</Small>
@@ -196,7 +196,7 @@
     {
         LedColor = LedColor.Green,
         BeepCount = 1,
-        LedDurationMs = 1000,
+        LedDurationSeconds = 1,
         DisplayMessage = "ACCESS GRANTED"
     };
     
@@ -204,7 +204,7 @@
     {
         LedColor = LedColor.Red,
         BeepCount = 3,
-        LedDurationMs = 2000,
+        LedDurationSeconds = 2,
         DisplayMessage = "ACCESS DENIED"
     };
 
@@ -273,8 +273,8 @@
         public int BeepCount { get; set; }
         
         [Required(ErrorMessage = "LED duration is required")]
-        [Range(100, 10000, ErrorMessage = "LED duration must be between 100 and 10000 milliseconds")]
-        public int LedDurationMs { get; set; }
+        [Range(1, 10, ErrorMessage = "LED duration must be between 1 and 10 seconds")]
+        public int LedDurationSeconds { get; set; }
         
         [StringLength(16, ErrorMessage = "Display message cannot exceed 16 characters")]
         public string DisplayMessage { get; set; } = string.Empty;
@@ -286,7 +286,7 @@
                 Type = type,
                 LedColor = LedColor,
                 BeepCount = BeepCount,
-                LedDurationMs = LedDurationMs,
+                LedDurationMs = LedDurationSeconds * 1000, // Convert seconds to milliseconds
                 DisplayMessage = DisplayMessage
             };
         }
