@@ -123,6 +123,77 @@
         </Column>
     </Row>
 
+    <!-- Global Idle State Configuration -->
+    <Row Margin="Margin.Is4.FromTop">
+        <Column>
+            <Card>
+                <CardHeader>
+                    <CardTitle Size="6" Margin="Margin.Is0.FromBottom">
+                        <Icon Name="IconName.Moon" Margin="Margin.Is2.FromEnd" />Idle State LED Configuration
+                    </CardTitle>
+                </CardHeader>
+                <CardBody>
+                    <Paragraph TextColor="TextColor.Muted" Margin="Margin.Is3.FromBottom">
+                        Configure LED behavior when no card read activity is occurring
+                    </Paragraph>
+                    <Row>
+                        <Column ColumnSize="ColumnSize.Is6.OnTablet">
+                            <Validations @ref="_idleValidations" Model="_idleForm" ValidateOnLoad="false">
+                                <Validation>
+                                    <Field>
+                                        <FieldLabel>Permanent LED Color</FieldLabel>
+                                        <Select @bind-SelectedValue="_idleForm.PermanentLedColor" ElementId="idle-permanent-led-color">
+                                            <SelectItem Value="LedColor.Green">Green</SelectItem>
+                                            <SelectItem Value="LedColor.Red">Red</SelectItem>
+                                            <SelectItem Value="LedColor.Amber">Amber</SelectItem>
+                                            <SelectItem Value="LedColor.Blue">Blue</SelectItem>
+                                            <SelectItem Value="@((LedColor?)null)">Off</SelectItem>
+                                        </Select>
+                                        <FieldHelp>LED color that stays on when reader is idle</FieldHelp>
+                                    </Field>
+                                </Validation>
+                                <Validation>
+                                    <Field>
+                                        <FieldLabel>Heartbeat Flash Color</FieldLabel>
+                                        <Select @bind-SelectedValue="_idleForm.HeartbeatFlashColor" ElementId="idle-heartbeat-flash-color">
+                                            <SelectItem Value="LedColor.Green">Green</SelectItem>
+                                            <SelectItem Value="LedColor.Red">Red</SelectItem>
+                                            <SelectItem Value="LedColor.Amber">Amber</SelectItem>
+                                            <SelectItem Value="LedColor.Blue">Blue</SelectItem>
+                                            <SelectItem Value="@((LedColor?)null)">Off</SelectItem>
+                                        </Select>
+                                        <FieldHelp>LED color that flashes every 5 seconds during idle</FieldHelp>
+                                    </Field>
+                                </Validation>
+                            </Validations>
+                        </Column>
+                        <Column ColumnSize="ColumnSize.Is6.OnTablet">
+                            <Card Background="Background.Light">
+                                <CardBody>
+                                    <Heading Size="HeadingSize.Is6">Idle State Preview</Heading>
+                                    <Div Flex="Flex.JustifyContent.Start.AlignItems.Center" Margin="Margin.Is2.FromBottom">
+                                        <Badge Color="@GetFeedbackBadgeColor(_idleForm.PermanentLedColor)" Margin="Margin.Is2.FromEnd">
+                                            Permanent: @(_idleForm.PermanentLedColor?.ToString() ?? "Off")
+                                        </Badge>
+                                        <Badge Color="@GetFeedbackBadgeColor(_idleForm.HeartbeatFlashColor)" Margin="Margin.Is2.FromEnd">
+                                            Heartbeat: @(_idleForm.HeartbeatFlashColor?.ToString() ?? "Off")
+                                        </Badge>
+                                        <Badge Color="Color.Dark">Every 5 sec</Badge>
+                                    </Div>
+                                    <Alert Color="Color.Info" Visible="true">
+                                        <AlertMessage>
+                                            These settings apply when the reader is idle (no card activity).
+                                        </AlertMessage>
+                                    </Alert>
+                                </CardBody>
+                            </Card>
+                        </Column>
+                    </Row>
+                </CardBody>
+            </Card>
+        </Column>
+    </Row>
+
     <Row Margin="Margin.Is4.FromTop">
         <Column>
             <Card>
@@ -186,6 +257,7 @@
     // Validation references
     private Validations? _successValidations;
     private Validations? _failureValidations;
+    private Validations? _idleValidations;
     
     // Snackbar
     private Snackbar? _snackbar;
@@ -207,14 +279,21 @@
         LedDurationSeconds = 2,
         DisplayMessage = "ACCESS DENIED"
     };
+    
+    private IdleStateFormModel _idleForm = new()
+    {
+        PermanentLedColor = LedColor.Blue,
+        HeartbeatFlashColor = LedColor.Green
+    };
 
     private async Task SaveDefaultFeedback()
     {
-        // Validate both forms
+        // Validate all forms
         var successValid = _successValidations == null || await _successValidations.ValidateAll();
         var failureValid = _failureValidations == null || await _failureValidations.ValidateAll();
+        var idleValid = _idleValidations == null || await _idleValidations.ValidateAll();
         
-        if (!successValid || !failureValid)
+        if (!successValid || !failureValid || !idleValid)
         {
             await ShowSnackbar("Please correct the validation errors", SnackbarColor.Danger);
             return;
@@ -290,5 +369,13 @@
                 DisplayMessage = DisplayMessage
             };
         }
+    }
+
+    // Form model for idle state LED configuration
+    public class IdleStateFormModel
+    {
+        public LedColor? PermanentLedColor { get; set; }
+        
+        public LedColor? HeartbeatFlashColor { get; set; }
     }
 }
