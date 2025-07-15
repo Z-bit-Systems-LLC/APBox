@@ -77,6 +77,7 @@ public static class DapperMappingExtensions
         SqlMapper.SetTypeMap(typeof(ApBox.Core.Data.Models.CardEventEntity), new SnakeCaseColumnMapper(typeof(ApBox.Core.Data.Models.CardEventEntity)));
         SqlMapper.SetTypeMap(typeof(ApBox.Core.Data.Models.ReaderConfigurationEntity), new SnakeCaseColumnMapper(typeof(ApBox.Core.Data.Models.ReaderConfigurationEntity)));
         SqlMapper.SetTypeMap(typeof(ApBox.Core.Data.Models.PluginConfigurationEntity), new SnakeCaseColumnMapper(typeof(ApBox.Core.Data.Models.PluginConfigurationEntity)));
+        SqlMapper.SetTypeMap(typeof(ApBox.Core.Data.Models.FeedbackConfigurationEntity), new SnakeCaseColumnMapper(typeof(ApBox.Core.Data.Models.FeedbackConfigurationEntity)));
     }
 
     /// <summary>

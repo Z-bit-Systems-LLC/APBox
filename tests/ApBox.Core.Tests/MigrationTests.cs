@@ -82,9 +82,30 @@ public class MigrationTests
         // Act
         var pendingMigrations = await migrationRunner.GetPendingMigrationsAsync();
         
-        // Assert - Should find the existing migration file
+        // Assert - Should find the existing migration files
         var migrations = pendingMigrations.ToArray();
         Assert.That(migrations, Is.Not.Null);
         Assert.That(migrations, Contains.Item("001"));
+        
+        // Note: We can have both the original migrations and the combined migration during testing
+        // This is expected during the transition period
+    }
+    
+    [Test]
+    public async Task MigrationRunner_CombinedMigration_CreatesFeedbackConfigurationTable()
+    {
+        // Arrange
+        var migrationRunner = new MigrationRunner(_dbContext, _migrationLogger);
+        
+        // Act
+        await migrationRunner.RunMigrationsAsync();
+        
+        // Assert - Check that the feedback_configurations table exists
+        var sql = "SELECT name FROM sqlite_master WHERE type='table' AND name='feedback_configurations'";
+        using var connection = _dbContext.CreateDbConnectionAsync();
+        connection.Open();
+        var result = await connection.QuerySingleOrDefaultAsync<string>(sql);
+        
+        Assert.That(result, Is.EqualTo("feedback_configurations"), "Combined migration should create feedback_configurations table");
     }
 }

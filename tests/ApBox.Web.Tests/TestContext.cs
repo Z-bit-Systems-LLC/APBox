@@ -19,6 +19,7 @@ public class ApBoxTestContext : Bunit.TestContext
     public Mock<IPluginLoader> MockPluginLoader { get; private set; }
     public Mock<IReaderConfigurationService> MockReaderConfigurationService { get; private set; }
     public Mock<ICardEventRepository> MockCardEventRepository { get; private set; }
+    public Mock<IFeedbackConfigurationService> MockFeedbackConfigurationService { get; private set; }
 
     public ApBoxTestContext()
     {
@@ -28,6 +29,7 @@ public class ApBoxTestContext : Bunit.TestContext
         MockPluginLoader = new Mock<IPluginLoader>();
         MockReaderConfigurationService = new Mock<IReaderConfigurationService>();
         MockCardEventRepository = new Mock<ICardEventRepository>();
+        MockFeedbackConfigurationService = new Mock<IFeedbackConfigurationService>();
 
         // Configure Blazorise for testing
         Services
@@ -41,6 +43,7 @@ public class ApBoxTestContext : Bunit.TestContext
         Services.AddSingleton(MockPluginLoader.Object);
         Services.AddSingleton(MockReaderConfigurationService.Object);
         Services.AddSingleton(MockCardEventRepository.Object);
+        Services.AddSingleton(MockFeedbackConfigurationService.Object);
 
         // Add other required services
         Services.AddLogging();
@@ -53,6 +56,7 @@ public class ApBoxTestContext : Bunit.TestContext
         MockPluginLoader.Reset();
         MockReaderConfigurationService.Reset();
         MockCardEventRepository.Reset();
+        MockFeedbackConfigurationService.Reset();
     }
 
     public void SetupDefaultMocks()
@@ -80,6 +84,12 @@ public class ApBoxTestContext : Bunit.TestContext
             .Returns(Task.CompletedTask);
 
         MockReaderConfigurationService.Setup(x => x.DeleteReaderAsync(It.IsAny<Guid>()))
+            .Returns(Task.CompletedTask);
+
+        MockFeedbackConfigurationService.Setup(x => x.GetDefaultConfigurationAsync())
+            .ReturnsAsync(GetDefaultFeedbackConfiguration());
+
+        MockFeedbackConfigurationService.Setup(x => x.SaveDefaultConfigurationAsync(It.IsAny<FeedbackConfiguration>()))
             .Returns(Task.CompletedTask);
     }
 
@@ -150,6 +160,34 @@ public class ApBoxTestContext : Bunit.TestContext
                 Message = "Success",
                 ProcessedByPlugin = "Test Plugin",
                 Timestamp = now.AddMinutes(-15)
+            }
+        };
+    }
+
+    private static FeedbackConfiguration GetDefaultFeedbackConfiguration()
+    {
+        return new FeedbackConfiguration
+        {
+            SuccessFeedback = new ReaderFeedback
+            {
+                Type = ReaderFeedbackType.Success,
+                LedColor = LedColor.Green,
+                LedDurationMs = 1000,
+                BeepCount = 1,
+                DisplayMessage = "ACCESS GRANTED"
+            },
+            FailureFeedback = new ReaderFeedback
+            {
+                Type = ReaderFeedbackType.Failure,
+                LedColor = LedColor.Red,
+                LedDurationMs = 2000,
+                BeepCount = 3,
+                DisplayMessage = "ACCESS DENIED"
+            },
+            IdleState = new IdleStateFeedback
+            {
+                PermanentLedColor = LedColor.Blue,
+                HeartbeatFlashColor = LedColor.Green
             }
         };
     }

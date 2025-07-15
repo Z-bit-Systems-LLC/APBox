@@ -33,9 +33,11 @@ public static class ServiceCollectionExtensions
         services.AddScoped<IReaderConfigurationRepository, ReaderConfigurationRepository>();
         services.AddScoped<ICardEventRepository, CardEventRepository>();
         services.AddScoped<IPluginConfigurationRepository, PluginConfigurationRepository>();
+        services.AddScoped<IFeedbackConfigurationRepository, FeedbackConfigurationRepository>();
         
         // Register database-backed services
         services.AddScoped<IReaderConfigurationService, ReaderConfigurationService>();
+        services.AddScoped<IFeedbackConfigurationService, FeedbackConfigurationService>();
         
         return services;
     }

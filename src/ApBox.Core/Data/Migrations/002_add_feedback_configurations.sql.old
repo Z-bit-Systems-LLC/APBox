@@ -1,0 +1,33 @@
+-- Migration: Add feedback configurations table
+-- Description: Creates table for storing default feedback patterns for success, failure, and idle states
+
+-- Create feedback_configurations table
+CREATE TABLE feedback_configurations (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    configuration_type TEXT NOT NULL,
+    led_color TEXT,
+    led_duration_seconds INTEGER,
+    beep_count INTEGER,
+    display_message TEXT,
+    permanent_led_color TEXT,
+    heartbeat_flash_color TEXT,
+    created_at DATETIME NOT NULL,
+    updated_at DATETIME NOT NULL,
+    UNIQUE(configuration_type)
+);
+
+-- Create index on configuration_type for fast lookups
+CREATE INDEX idx_feedback_configurations_type ON feedback_configurations(configuration_type);
+
+-- Insert default feedback configurations
+INSERT INTO feedback_configurations 
+(configuration_type, led_color, led_duration_seconds, beep_count, display_message, permanent_led_color, heartbeat_flash_color, created_at, updated_at)
+VALUES 
+-- Success feedback: Green LED, 1 second, 1 beep, "ACCESS GRANTED"
+('success', 'Green', 1, 1, 'ACCESS GRANTED', NULL, NULL, datetime('now'), datetime('now')),
+
+-- Failure feedback: Red LED, 2 seconds, 3 beeps, "ACCESS DENIED"  
+('failure', 'Red', 2, 3, 'ACCESS DENIED', NULL, NULL, datetime('now'), datetime('now')),
+
+-- Idle state: Blue permanent LED with Green heartbeat flash
+('idle', NULL, NULL, NULL, NULL, 'Blue', 'Green', datetime('now'), datetime('now'));
