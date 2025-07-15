@@ -1,15 +1,7 @@
 using Bunit;
-using ApBox.Core.Services;
 using ApBox.Plugins;
-using Microsoft.Extensions.DependencyInjection;
-using Moq;
-using NUnit.Framework;
-using AngleSharp.Dom;
-using Blazorise;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Threading.Tasks;
+using Microsoft.AspNetCore.Components;
+using Microsoft.AspNetCore.Components.Web;
 
 namespace ApBox.Web.Tests.Components.Configuration;
 
@@ -117,13 +109,13 @@ public class ReadersConfigurationTests : ApBoxTestContext
     }
 
     [Test]
-    public void ReadersConfiguration_ShowsEditReaderModal()
+    public async Task ReadersConfiguration_ShowsEditReaderModal()
     {
         // Arrange
         var testReaderId = Guid.NewGuid();
         var readers = new List<ReaderConfiguration>
         {
-            new ReaderConfiguration { ReaderId = testReaderId, ReaderName = "Test Reader 1" }
+            new() { ReaderId = testReaderId, ReaderName = "Test Reader 1" }
         };
         MockReaderConfigurationService.Setup(x => x.GetAllReadersAsync()).ReturnsAsync(readers);
 
@@ -131,7 +123,7 @@ public class ReadersConfigurationTests : ApBoxTestContext
         var editButton = component.Find($"[id='edit-reader-{testReaderId}']");
 
         // Act
-        editButton.Click();
+        await editButton.ClickAsync(new MouseEventArgs());
 
         // Assert
         var modalTitle = component.Find(".modal-title");
@@ -188,7 +180,7 @@ public class ReadersConfigurationTests : ApBoxTestContext
         var saveButton = component.Find("#save-reader-button");
 
         // Act
-        nameInput.Change("New Test Reader");
+        nameInput.Input("New Test Reader");
         saveButton.Click();
 
         // Assert - Just verify the service was called, even if async timing varies
@@ -216,7 +208,7 @@ public class ReadersConfigurationTests : ApBoxTestContext
     }
 
     [Test]
-    public void ReadersConfiguration_UpdateReader_CallsServiceWithCorrectId()
+    public async Task ReadersConfiguration_UpdateReader_CallsServiceWithCorrectId()
     {
         // Arrange
         var testReaderId = Guid.NewGuid();
@@ -228,14 +220,14 @@ public class ReadersConfigurationTests : ApBoxTestContext
 
         var component = RenderComponent<ApBox.Web.Components.Configuration.ReadersConfiguration>();
         var editButton = component.Find($"[id='edit-reader-{testReaderId}']");
-        editButton.Click();
+        await editButton.ClickAsync(new MouseEventArgs());
 
         var nameInput = component.Find("#reader-name-input");
         var saveButton = component.Find("#save-reader-button");
 
         // Act
-        nameInput.Change("Updated Name");
-        saveButton.Click();
+        await nameInput.InputAsync(new ChangeEventArgs{Value = "New Test Reader"});
+        await saveButton.ClickAsync(new MouseEventArgs());
 
         // Assert - Verify the service was called for update
         MockReaderConfigurationService.Verify(x => x.SaveReaderAsync(It.IsAny<ReaderConfiguration>()), Times.AtLeastOnce);
@@ -273,10 +265,7 @@ public class ReadersConfigurationTests : ApBoxTestContext
             .ThrowsAsync(new Exception("Database connection failed"));
 
         // Act & Assert - Should not throw
-        Assert.DoesNotThrow(() =>
-        {
-            var component = RenderComponent<ApBox.Web.Components.Configuration.ReadersConfiguration>();
-        });
+        Assert.DoesNotThrow(() => { RenderComponent<ApBox.Web.Components.Configuration.ReadersConfiguration>(); });
     }
 
     [Test]
@@ -296,7 +285,7 @@ public class ReadersConfigurationTests : ApBoxTestContext
         // Act & Assert - Should not throw
         Assert.DoesNotThrow(() =>
         {
-            nameInput.Change("Test Reader");
+            nameInput.Input("Test Reader");
             saveButton.Click();
         });
     }
@@ -343,7 +332,7 @@ public class ReadersConfigurationTests : ApBoxTestContext
         var saveButton = component.Find("#save-reader-button");
 
         // Act
-        nameInput.Change("Test Reader");
+        nameInput.Input("Test Reader");
         saveButton.Click();
 
         // Assert
@@ -376,19 +365,19 @@ public class ReadersConfigurationTests : ApBoxTestContext
     }
 
     [Test]
-    public void ReadersConfiguration_RefreshesDataAfterSuccessfulSave()
+    public async Task ReadersConfiguration_RefreshesDataAfterSuccessfulSave()
     {
         // Arrange
         var component = RenderComponent<ApBox.Web.Components.Configuration.ReadersConfiguration>();
         var addButton = component.Find("#add-reader-button");
-        addButton.Click();
+        await addButton.ClickAsync(new MouseEventArgs());
 
         var nameInput = component.Find("#reader-name-input");
         var saveButton = component.Find("#save-reader-button");
 
         // Act
-        nameInput.Change("New Reader");
-        saveButton.Click();
+        await nameInput.InputAsync(new ChangeEventArgs{Value = "New Reader"});
+        await saveButton.ClickAsync(new MouseEventArgs());
 
         // Assert
         // Should call GetAllReadersAsync twice: once on load, once after save
@@ -396,24 +385,24 @@ public class ReadersConfigurationTests : ApBoxTestContext
     }
 
     [Test]
-    public void ReadersConfiguration_RefreshesDataAfterSuccessfulDelete()
+    public async Task ReadersConfiguration_RefreshesDataAfterSuccessfulDelete()
     {
         // Arrange
         var testReaderId = Guid.NewGuid();
         var readers = new List<ReaderConfiguration>
         {
-            new ReaderConfiguration { ReaderId = testReaderId, ReaderName = "Test Reader" }
+            new() { ReaderId = testReaderId, ReaderName = "Test Reader" }
         };
         MockReaderConfigurationService.Setup(x => x.GetAllReadersAsync()).ReturnsAsync(readers);
 
         var component = RenderComponent<ApBox.Web.Components.Configuration.ReadersConfiguration>();
         var deleteButton = component.Find($"[id='delete-reader-{testReaderId}']");
-        deleteButton.Click();
+        await deleteButton.ClickAsync(new MouseEventArgs());
 
         var confirmButton = component.Find("#confirm-delete-button");
 
         // Act
-        confirmButton.Click();
+        await confirmButton.ClickAsync(new MouseEventArgs());
 
         // Assert
         // Should call GetAllReadersAsync twice: once on load, once after delete
