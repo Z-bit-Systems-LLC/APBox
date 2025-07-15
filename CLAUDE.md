@@ -194,3 +194,4 @@ The detailed implementation plan is in `apbox_project_plan.md` (excluded from gi
 
 - Use Blazorise components to render HTML pages
 - Use the SnackBar component to notifify user of operation status
+- Use Validation component for forms
