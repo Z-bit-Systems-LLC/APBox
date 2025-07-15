@@ -6,6 +6,7 @@ namespace ApBox.Plugins;
 public interface IPluginLoader
 {
     Task<IEnumerable<IApBoxPlugin>> LoadPluginsAsync();
+    Task<IEnumerable<IApBoxPlugin>> ReloadPluginsAsync();
     Task UnloadPluginAsync(string pluginId);
     IEnumerable<PluginMetadata> GetAvailablePlugins();
 }
@@ -16,6 +17,7 @@ public class PluginLoader : IPluginLoader
     private readonly ILogger<PluginLoader>? _logger;
     private readonly Dictionary<string, IApBoxPlugin> _loadedPlugins = new();
     private readonly List<PluginMetadata> _availablePlugins = new();
+    private bool _pluginsLoaded = false;
     
     public PluginLoader(string pluginDirectory, ILogger<PluginLoader>? logger = null)
     {
@@ -25,11 +27,19 @@ public class PluginLoader : IPluginLoader
     
     public async Task<IEnumerable<IApBoxPlugin>> LoadPluginsAsync()
     {
+        // Return already loaded plugins if they exist
+        if (_pluginsLoaded)
+        {
+            _logger?.LogDebug("Plugins already loaded, returning cached plugins ({PluginCount} total)", _loadedPlugins.Count);
+            return _loadedPlugins.Values;
+        }
+        
         _logger?.LogInformation("Loading plugins from directory: {PluginDirectory}", _pluginDirectory);
         
         if (!Directory.Exists(_pluginDirectory))
         {
             _logger?.LogWarning("Plugin directory does not exist: {PluginDirectory}", _pluginDirectory);
+            _pluginsLoaded = true; // Mark as loaded even if directory doesn't exist
             return Enumerable.Empty<IApBoxPlugin>();
         }
         
@@ -52,8 +62,22 @@ public class PluginLoader : IPluginLoader
             }
         }
         
+        _pluginsLoaded = true; // Mark plugins as loaded
         _logger?.LogInformation("Successfully loaded {TotalPlugins} plugins total", loadedPlugins.Count);
         return loadedPlugins;
+    }
+    
+    public async Task<IEnumerable<IApBoxPlugin>> ReloadPluginsAsync()
+    {
+        _logger?.LogInformation("Force reloading plugins from directory: {PluginDirectory}", _pluginDirectory);
+        
+        // Clear existing plugins
+        _loadedPlugins.Clear();
+        _availablePlugins.Clear();
+        _pluginsLoaded = false;
+        
+        // Load plugins fresh
+        return await LoadPluginsAsync();
     }
     
     public async Task UnloadPluginAsync(string pluginId)

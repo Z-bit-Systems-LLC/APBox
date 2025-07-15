@@ -521,6 +521,19 @@
             await OnShowMessage.InvokeAsync($"Error loading plugin info: {ex.Message}|danger");
         }
     }
+    
+    private async Task ReloadPluginInfo()
+    {
+        try
+        {
+            var plugins = await PluginLoader.ReloadPluginsAsync();
+            _pluginCount = plugins.Count();
+        }
+        catch (Exception ex)
+        {
+            await OnShowMessage.InvokeAsync($"Error reloading plugin info: {ex.Message}|danger");
+        }
+    }
 
     private async Task RefreshSystemInfo()
     {
@@ -530,7 +543,7 @@
         try
         {
             await LoadSystemInfo();
-            await LoadPluginInfo(); // Reload plugins only when manually refreshed
+            await ReloadPluginInfo(); // Force reload plugins only when manually refreshed
             await OnShowMessage.InvokeAsync("System information refreshed|success");
         }
         catch (Exception ex)
