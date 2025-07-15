@@ -32,8 +32,8 @@
                         </Validation>
                         <Validation>
                             <Field>
-                                <FieldLabel>Beep Count</FieldLabel>
-                                <NumericEdit @bind-Value="_successForm.BeepCount" Min="0" Max="10" ElementId="success-beep-count">
+                                <FieldLabel>LED Duration (ms)</FieldLabel>
+                                <NumericEdit @bind-Value="_successForm.LedDurationMs" Min="100" Max="10000" Step="100" ElementId="success-led-duration">
                                     <Feedback>
                                         <ValidationError />
                                     </Feedback>
@@ -42,8 +42,8 @@
                         </Validation>
                         <Validation>
                             <Field>
-                                <FieldLabel>LED Duration (ms)</FieldLabel>
-                                <NumericEdit @bind-Value="_successForm.LedDurationMs" Min="100" Max="10000" Step="100" ElementId="success-led-duration">
+                                <FieldLabel>Beep Count</FieldLabel>
+                                <NumericEdit @bind-Value="_successForm.BeepCount" Min="0" Max="10" ElementId="success-beep-count">
                                     <Feedback>
                                         <ValidationError />
                                     </Feedback>
@@ -58,7 +58,7 @@
                                         <ValidationError />
                                     </Feedback>
                                 </TextEdit>
-                                <FieldHelp>Maximum 16 characters for OSDP display</FieldHelp>
+                                <FieldHelp>Maximum 16 characters for OSDP display (optional)</FieldHelp>
                             </Field>
                         </Validation>
                     </Validations>
@@ -88,8 +88,8 @@
                         </Validation>
                         <Validation>
                             <Field>
-                                <FieldLabel>Beep Count</FieldLabel>
-                                <NumericEdit @bind-Value="_failureForm.BeepCount" Min="0" Max="10" ElementId="failure-beep-count">
+                                <FieldLabel>LED Duration (ms)</FieldLabel>
+                                <NumericEdit @bind-Value="_failureForm.LedDurationMs" Min="100" Max="10000" Step="100" ElementId="failure-led-duration">
                                     <Feedback>
                                         <ValidationError />
                                     </Feedback>
@@ -98,8 +98,8 @@
                         </Validation>
                         <Validation>
                             <Field>
-                                <FieldLabel>LED Duration (ms)</FieldLabel>
-                                <NumericEdit @bind-Value="_failureForm.LedDurationMs" Min="100" Max="10000" Step="100" ElementId="failure-led-duration">
+                                <FieldLabel>Beep Count</FieldLabel>
+                                <NumericEdit @bind-Value="_failureForm.BeepCount" Min="0" Max="10" ElementId="failure-beep-count">
                                     <Feedback>
                                         <ValidationError />
                                     </Feedback>
@@ -114,7 +114,7 @@
                                         <ValidationError />
                                     </Feedback>
                                 </TextEdit>
-                                <FieldHelp>Maximum 16 characters for OSDP display</FieldHelp>
+                                <FieldHelp>Maximum 16 characters for OSDP display (optional)</FieldHelp>
                             </Field>
                         </Validation>
                     </Validations>
@@ -276,7 +276,6 @@
         [Range(100, 10000, ErrorMessage = "LED duration must be between 100 and 10000 milliseconds")]
         public int LedDurationMs { get; set; }
         
-        [Required(ErrorMessage = "Display message is required")]
         [StringLength(16, ErrorMessage = "Display message cannot exceed 16 characters")]
         public string DisplayMessage { get; set; } = string.Empty;
 
