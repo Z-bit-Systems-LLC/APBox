@@ -10,10 +10,13 @@ ApBox is an open-source gateway solution that bridges OSDP card readers with cus
 
 - **OSDP Protocol Support**: Native support for OSDP card readers and communication
 - **Plugin Architecture**: Extensible system for custom card processing logic
-- **Dual Feedback Sources**: Reader feedback from both plugins and local configuration
+- **Centralized Feedback Configuration**: Unified system for managing success/failure feedback
 - **Web Management Interface**: Modern Blazor Server UI with Blazorise components
 - **Real-time Dashboard**: Live monitoring of reader status and card events
-- **Priority-based Resolution**: Intelligent feedback resolution system
+- **Default Feedback Patterns**: Pre-configured LED, beep, and display responses
+- **Idle State Management**: Configurable permanent and heartbeat LED patterns
+- **System Configuration**: Export/import system configuration and restart management
+- **Real-time Log Viewer**: Live streaming logs with filtering and search capabilities
 - **Docker Deployment**: Containerized deployment for easy scaling
 
 ## Technology Stack
@@ -44,20 +47,40 @@ public interface IApBoxPlugin
     string Description { get; }
     
     Task<bool> ProcessCardReadAsync(CardReadEvent cardRead);
-    Task<ReaderFeedback?> GetFeedbackAsync(CardReadResult result);
     
     Task InitializeAsync();
     Task ShutdownAsync();
 }
 ```
 
-### Feedback Resolution
+### Feedback System
 
-ApBox supports dual feedback sources with priority-based resolution:
+ApBox provides a centralized feedback configuration system:
 
-1. **Plugin Feedback** (Priority 100): Custom feedback from plugin logic
-2. **Configuration Feedback** (Priority 50): Pre-configured responses
-3. **Default Feedback**: Fallback success/failure responses
+1. **Success Feedback**: Configurable LED color, duration, beep count, and display message
+2. **Failure Feedback**: Separate configuration for failed card reads
+3. **Idle State**: Permanent LED and heartbeat flash patterns for inactive readers
+4. **Real-time Configuration**: Web-based configuration with live preview and auto-save
+
+## Web Interface
+
+ApBox includes a comprehensive web management interface with the following sections:
+
+### Dashboard
+- **Real-time metrics**: Live card read statistics and system status
+- **Reader monitoring**: Current status and configuration of all readers
+- **Recent events**: Latest card read events with success/failure indicators
+- **Plugin status**: Information about loaded plugins and their versions
+
+### Configuration Management
+- **Readers**: Add, edit, and manage OSDP reader configurations
+- **Feedback**: Configure success/failure LED patterns, beeps, and display messages
+- **System**: Export/import system configuration, restart management, and log viewer
+
+### Testing Tools
+- **Card Simulation**: Test card reads without physical hardware
+- **Batch Testing**: Generate multiple test events for system validation
+- **Continuous Simulation**: Ongoing random card reads for stress testing
 
 ## Getting Started
 
@@ -124,19 +147,34 @@ dotnet-coverage collect "dotnet test" -f xml -o coverage.xml
 {
   "ReaderId": "12345678-1234-1234-1234-123456789abc",
   "ReaderName": "Main Entrance",
-  "DefaultFeedback": {
+  "Address": 1,
+  "IsEnabled": true,
+  "CreatedAt": "2024-01-01T00:00:00Z",
+  "UpdatedAt": "2024-01-01T00:00:00Z"
+}
+```
+
+### Feedback Configuration
+
+```json
+{
+  "SuccessFeedback": {
     "Type": "Success",
-    "BeepCount": 1,
     "LedColor": "Green",
-    "LedDurationMs": 1000
+    "LedDurationMs": 1000,
+    "BeepCount": 1,
+    "DisplayMessage": "ACCESS GRANTED"
   },
-  "ResultFeedback": {
-    "AccessDenied": {
-      "Type": "Failure",
-      "BeepCount": 3,
-      "LedColor": "Red",
-      "LedDurationMs": 2000
-    }
+  "FailureFeedback": {
+    "Type": "Failure",
+    "LedColor": "Red",
+    "LedDurationMs": 2000,
+    "BeepCount": 3,
+    "DisplayMessage": "ACCESS DENIED"
+  },
+  "IdleState": {
+    "PermanentLedColor": "Blue",
+    "HeartbeatFlashColor": "Green"
   }
 }
 ```
@@ -337,11 +375,15 @@ This testing environment lets you validate plugin behavior without physical card
 
 ### MVP (Weeks 1-8)
 - [x] Core foundation and plugin system
-- [x] Plugin interfaces and feedback resolution
+- [x] Simplified plugin interface with centralized feedback
 - [x] Real-time SignalR dashboard with live updates
-- [x] Comprehensive Blazor web interface with Z-bit styling
+- [x] Comprehensive Blazor web interface with Blazorise components
 - [x] Sample plugins and testing infrastructure
-- [x] bUnit UI testing with 66 comprehensive tests
+- [x] bUnit UI testing with comprehensive test coverage
+- [x] Centralized feedback configuration system
+- [x] System configuration export/import functionality
+- [x] Real-time log viewer with filtering
+- [x] System restart management
 - [ ] OSDP integration and communication
 - [ ] Docker deployment support
 
