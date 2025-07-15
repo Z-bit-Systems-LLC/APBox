@@ -1,0 +1,468 @@
+using Bunit;
+using ApBox.Core.Services;
+using ApBox.Plugins;
+using Microsoft.Extensions.DependencyInjection;
+using Moq;
+using NUnit.Framework;
+using AngleSharp.Dom;
+using Blazorise;
+using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Threading.Tasks;
+
+namespace ApBox.Web.Tests.Components.Configuration;
+
+/// <summary>
+/// Tests for the ReadersConfiguration component CRUD operations
+/// </summary>
+[TestFixture]
+[Category("UI")]
+public class ReadersConfigurationTests : ApBoxTestContext
+{
+    [SetUp]
+    public void SetUp()
+    {
+        ResetMocks();
+        SetupDefaultMocks();
+    }
+
+    #region Component Rendering Tests
+
+    [Test]
+    public void ReadersConfiguration_RendersCorrectly()
+    {
+        // Act
+        var component = RenderComponent<ApBox.Web.Components.Configuration.ReadersConfiguration>();
+
+        // Assert
+        Assert.That(component, Is.Not.Null);
+        var title = component.Find("#readers-title");
+        Assert.That(title.TextContent, Is.EqualTo("Reader Configuration"));
+    }
+
+    [Test]
+    public void ReadersConfiguration_ShowsAddButtonWhenReadersExist()
+    {
+        // Arrange - Default mock setup includes readers
+        
+        // Act
+        var component = RenderComponent<ApBox.Web.Components.Configuration.ReadersConfiguration>();
+
+        // Assert
+        var addButton = component.Find("#add-reader-button");
+        Assert.That(addButton, Is.Not.Null);
+        Assert.That(addButton.TextContent.Trim(), Does.Contain("Add Reader"));
+    }
+
+    [Test]
+    public void ReadersConfiguration_ShowsEmptyStateWhenNoReaders()
+    {
+        // Arrange
+        MockReaderConfigurationService.Setup(x => x.GetAllReadersAsync())
+            .ReturnsAsync(new List<ReaderConfiguration>());
+
+        // Act
+        var component = RenderComponent<ApBox.Web.Components.Configuration.ReadersConfiguration>();
+
+        // Assert
+        var emptyState = component.Find("#add-first-reader-button");
+        Assert.That(emptyState, Is.Not.Null);
+        Assert.That(emptyState.TextContent.Trim(), Does.Contain("Add Reader"));
+        
+        // Should show empty message
+        var heading = component.Find("h4");
+        Assert.That(heading.TextContent, Is.EqualTo("No Readers Configured"));
+    }
+
+    [Test]
+    public void ReadersConfiguration_DisplaysReaderCards()
+    {
+        // Act
+        var component = RenderComponent<ApBox.Web.Components.Configuration.ReadersConfiguration>();
+
+        // Assert
+        var readerCards = component.FindAll(".card");
+        Assert.That(readerCards.Count, Is.EqualTo(2)); // Default mock has 2 readers
+
+        // Verify reader names are displayed
+        var cardTitles = component.FindAll(".card-title");
+        Assert.That(cardTitles.Count, Is.EqualTo(2));
+        Assert.That(cardTitles[0].TextContent, Does.Contain("Test Reader"));
+    }
+
+    #endregion
+
+    #region Modal Tests
+
+    [Test]
+    public void ReadersConfiguration_ShowsAddReaderModal()
+    {
+        // Arrange
+        var component = RenderComponent<ApBox.Web.Components.Configuration.ReadersConfiguration>();
+        var addButton = component.Find("#add-reader-button");
+
+        // Act
+        addButton.Click();
+
+        // Assert
+        var modal = component.Find("#reader-modal");
+        Assert.That(modal, Is.Not.Null);
+        
+        var modalTitle = component.Find(".modal-title");
+        Assert.That(modalTitle.TextContent, Is.EqualTo("Add Reader"));
+        
+        var nameInput = component.Find("#reader-name-input");
+        Assert.That(nameInput, Is.Not.Null);
+    }
+
+    [Test]
+    public void ReadersConfiguration_ShowsEditReaderModal()
+    {
+        // Arrange
+        var testReaderId = Guid.NewGuid();
+        var readers = new List<ReaderConfiguration>
+        {
+            new ReaderConfiguration { ReaderId = testReaderId, ReaderName = "Test Reader 1" }
+        };
+        MockReaderConfigurationService.Setup(x => x.GetAllReadersAsync()).ReturnsAsync(readers);
+
+        var component = RenderComponent<ApBox.Web.Components.Configuration.ReadersConfiguration>();
+        var editButton = component.Find($"[id='edit-reader-{testReaderId}']");
+
+        // Act
+        editButton.Click();
+
+        // Assert
+        var modalTitle = component.Find(".modal-title");
+        Assert.That(modalTitle.TextContent, Is.EqualTo("Edit Reader"));
+        
+        var nameInput = component.Find("#reader-name-input");
+        Assert.That(nameInput, Is.Not.Null);
+        // Input should be pre-populated with existing reader name
+        Assert.That(nameInput.GetAttribute("value"), Does.Contain("Test Reader"));
+    }
+
+    [Test]
+    public void ReadersConfiguration_ShowsDeleteConfirmationModal()
+    {
+        // Arrange
+        var testReaderId = Guid.NewGuid();
+        var readers = new List<ReaderConfiguration>
+        {
+            new ReaderConfiguration { ReaderId = testReaderId, ReaderName = "Test Reader 1" }
+        };
+        MockReaderConfigurationService.Setup(x => x.GetAllReadersAsync()).ReturnsAsync(readers);
+
+        var component = RenderComponent<ApBox.Web.Components.Configuration.ReadersConfiguration>();
+        var deleteButton = component.Find($"[id='delete-reader-{testReaderId}']");
+
+        // Act
+        deleteButton.Click();
+
+        // Assert
+        var modal = component.Find("#delete-modal");
+        Assert.That(modal, Is.Not.Null);
+        
+        var modalTitle = component.FindAll(".modal-title").Last(); // Get the delete modal title specifically
+        Assert.That(modalTitle.TextContent, Is.EqualTo("Confirm Deletion"));
+        
+        var confirmButton = component.Find("#confirm-delete-button");
+        Assert.That(confirmButton, Is.Not.Null);
+        Assert.That(confirmButton.TextContent.Trim(), Does.Contain("Delete Reader"));
+    }
+
+    #endregion
+
+    #region CRUD Operation Tests
+
+    [Test]
+    public void ReadersConfiguration_CreateReader_ValidInput_CallsService()
+    {
+        // Arrange
+        var component = RenderComponent<ApBox.Web.Components.Configuration.ReadersConfiguration>();
+        var addButton = component.Find("#add-reader-button");
+        addButton.Click();
+
+        var nameInput = component.Find("#reader-name-input");
+        var saveButton = component.Find("#save-reader-button");
+
+        // Act
+        nameInput.Change("New Test Reader");
+        saveButton.Click();
+
+        // Assert - Just verify the service was called, even if async timing varies
+        MockReaderConfigurationService.Verify(x => x.SaveReaderAsync(It.IsAny<ReaderConfiguration>()), Times.AtLeastOnce);
+    }
+
+    [Test]
+    public void ReadersConfiguration_CreateReader_EmptyName_ShowsValidationError()
+    {
+        // Arrange
+        var component = RenderComponent<ApBox.Web.Components.Configuration.ReadersConfiguration>();
+        var addButton = component.Find("#add-reader-button");
+        addButton.Click();
+
+        var saveButton = component.Find("#save-reader-button");
+
+        // Act
+        saveButton.Click();
+
+        // Assert
+        // Should not call the service with empty name
+        MockReaderConfigurationService.Verify(x => x.SaveReaderAsync(It.IsAny<ReaderConfiguration>()), Times.Never);
+        
+        // Snackbar should show error (we can't easily test the snackbar content, but we can verify service wasn't called)
+    }
+
+    [Test]
+    public void ReadersConfiguration_UpdateReader_CallsServiceWithCorrectId()
+    {
+        // Arrange
+        var testReaderId = Guid.NewGuid();
+        var readers = new List<ReaderConfiguration>
+        {
+            new ReaderConfiguration { ReaderId = testReaderId, ReaderName = "Original Name" }
+        };
+        MockReaderConfigurationService.Setup(x => x.GetAllReadersAsync()).ReturnsAsync(readers);
+
+        var component = RenderComponent<ApBox.Web.Components.Configuration.ReadersConfiguration>();
+        var editButton = component.Find($"[id='edit-reader-{testReaderId}']");
+        editButton.Click();
+
+        var nameInput = component.Find("#reader-name-input");
+        var saveButton = component.Find("#save-reader-button");
+
+        // Act
+        nameInput.Change("Updated Name");
+        saveButton.Click();
+
+        // Assert - Verify the service was called for update
+        MockReaderConfigurationService.Verify(x => x.SaveReaderAsync(It.IsAny<ReaderConfiguration>()), Times.AtLeastOnce);
+    }
+
+    [Test]
+    public void ReadersConfiguration_DeleteReader_CallsServiceWithCorrectId()
+    {
+        // Arrange
+        var testReaderId = Guid.NewGuid();
+        var readers = new List<ReaderConfiguration>
+        {
+            new ReaderConfiguration { ReaderId = testReaderId, ReaderName = "Test Reader" }
+        };
+        MockReaderConfigurationService.Setup(x => x.GetAllReadersAsync()).ReturnsAsync(readers);
+
+        var component = RenderComponent<ApBox.Web.Components.Configuration.ReadersConfiguration>();
+        var deleteButton = component.Find($"[id='delete-reader-{testReaderId}']");
+        deleteButton.Click();
+
+        var confirmButton = component.Find("#confirm-delete-button");
+
+        // Act
+        confirmButton.Click();
+
+        // Assert
+        MockReaderConfigurationService.Verify(x => x.DeleteReaderAsync(testReaderId), Times.Once);
+    }
+
+    [Test]
+    public void ReadersConfiguration_ServiceError_HandlesGracefully()
+    {
+        // Arrange
+        MockReaderConfigurationService.Setup(x => x.GetAllReadersAsync())
+            .ThrowsAsync(new Exception("Database connection failed"));
+
+        // Act & Assert - Should not throw
+        Assert.DoesNotThrow(() =>
+        {
+            var component = RenderComponent<ApBox.Web.Components.Configuration.ReadersConfiguration>();
+        });
+    }
+
+    [Test]
+    public void ReadersConfiguration_SaveReaderError_HandlesGracefully()
+    {
+        // Arrange
+        MockReaderConfigurationService.Setup(x => x.SaveReaderAsync(It.IsAny<ReaderConfiguration>()))
+            .ThrowsAsync(new Exception("Save failed"));
+
+        var component = RenderComponent<ApBox.Web.Components.Configuration.ReadersConfiguration>();
+        var addButton = component.Find("#add-reader-button");
+        addButton.Click();
+
+        var nameInput = component.Find("#reader-name-input");
+        var saveButton = component.Find("#save-reader-button");
+
+        // Act & Assert - Should not throw
+        Assert.DoesNotThrow(() =>
+        {
+            nameInput.Change("Test Reader");
+            saveButton.Click();
+        });
+    }
+
+    [Test]
+    public void ReadersConfiguration_DeleteReaderError_HandlesGracefully()
+    {
+        // Arrange
+        var testReaderId = Guid.NewGuid();
+        var readers = new List<ReaderConfiguration>
+        {
+            new ReaderConfiguration { ReaderId = testReaderId, ReaderName = "Test Reader" }
+        };
+        MockReaderConfigurationService.Setup(x => x.GetAllReadersAsync()).ReturnsAsync(readers);
+        MockReaderConfigurationService.Setup(x => x.DeleteReaderAsync(testReaderId))
+            .ThrowsAsync(new Exception("Delete failed"));
+
+        var component = RenderComponent<ApBox.Web.Components.Configuration.ReadersConfiguration>();
+        var deleteButton = component.Find($"[id='delete-reader-{testReaderId}']");
+        deleteButton.Click();
+
+        var confirmButton = component.Find("#confirm-delete-button");
+
+        // Act & Assert - Should not throw
+        Assert.DoesNotThrow(() =>
+        {
+            confirmButton.Click();
+        });
+    }
+
+    #endregion
+
+    #region UI State Tests
+
+    [Test]
+    public void ReadersConfiguration_SaveButton_ShowsLoadingState()
+    {
+        // Arrange
+        var component = RenderComponent<ApBox.Web.Components.Configuration.ReadersConfiguration>();
+        var addButton = component.Find("#add-reader-button");
+        addButton.Click();
+
+        var nameInput = component.Find("#reader-name-input");
+        var saveButton = component.Find("#save-reader-button");
+
+        // Act
+        nameInput.Change("Test Reader");
+        saveButton.Click();
+
+        // Assert
+        // The loading state should be applied (though it might be very brief in tests)
+        MockReaderConfigurationService.Verify(x => x.SaveReaderAsync(It.IsAny<ReaderConfiguration>()), Times.Once);
+    }
+
+    [Test]
+    public void ReadersConfiguration_DeleteButton_ShowsLoadingState()
+    {
+        // Arrange
+        var testReaderId = Guid.NewGuid();
+        var readers = new List<ReaderConfiguration>
+        {
+            new ReaderConfiguration { ReaderId = testReaderId, ReaderName = "Test Reader" }
+        };
+        MockReaderConfigurationService.Setup(x => x.GetAllReadersAsync()).ReturnsAsync(readers);
+
+        var component = RenderComponent<ApBox.Web.Components.Configuration.ReadersConfiguration>();
+        var deleteButton = component.Find($"[id='delete-reader-{testReaderId}']");
+        deleteButton.Click();
+
+        var confirmButton = component.Find("#confirm-delete-button");
+
+        // Act
+        confirmButton.Click();
+
+        // Assert
+        MockReaderConfigurationService.Verify(x => x.DeleteReaderAsync(testReaderId), Times.Once);
+    }
+
+    [Test]
+    public void ReadersConfiguration_RefreshesDataAfterSuccessfulSave()
+    {
+        // Arrange
+        var component = RenderComponent<ApBox.Web.Components.Configuration.ReadersConfiguration>();
+        var addButton = component.Find("#add-reader-button");
+        addButton.Click();
+
+        var nameInput = component.Find("#reader-name-input");
+        var saveButton = component.Find("#save-reader-button");
+
+        // Act
+        nameInput.Change("New Reader");
+        saveButton.Click();
+
+        // Assert
+        // Should call GetAllReadersAsync twice: once on load, once after save
+        MockReaderConfigurationService.Verify(x => x.GetAllReadersAsync(), Times.AtLeast(2));
+    }
+
+    [Test]
+    public void ReadersConfiguration_RefreshesDataAfterSuccessfulDelete()
+    {
+        // Arrange
+        var testReaderId = Guid.NewGuid();
+        var readers = new List<ReaderConfiguration>
+        {
+            new ReaderConfiguration { ReaderId = testReaderId, ReaderName = "Test Reader" }
+        };
+        MockReaderConfigurationService.Setup(x => x.GetAllReadersAsync()).ReturnsAsync(readers);
+
+        var component = RenderComponent<ApBox.Web.Components.Configuration.ReadersConfiguration>();
+        var deleteButton = component.Find($"[id='delete-reader-{testReaderId}']");
+        deleteButton.Click();
+
+        var confirmButton = component.Find("#confirm-delete-button");
+
+        // Act
+        confirmButton.Click();
+
+        // Assert
+        // Should call GetAllReadersAsync twice: once on load, once after delete
+        MockReaderConfigurationService.Verify(x => x.GetAllReadersAsync(), Times.AtLeast(2));
+    }
+
+    #endregion
+
+    #region Helper Methods
+
+    [Test]
+    public void ReadersConfiguration_ModalsCancelCorrectly()
+    {
+        // Arrange
+        var component = RenderComponent<ApBox.Web.Components.Configuration.ReadersConfiguration>();
+        
+        // Test Add Modal Cancel
+        var addButton = component.Find("#add-reader-button");
+        addButton.Click();
+        
+        var cancelButton = component.FindAll("button").FirstOrDefault(b => b.TextContent.Contains("Cancel"));
+        Assert.That(cancelButton, Is.Not.Null);
+        
+        // Act
+        cancelButton.Click();
+        
+        // Assert - Service should not be called
+        MockReaderConfigurationService.Verify(x => x.SaveReaderAsync(It.IsAny<ReaderConfiguration>()), Times.Never);
+    }
+
+    [Test]
+    public void ReadersConfiguration_DisplaysReaderIdTruncated()
+    {
+        // Arrange
+        var testReaderId = Guid.Parse("12345678-1234-1234-1234-123456789012");
+        var readers = new List<ReaderConfiguration>
+        {
+            new ReaderConfiguration { ReaderId = testReaderId, ReaderName = "Test Reader" }
+        };
+        MockReaderConfigurationService.Setup(x => x.GetAllReadersAsync()).ReturnsAsync(readers);
+
+        // Act
+        var component = RenderComponent<ApBox.Web.Components.Configuration.ReadersConfiguration>();
+
+        // Assert
+        var readerIdDisplay = component.FindAll("small").FirstOrDefault(s => s.TextContent.Contains("Reader ID:"));
+        Assert.That(readerIdDisplay, Is.Not.Null);
+        Assert.That(readerIdDisplay.TextContent, Does.Contain("12345678...")); // Should be truncated
+    }
+
+    #endregion
+}

@@ -72,6 +72,15 @@ public class ApBoxTestContext : Bunit.TestContext
 
         MockCardEventRepository.Setup(x => x.GetByDateRangeAsync(It.IsAny<DateTime>(), It.IsAny<DateTime>(), It.IsAny<int>()))
             .ReturnsAsync(GetDefaultCardEventEntities().Take(5));
+
+        MockReaderConfigurationService.Setup(x => x.GetAllReadersAsync())
+            .ReturnsAsync(GetDefaultReaderConfigurations());
+
+        MockReaderConfigurationService.Setup(x => x.SaveReaderAsync(It.IsAny<ReaderConfiguration>()))
+            .Returns(Task.CompletedTask);
+
+        MockReaderConfigurationService.Setup(x => x.DeleteReaderAsync(It.IsAny<Guid>()))
+            .Returns(Task.CompletedTask);
     }
 
     private static IEnumerable<ReaderConfiguration> GetDefaultReaderConfigurations()
