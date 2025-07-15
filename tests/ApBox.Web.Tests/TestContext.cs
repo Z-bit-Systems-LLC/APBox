@@ -11,6 +11,9 @@ using Blazorise;
 using Blazorise.Bootstrap5;
 using Blazorise.Icons.FontAwesome;
 using Blazorise.Tests.bUnit;
+using Blazorise.Modules;
+using Microsoft.JSInterop;
+using Microsoft.AspNetCore.Components;
 
 namespace ApBox.Web.Tests;
 
@@ -44,6 +47,10 @@ public class ApBoxTestContext : Bunit.TestContext
             .AddBlazoriseTests()
             .AddBootstrap5Providers()
             .AddFontAwesomeIcons();
+            
+        // Add mock FilePicker module for testing
+        Services.AddTransient<IJSFilePickerModule, MockFilePickerModule>();
+        Services.AddTransient<IJSFileModule, MockFileModule>();
 
         // Register mocked services
         Services.AddSingleton(MockReaderService.Object);
@@ -233,5 +240,79 @@ public class ApBoxTestContext : Bunit.TestContext
                 HeartbeatFlashColor = LedColor.Green
             }
         };
+    }
+}
+
+/// <summary>
+/// Mock implementation of IJSFilePickerModule for testing
+/// </summary>
+public class MockFilePickerModule : IJSFilePickerModule
+{
+    public string ModuleFileName => "filePickerMock.js";
+    
+    private IJSObjectReference? _module;
+    
+    public Task<IJSObjectReference> Module => _module != null ? Task.FromResult(_module) : Task.FromResult<IJSObjectReference>(null!);
+    
+    public ValueTask<IJSObjectReference> Initialize(IJSRuntime jsRuntime, CancellationToken cancellationToken = default)
+    {
+        var mockModule = new Mock<IJSObjectReference>();
+        _module = mockModule.Object;
+        return ValueTask.FromResult(mockModule.Object);
+    }
+    
+    public ValueTask Initialize(ElementReference elementReference, string elementId)
+    {
+        return ValueTask.CompletedTask;
+    }
+    
+    public ValueTask Destroy(ElementReference elementReference, string elementId)
+    {
+        return ValueTask.CompletedTask;
+    }
+}
+
+/// <summary>
+/// Mock implementation of IJSFileModule for testing
+/// </summary>
+public class MockFileModule : IJSFileModule
+{
+    public string ModuleFileName => "fileMock.js";
+    
+    private IJSObjectReference? _module;
+    
+    public Task<IJSObjectReference> Module => _module != null ? Task.FromResult(_module) : Task.FromResult<IJSObjectReference>(null!);
+    
+    public ValueTask<IJSObjectReference> Initialize(IJSRuntime jsRuntime, CancellationToken cancellationToken = default)
+    {
+        var mockModule = new Mock<IJSObjectReference>();
+        _module = mockModule.Object;
+        return ValueTask.FromResult(mockModule.Object);
+    }
+    
+    public ValueTask Initialize(ElementReference elementReference, string elementId)
+    {
+        return ValueTask.CompletedTask;
+    }
+    
+    public ValueTask Destroy(ElementReference elementReference, string elementId)
+    {
+        return ValueTask.CompletedTask;
+    }
+    
+    public ValueTask<IJSStreamReference> ReadDataAsync(ElementReference elementReference, int fileId, CancellationToken cancellationToken = default)
+    {
+        var mockStream = new Mock<IJSStreamReference>();
+        return ValueTask.FromResult(mockStream.Object);
+    }
+    
+    public ValueTask<byte[]> ReadDataAsync(ElementReference elementReference, int fileId, long position, long length, CancellationToken cancellationToken = default)
+    {
+        return ValueTask.FromResult(Array.Empty<byte>());
+    }
+    
+    public ValueTask RemoveFileEntry(ElementReference elementReference, int fileId)
+    {
+        return ValueTask.CompletedTask;
     }
 }

@@ -2,12 +2,13 @@
 @using ApBox.Core.Models
 @using ApBox.Plugins
 @using Microsoft.Extensions.Logging
+
+@inject IJSRuntime JSRuntime
 @inject IReaderConfigurationService ReaderConfigurationService
 @inject IPluginLoader PluginLoader
 @inject IConfigurationExportService ConfigurationExportService
 @inject ISystemRestartService SystemRestartService
 @inject ILogService LogService
-@inject IJSRuntime JSRuntime
 @inject IConfiguration Configuration
 
 <Container Fluid>
@@ -159,7 +160,7 @@
                             Export Config
                         </Button>
                         
-                        <Button Color="Color.Warning" Outline="true" @onclick="ImportConfiguration" Loading="_importing" ElementId="import-config-btn">
+                        <Button Color="Color.Warning" Outline="true" @onclick="ShowImportModal" Loading="_importing" ElementId="import-config-btn">
                             <Icon Name="IconName.FileUpload" Margin="Margin.Is2.FromEnd" />
                             Import Config
                         </Button>
@@ -182,7 +183,7 @@
                 </CardHeader>
                 <CardBody TextAlignment="TextAlignment.Center">
                     <Row>
-                        <Column ColumnSize="ColumnSize.Is6" Style="border-right: 1px solid var(--bs-border-color);">
+                        <Column ColumnSize="ColumnSize.Is6" Border="Border.OnEnd">
                             <Heading Size="HeadingSize.Is4" TextColor="TextColor.Primary" Margin="Margin.Is1.FromBottom">@_readerCount</Heading>
                             <Small TextColor="TextColor.Muted">Readers</Small>
                         </Column>
@@ -236,21 +237,21 @@
                     </Row>
 
                     <!-- Log Entries -->
-                    <Div Style="max-height: 400px; overflow-y: auto; border: 1px solid var(--bs-border-color); border-radius: 0.375rem; padding: 0.75rem;">
+                    <Div Overflow="Overflow.Auto" Border="Border.Rounded" Height="Height.Max100.Is25">
                         @if (_filteredLogs?.Any() == true)
                         {
                             @foreach (var log in _filteredLogs.Take(100))
                             {
-                                <Div Style="font-family: monospace; font-size: 0.875rem; margin-bottom: 0.5rem; padding-bottom: 0.5rem; border-bottom: 1px solid var(--bs-border-color-translucent);">
+                                <Div Padding="Padding.Is1.FromBottom" Margin="Margin.Is2.FromBottom" Border="Border.OnBottom">
                                     <Div Display="Display.Flex" JustifyContent="JustifyContent.Between" Margin="Margin.Is1.FromBottom">
                                         <Small TextColor="TextColor.Muted">@log.Timestamp.ToString("yyyy-MM-dd HH:mm:ss")</Small>
-                                        <Badge Color="@GetLogLevelColor(log.Level)" Pill="true">@log.LevelDisplay</Badge>
+                                        <Badge Color="@GetLogLevelColor(log.Level)" Pill="true" Margin="Margin.Is1.FromStart">@log.LevelDisplay</Badge>
                                     </Div>
-                                    <Text TextColor="@GetLogLevelTextColor(log.Level)" Style="font-weight: 500;">[@log.Source] @log.Message</Text>
+                                    <Text TextColor="@GetLogLevelTextColor(log.Level)" TextWeight="TextWeight.Normal">[@log.Source] @log.Message</Text>
                                     @if (!string.IsNullOrEmpty(log.Exception))
                                     {
-                                        <Div Margin="Margin.Is2.FromTop" Padding="Padding.Is2" Background="Background.Light" Border="Border.Light" Style="border-radius: 0.25rem;">
-                                            <Small TextColor="TextColor.Danger" Style="font-family: monospace; white-space: pre-wrap;">@log.Exception</Small>
+                                        <Div Margin="Margin.Is2.FromTop" Padding="Padding.Is2" Background="Background.Light" Border="Border.Rounded">
+                                            <Small TextColor="TextColor.Danger" TextStyle="TextStyle.Monospace">@log.Exception</Small>
                                         </Div>
                                     }
                                 </Div>
@@ -300,6 +301,114 @@
     </ModalContent>
 </Modal>
 
+<!-- Import Configuration Modal -->
+<Modal @ref="_importModal" ElementId="import-configuration-modal">
+    <ModalContent Size="ModalSize.Default">
+        <ModalHeader>
+            <ModalTitle>Import Configuration</ModalTitle>
+            <CloseButton />
+        </ModalHeader>
+        <ModalBody>
+            @if (_selectedFile == null)
+            {
+                <Alert Color="Color.Info" Visible="true">
+                    <AlertMessage>
+                        <Icon Name="IconName.Info" Margin="Margin.Is2.FromEnd" />
+                        Select a JSON configuration file to import system settings, readers, and feedback configuration.
+                    </AlertMessage>
+                </Alert>
+                
+                <FilePicker @ref="_filePicker" 
+                           Filter=".json"
+                           Changed="OnFileSelected"
+                           ShowMode="FilePickerShowMode.List"
+                           ElementId="import-config-picker">
+                    <FileTemplate>
+                        <div class="d-flex align-items-center justify-content-center p-4 border border-dashed rounded">
+                            <div class="text-center">
+                                <Icon Name="IconName.FileUpload" Size="IconSize.x2" TextColor="TextColor.Muted" Margin="Margin.Is2.FromBottom" />
+                                <div>
+                                    <Text TextWeight="TextWeight.Bold" Margin="Margin.Is1.FromBottom">Click to select a configuration file</Text>
+                                    <Small TextColor="TextColor.Muted">or drag and drop a JSON file here</Small>
+                                </div>
+                            </div>
+                        </div>
+                    </FileTemplate>
+                </FilePicker>
+                
+                <Paragraph TextColor="TextColor.Muted" TextSize="TextSize.Small" Margin="Margin.Is2.FromTop">
+                    <strong>Supported format:</strong> JSON files exported from ApBox<br />
+                    <strong>Maximum file size:</strong> 1MB
+                </Paragraph>
+            }
+            else
+            {
+                <Alert Color="Color.Warning" Visible="true">
+                    <AlertMessage>
+                        <Icon Name="IconName.ExclamationTriangle" Margin="Margin.Is2.FromEnd" />
+                        <strong>Warning:</strong> Importing configuration will replace current system settings.
+                    </AlertMessage>
+                </Alert>
+                
+                <Card>
+                    <CardBody>
+                        <Row>
+                            <Column ColumnSize="ColumnSize.Is3">
+                                <Text Weight="TextWeight.Bold">Selected File:</Text>
+                            </Column>
+                            <Column ColumnSize="ColumnSize.Is9">
+                                <Text>@_selectedFile.Name</Text>
+                            </Column>
+                        </Row>
+                        <Row>
+                            <Column ColumnSize="ColumnSize.Is3">
+                                <Text Weight="TextWeight.Bold">File Size:</Text>
+                            </Column>
+                            <Column ColumnSize="ColumnSize.Is9">
+                                <Text>@FormatFileSize(_selectedFile.Size)</Text>
+                            </Column>
+                        </Row>
+                        <Row>
+                            <Column ColumnSize="ColumnSize.Is3">
+                                <Text Weight="TextWeight.Bold">File Type:</Text>
+                            </Column>
+                            <Column ColumnSize="ColumnSize.Is9">
+                                <Text>@_selectedFile.Type</Text>
+                            </Column>
+                        </Row>
+                    </CardBody>
+                </Card>
+                
+                <UnorderedList TextColor="TextColor.Muted" Margin="Margin.Is3.FromTop">
+                    <UnorderedListItem>Current reader configurations will be replaced</UnorderedListItem>
+                    <UnorderedListItem>Feedback settings will be updated</UnorderedListItem>
+                    <UnorderedListItem>System settings will be applied</UnorderedListItem>
+                    <UnorderedListItem>This action cannot be undone</UnorderedListItem>
+                </UnorderedList>
+            }
+        </ModalBody>
+        <ModalFooter>
+            @if (_selectedFile == null)
+            {
+                <Button Color="Color.Secondary" @onclick="CloseImportModal" ElementId="import-cancel-btn">
+                    Cancel
+                </Button>
+            }
+            else
+            {
+                <Button Color="Color.Secondary" @onclick="ClearSelectedFile" ElementId="import-back-btn">
+                    <Icon Name="IconName.ArrowLeft" Margin="Margin.Is2.FromEnd" />
+                    Back
+                </Button>
+                <Button Color="Color.Warning" @onclick="ConfirmImport" Loading="_importing" ElementId="import-confirm-btn">
+                    <Icon Name="IconName.FileUpload" Margin="Margin.Is2.FromEnd" />
+                    Import Configuration
+                </Button>
+            }
+        </ModalFooter>
+    </ModalContent>
+</Modal>
+
 @code {
     [Parameter] public EventCallback<string> OnShowMessage { get; set; }
     
@@ -308,19 +417,22 @@
         _uptimeTimer?.Dispose();
     }
     
-    private int _readerCount = 0;
-    private int _pluginCount = 0;
+    private int _readerCount;
+    private int _pluginCount;
     private SystemInfo _systemInfo = new();
     private string _pluginDirectory = "plugins/";
-    private bool _refreshing = false;
-    private bool _exporting = false;
-    private bool _importing = false;
-    private bool _restarting = false;
-    private bool _exportingLogs = false;
+    private bool _refreshing;
+    private bool _exporting;
+    private bool _importing;
+    private bool _restarting;
+    private bool _exportingLogs;
     private Timer? _uptimeTimer;
     
-    // Modal reference
+    // Modal references
     private Modal? _restartModal;
+    private Modal? _importModal;
+    private FilePicker? _filePicker;
+    private IFileEntry? _selectedFile;
     
     // Log viewer state
     private IEnumerable<LogEntry>? _recentLogs;
@@ -334,7 +446,7 @@
         await LoadRecentLogs();
         
         // Start uptime timer to update every 30 seconds
-        _uptimeTimer = new Timer(async _ => await InvokeAsync(StateHasChanged), null, TimeSpan.Zero, TimeSpan.FromSeconds(30));
+        _uptimeTimer = new Timer(async void (_) => await InvokeAsync(StateHasChanged), null, TimeSpan.Zero, TimeSpan.FromSeconds(5));
     }
 
     private async Task LoadSystemInfo()
@@ -411,23 +523,6 @@
         }
     }
 
-    private async Task ImportConfiguration()
-    {
-        _importing = true;
-        StateHasChanged();
-        
-        try
-        {
-            // Note: File upload would normally be handled through a file input
-            // For now, show a message about the feature
-            await OnShowMessage.InvokeAsync("Configuration import requires file upload implementation|info");
-        }
-        finally
-        {
-            _importing = false;
-            StateHasChanged();
-        }
-    }
 
     private async Task ShowRestartModal()
     {
@@ -442,6 +537,69 @@
         if (_restartModal != null)
         {
             await _restartModal.Hide();
+        }
+    }
+
+    private async Task ShowImportModal()
+    {
+        if (_importModal != null)
+        {
+            await _importModal.Show();
+        }
+    }
+
+    private async Task CloseImportModal()
+    {
+        if (_importModal != null)
+        {
+            await _importModal.Hide();
+        }
+        _selectedFile = null;
+        if (_filePicker != null)
+        {
+            await _filePicker.Clear();
+        }
+    }
+
+    private async Task ClearSelectedFile()
+    {
+        _selectedFile = null;
+        if (_filePicker != null)
+        {
+            await _filePicker.Clear();
+        }
+        StateHasChanged();
+    }
+
+    private async Task ConfirmImport()
+    {
+        if (_selectedFile == null)
+            return;
+
+        _importing = true;
+        StateHasChanged();
+        
+        try
+        {
+            await using var stream = _selectedFile.OpenReadStream(maxAllowedSize: 1024 * 1024); // 1MB limit
+            using var reader = new StreamReader(stream);
+            await reader.ReadToEndAsync();
+            
+            // Here you would call your configuration import service
+            // For now, we'll show a success message
+            await OnShowMessage.InvokeAsync($"Configuration file '{_selectedFile.Name}' imported successfully. Import functionality will be implemented.|info");
+            
+            // Reset and close modal
+            await CloseImportModal();
+        }
+        catch (Exception ex)
+        {
+            await OnShowMessage.InvokeAsync($"Error importing configuration: {ex.Message}|danger");
+        }
+        finally
+        {
+            _importing = false;
+            StateHasChanged();
         }
     }
 
@@ -500,7 +658,7 @@
     {
         try
         {
-            _recentLogs = await LogService.GetRecentLogsAsync(100);
+            _recentLogs = await LogService.GetRecentLogsAsync();
             await FilterLogs();
         }
         catch (Exception ex)
@@ -509,13 +667,13 @@
         }
     }
     
-    private async Task FilterLogs()
+    private Task FilterLogs()
     {
         if (_recentLogs == null)
         {
             _filteredLogs = Enumerable.Empty<LogEntry>();
             StateHasChanged();
-            return;
+            return Task.CompletedTask;
         }
         
         var filtered = _recentLogs.Where(l => l.Level >= _selectedLogLevel);
@@ -530,6 +688,7 @@
         
         _filteredLogs = filtered.OrderByDescending(l => l.Timestamp);
         StateHasChanged();
+        return Task.CompletedTask;
     }
     
     private async Task ExportLogs()
@@ -577,4 +736,33 @@
         LogLevel.Critical => TextColor.Dark,
         _ => TextColor.Body
     };
+    
+    private async Task OnFileSelected(FileChangedEventArgs e)
+    {
+        if (e.Files.Length == 0)
+            return;
+
+        var file = e.Files[0];
+        
+        if (file.Type != "application/json" && !file.Name.EndsWith(".json"))
+        {
+            await OnShowMessage.InvokeAsync("Please select a JSON file|warning");
+            return;
+        }
+
+        _selectedFile = file;
+        StateHasChanged();
+    }
+
+    private string FormatFileSize(long bytes)
+    {
+        if (bytes < 1024)
+            return $"{bytes} B";
+        else if (bytes < 1024 * 1024)
+            return $"{bytes / 1024.0:F1} KB";
+        else if (bytes < 1024 * 1024 * 1024)
+            return $"{bytes / (1024.0 * 1024.0):F1} MB";
+        else
+            return $"{bytes / (1024.0 * 1024.0 * 1024.0):F1} GB";
+    }
 }

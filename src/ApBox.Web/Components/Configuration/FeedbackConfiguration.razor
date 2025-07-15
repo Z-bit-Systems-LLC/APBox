@@ -1,6 +1,6 @@
 @using ApBox.Core.Services
 @using ApBox.Core.Models
-@using ApBox.Plugins
+
 @inject IFeedbackConfigurationService FeedbackConfigurationService
 
 <Container Fluid>
@@ -77,7 +77,7 @@
                                 <Badge Color="Color.Secondary">@_successForm.BeepCount beeps</Badge>
                             </Div>
                             <Div Border="Border.Is1" Padding="Padding.Is2" Background="Background.White">
-                                <Small TextColor="TextColor.Dark" Style="font-family: monospace;">@_successForm.DisplayMessage</Small>
+                                <Small TextColor="TextColor.Dark" TextStyle="TextStyle.Monospace">@_successForm.DisplayMessage</Small>
                             </Div>
                         </CardBody>
                     </Card>
@@ -128,7 +128,7 @@
                                 <Badge Color="Color.Secondary">@_failureForm.BeepCount beeps</Badge>
                             </Div>
                             <Div Border="Border.Is1" Padding="Padding.Is2" Background="Background.White">
-                                <Small TextColor="TextColor.Dark" Style="font-family: monospace;">@_failureForm.DisplayMessage</Small>
+                                <Small TextColor="TextColor.Dark" TextStyle="TextStyle.Monospace">@_failureForm.DisplayMessage</Small>
                             </Div>
                         </CardBody>
                     </Card>
