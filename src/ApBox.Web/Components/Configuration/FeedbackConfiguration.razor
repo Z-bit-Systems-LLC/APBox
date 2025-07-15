@@ -71,8 +71,8 @@
                                 <Badge Color="@GetFeedbackBadgeColor(_successForm.LedColor)" Margin="Margin.Is2.FromEnd">
                                     @_successForm.LedColor
                                 </Badge>
-                                <Badge Color="Color.Secondary" Margin="Margin.Is2.FromEnd">@_successForm.BeepCount beeps</Badge>
-                                <Badge Color="Color.Info">@_successForm.LedDurationSeconds sec</Badge>
+                                <Badge Color="Color.Info" Margin="Margin.Is2.FromEnd">@_successForm.LedDurationSeconds sec</Badge>
+                                <Badge Color="Color.Secondary">@_successForm.BeepCount beeps</Badge>
                             </Div>
                             <Div Border="Border.Is1" Padding="Padding.Is2" Background="Background.White">
                                 <Small TextColor="TextColor.Dark" Style="font-family: monospace;">@_successForm.DisplayMessage</Small>
@@ -144,8 +144,8 @@
                                 <Badge Color="@GetFeedbackBadgeColor(_failureForm.LedColor)" Margin="Margin.Is2.FromEnd">
                                     @_failureForm.LedColor
                                 </Badge>
-                                <Badge Color="Color.Secondary" Margin="Margin.Is2.FromEnd">@_failureForm.BeepCount beeps</Badge>
-                                <Badge Color="Color.Info">@_failureForm.LedDurationSeconds sec</Badge>
+                                <Badge Color="Color.Info" Margin="Margin.Is2.FromEnd">@_failureForm.LedDurationSeconds sec</Badge>
+                                <Badge Color="Color.Secondary">@_failureForm.BeepCount beeps</Badge>
                             </Div>
                             <Div Border="Border.Is1" Padding="Padding.Is2" Background="Background.White">
                                 <Small TextColor="TextColor.Dark" Style="font-family: monospace;">@_failureForm.DisplayMessage</Small>
@@ -332,7 +332,7 @@
             LedColor.Green => Color.Success,
             LedColor.Amber => Color.Warning,
             LedColor.Blue => Color.Primary,
-            _ => Color.Secondary
+            _ => Color.Dark
         };
     }
 
