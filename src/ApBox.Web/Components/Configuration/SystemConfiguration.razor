@@ -480,6 +480,7 @@
     protected override async Task OnInitializedAsync()
     {
         await LoadSystemInfo();
+        await LoadPluginInfo(); // Load plugins only once on initialization
         await LoadRecentLogs();
         
         // Start uptime timer to update every 5 seconds
@@ -496,9 +497,6 @@
             var readers = await ReaderConfigurationService.GetAllReadersAsync();
             _readerCount = readers.Count();
             
-            var plugins = await PluginLoader.LoadPluginsAsync();
-            _pluginCount = plugins.Count();
-            
             // Get plugin directory from configuration
             _pluginDirectory = Configuration.GetValue<string>("PluginSettings:Directory") ?? "plugins/";
             
@@ -510,6 +508,19 @@
             await OnShowMessage.InvokeAsync($"Error loading system info: {ex.Message}|danger");
         }
     }
+    
+    private async Task LoadPluginInfo()
+    {
+        try
+        {
+            var plugins = await PluginLoader.LoadPluginsAsync();
+            _pluginCount = plugins.Count();
+        }
+        catch (Exception ex)
+        {
+            await OnShowMessage.InvokeAsync($"Error loading plugin info: {ex.Message}|danger");
+        }
+    }
 
     private async Task RefreshSystemInfo()
     {
@@ -519,6 +530,7 @@
         try
         {
             await LoadSystemInfo();
+            await LoadPluginInfo(); // Reload plugins only when manually refreshed
             await OnShowMessage.InvokeAsync("System information refreshed|success");
         }
         catch (Exception ex)
