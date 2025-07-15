@@ -41,7 +41,24 @@ public class EnhancedCardProcessingService : IEnhancedCardProcessingService
 
     public async Task<CardReadResult> ProcessCardReadAsync(CardReadEvent cardRead)
     {
-        return await _coreProcessingService.ProcessCardReadAsync(cardRead);
+        _logger.LogInformation("Processing card read: Card {CardNumber} on reader {ReaderName}", 
+            cardRead.CardNumber, cardRead.ReaderName);
+            
+        try
+        {
+            var result = await _coreProcessingService.ProcessCardReadAsync(cardRead);
+            
+            _logger.LogInformation("Card read processed successfully: {Success}, Message: {Message}", 
+                result.Success, result.Message);
+                
+            return result;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error processing card read for card {CardNumber} on reader {ReaderName}", 
+                cardRead.CardNumber, cardRead.ReaderName);
+            throw;
+        }
     }
 
     public async Task<ReaderFeedback> GetFeedbackAsync(Guid readerId, CardReadResult result)

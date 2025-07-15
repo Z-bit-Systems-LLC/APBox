@@ -1,6 +1,8 @@
 using ApBox.Web.Services;
 using ApBox.Web.Hubs;
 using ApBox.Core.Data;
+using ApBox.Core.Logging;
+using ApBox.Core.Services;
 using Blazorise;
 using Blazorise.Bootstrap5;
 using Blazorise.Icons.FontAwesome;
@@ -61,6 +63,11 @@ using (var scope = app.Services.CreateScope())
 {
     await scope.ServiceProvider.InitializeApBoxDatabaseAsync();
 }
+
+// Add custom log provider to capture application logs
+var logService = app.Services.GetRequiredService<ILogService>();
+var loggerFactory = app.Services.GetRequiredService<ILoggerFactory>();
+loggerFactory.AddProvider(new ApBoxLogProvider(logService));
 
 // Configure the HTTP request pipeline
 if (!app.Environment.IsDevelopment())

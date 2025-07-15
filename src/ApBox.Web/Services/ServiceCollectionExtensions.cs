@@ -2,6 +2,7 @@ using ApBox.Plugins;
 using ApBox.Core.OSDP;
 using ApBox.Core.Services;
 using ApBox.Core.Data;
+using Microsoft.Extensions.Logging;
 
 namespace ApBox.Web.Services;
 
@@ -13,7 +14,8 @@ public static class ServiceCollectionExtensions
         services.AddSingleton<IPluginLoader>(provider =>
         {
             var pluginDirectory = configuration.GetValue<string>("PluginSettings:Directory") ?? "plugins";
-            return new PluginLoader(pluginDirectory);
+            var logger = provider.GetService<ILogger<PluginLoader>>();
+            return new PluginLoader(pluginDirectory, logger);
         });
         
         

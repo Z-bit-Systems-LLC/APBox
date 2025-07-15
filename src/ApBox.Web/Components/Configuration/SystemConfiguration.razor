@@ -205,15 +205,13 @@
                     <CardTitle Size="6" Margin="Margin.Is0.FromBottom">
                         <Icon Name="IconName.List" Margin="Margin.Is2.FromEnd" />
                         System Logs
+                        @if (_refreshingLogs)
+                        {
+                            <Icon Name="IconName.Sync" Class="fa-spin" Margin="Margin.Is2.FromStart" />
+                        }
                     </CardTitle>
                 </CardHeader>
                 <CardBody>
-                    <Alert Color="Color.Info" Visible="true">
-                        <AlertMessage>
-                            <Icon Name="IconName.Info" Margin="Margin.Is2.FromEnd" />
-                            System logging viewer will be implemented here. This will show recent application logs, errors, and diagnostic information.
-                        </AlertMessage>
-                    </Alert>
                     <!-- Log Filter Controls -->
                     <Row Margin="Margin.Is3.FromBottom">
                         <Column ColumnSize="ColumnSize.Is4">
@@ -225,8 +223,14 @@
                                 <SelectItem TValue="LogLevel" Value="LogLevel.Error">Error+</SelectItem>
                             </Select>
                         </Column>
-                        <Column ColumnSize="ColumnSize.Is6">
+                        <Column ColumnSize="ColumnSize.Is4">
                             <TextEdit @bind-Text="_searchTerm" @bind-Text:after="FilterLogs" Placeholder="Search logs..." />
+                        </Column>
+                        <Column ColumnSize="ColumnSize.Is2">
+                            <Button Color="Color.Info" Outline="true" Size="Size.Small" @onclick="ManualRefreshLogs" Loading="_refreshingLogs" ElementId="refresh-logs-btn">
+                                <Icon Name="IconName.Sync" Margin="Margin.Is1.FromEnd" />
+                                Refresh
+                            </Button>
                         </Column>
                         <Column ColumnSize="ColumnSize.Is2">
                             <Button Color="Color.Secondary" Outline="true" Size="Size.Small" @onclick="ExportLogs" Loading="_exportingLogs" ElementId="download-logs-btn">
@@ -236,11 +240,38 @@
                         </Column>
                     </Row>
 
+                    <!-- Pagination Controls -->
+                    @if (_totalLogCount > _pageSize)
+                    {
+                        <Row Margin="Margin.Is2.FromBottom">
+                            <Column>
+                                <Div Display="Display.Flex" JustifyContent="JustifyContent.Between" AlignItems="AlignItems.Center">
+                                    <Small TextColor="TextColor.Muted">
+                                        Showing @((_currentPage - 1) * _pageSize + 1) to @(Math.Min(_currentPage * _pageSize, _totalLogCount)) of @_totalLogCount logs
+                                    </Small>
+                                    <Div>
+                                        <Button Color="Color.Secondary" Outline="true" Size="Size.Small" 
+                                                @onclick="PreviousPage" 
+                                                Disabled="@(_currentPage <= 1)"
+                                                Margin="Margin.Is1.FromEnd">
+                                            <Icon Name="IconName.ChevronLeft" />
+                                        </Button>
+                                        <Button Color="Color.Secondary" Outline="true" Size="Size.Small" 
+                                                @onclick="NextPage" 
+                                                Disabled="@(_currentPage >= Math.Ceiling((double)_totalLogCount / _pageSize))">
+                                            <Icon Name="IconName.ChevronRight" />
+                                        </Button>
+                                    </Div>
+                                </Div>
+                            </Column>
+                        </Row>
+                    }
+
                     <!-- Log Entries -->
                     <Div Overflow="Overflow.Auto" Border="Border.Rounded" Height="Height.Max100.Is25">
                         @if (_filteredLogs?.Any() == true)
                         {
-                            @foreach (var log in _filteredLogs.Take(100))
+                            @foreach (var log in _filteredLogs)
                             {
                                 <Div Padding="Padding.Is1.FromBottom" Margin="Margin.Is2.FromBottom" Border="Border.OnBottom">
                                     <Div Display="Display.Flex" JustifyContent="JustifyContent.Between" Margin="Margin.Is1.FromBottom">
@@ -415,6 +446,7 @@
     public void Dispose()
     {
         _uptimeTimer?.Dispose();
+        _logRefreshTimer?.Dispose();
     }
     
     private int _readerCount;
@@ -426,7 +458,9 @@
     private bool _importing;
     private bool _restarting;
     private bool _exportingLogs;
+    private bool _refreshingLogs;
     private Timer? _uptimeTimer;
+    private Timer? _logRefreshTimer;
     
     // Modal references
     private Modal? _restartModal;
@@ -439,14 +473,20 @@
     private IEnumerable<LogEntry>? _filteredLogs;
     private LogLevel _selectedLogLevel = LogLevel.Information;
     private string _searchTerm = string.Empty;
+    private int _currentPage = 1;
+    private int _pageSize = 50;
+    private int _totalLogCount = 0;
 
     protected override async Task OnInitializedAsync()
     {
         await LoadSystemInfo();
         await LoadRecentLogs();
         
-        // Start uptime timer to update every 30 seconds
+        // Start uptime timer to update every 5 seconds
         _uptimeTimer = new Timer(async void (_) => await InvokeAsync(StateHasChanged), null, TimeSpan.Zero, TimeSpan.FromSeconds(5));
+        
+        // Start log refresh timer to update every 2 seconds
+        _logRefreshTimer = new Timer(async void (_) => await InvokeAsync(LoadRecentLogs), null, TimeSpan.Zero, TimeSpan.FromSeconds(2));
     }
 
     private async Task LoadSystemInfo()
@@ -667,11 +707,28 @@
         }
     }
     
+    private async Task ManualRefreshLogs()
+    {
+        _refreshingLogs = true;
+        StateHasChanged();
+        
+        try
+        {
+            await LoadRecentLogs();
+        }
+        finally
+        {
+            _refreshingLogs = false;
+            StateHasChanged();
+        }
+    }
+    
     private Task FilterLogs()
     {
         if (_recentLogs == null)
         {
             _filteredLogs = Enumerable.Empty<LogEntry>();
+            _totalLogCount = 0;
             StateHasChanged();
             return Task.CompletedTask;
         }
@@ -686,7 +743,14 @@
                 (l.Exception?.Contains(_searchTerm, StringComparison.OrdinalIgnoreCase) ?? false));
         }
         
-        _filteredLogs = filtered.OrderByDescending(l => l.Timestamp);
+        var orderedFiltered = filtered.OrderByDescending(l => l.Timestamp);
+        _totalLogCount = orderedFiltered.Count();
+        
+        // Apply pagination
+        _filteredLogs = orderedFiltered
+            .Skip((_currentPage - 1) * _pageSize)
+            .Take(_pageSize);
+        
         StateHasChanged();
         return Task.CompletedTask;
     }
@@ -764,5 +828,24 @@
             return $"{bytes / (1024.0 * 1024.0):F1} MB";
         else
             return $"{bytes / (1024.0 * 1024.0 * 1024.0):F1} GB";
+    }
+    
+    private void PreviousPage()
+    {
+        if (_currentPage > 1)
+        {
+            _currentPage--;
+            FilterLogs();
+        }
+    }
+    
+    private void NextPage()
+    {
+        var maxPage = (int)Math.Ceiling((double)_totalLogCount / _pageSize);
+        if (_currentPage < maxPage)
+        {
+            _currentPage++;
+            FilterLogs();
+        }
     }
 }

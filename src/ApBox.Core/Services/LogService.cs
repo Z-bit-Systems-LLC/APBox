@@ -19,78 +19,18 @@ public class LogService : ILogService
     public LogService(ILogger<LogService> logger)
     {
         _logger = logger;
-        // Seed with some sample log entries for demonstration
-        SeedSampleLogs();
-    }
-
-    private void SeedSampleLogs()
-    {
-        var sampleLogs = new[]
+        
+        // Add an initial log entry to indicate the service has started
+        var startupLog = new LogEntry
         {
-            new LogEntry 
-            { 
-                Timestamp = DateTime.UtcNow.AddMinutes(-30), 
-                Level = LogLevel.Information, 
-                Source = "ApBox.Core", 
-                Message = "Application started successfully" 
-            },
-            new LogEntry 
-            { 
-                Timestamp = DateTime.UtcNow.AddMinutes(-25), 
-                Level = LogLevel.Information, 
-                Source = "ApBox.OSDP", 
-                Message = "OSDP communication manager initialized" 
-            },
-            new LogEntry 
-            { 
-                Timestamp = DateTime.UtcNow.AddMinutes(-20), 
-                Level = LogLevel.Debug, 
-                Source = "ApBox.Plugins", 
-                Message = "Scanning plugins directory: /plugins" 
-            },
-            new LogEntry 
-            { 
-                Timestamp = DateTime.UtcNow.AddMinutes(-15), 
-                Level = LogLevel.Warning, 
-                Source = "ApBox.OSDP", 
-                Message = "Reader connection timeout on port COM3, retrying..." 
-            },
-            new LogEntry 
-            { 
-                Timestamp = DateTime.UtcNow.AddMinutes(-10), 
-                Level = LogLevel.Information, 
-                Source = "ApBox.Web", 
-                Message = "Blazor SignalR hub connected" 
-            },
-            new LogEntry 
-            { 
-                Timestamp = DateTime.UtcNow.AddMinutes(-5), 
-                Level = LogLevel.Error, 
-                Source = "ApBox.OSDP", 
-                Message = "Failed to establish connection with reader ID 2",
-                Exception = "System.TimeoutException: The operation has timed out.\n   at ApBox.OSDP.OsdpReader.ConnectAsync()\n   at ApBox.Core.Services.ReaderService.InitializeReader()"
-            },
-            new LogEntry 
-            { 
-                Timestamp = DateTime.UtcNow.AddMinutes(-2), 
-                Level = LogLevel.Information, 
-                Source = "ApBox.Core", 
-                Message = "Card read event processed: Card ID 123456789" 
-            },
-            new LogEntry 
-            { 
-                Timestamp = DateTime.UtcNow.AddMinutes(-1), 
-                Level = LogLevel.Critical, 
-                Source = "ApBox.Database", 
-                Message = "Database connection lost, attempting reconnection",
-                Exception = "Microsoft.Data.Sqlite.SqliteException: Database is locked\n   at Microsoft.Data.Sqlite.SqliteConnection.Open()"
-            }
+            Timestamp = DateTime.UtcNow,
+            Level = LogLevel.Information,
+            Source = "ApBox.Core",
+            Message = "Log service initialized and ready to capture application logs"
         };
-
-        foreach (var log in sampleLogs)
-        {
-            _logBuffer.Enqueue(log);
-        }
+        
+        _logBuffer.Enqueue(startupLog);
+        _logger.LogInformation("ApBox LogService initialized");
     }
 
     public async Task<IEnumerable<LogEntry>> GetRecentLogsAsync(int count = 100)
