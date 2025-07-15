@@ -9,15 +9,19 @@
                 <Column ColumnSize="ColumnSize.IsAuto">
                     <Heading Size="HeadingSize.Is3" ElementId="readers-title">Reader Configuration</Heading>
                 </Column>
-                <Column ColumnSize="ColumnSize.IsAuto">
-                    <Button Color="Color.Primary" Clicked="ShowAddReaderModal" ElementId="add-reader-button">
-                        <Icon Name="IconName.Add" Margin="Margin.Is2.FromEnd" />
-                        Add Reader
-                    </Button>
-                </Column>
+                @if (_readers.Any())
+                {
+                    <Column ColumnSize="ColumnSize.IsAuto">
+                        <Button Color="Color.Primary" Clicked="ShowAddReaderModal" ElementId="add-reader-button">
+                            <Icon Name="IconName.Add" Margin="Margin.Is2.FromEnd" />
+                            Add Reader
+                        </Button>
+                    </Column>
+                }
             </Row>
         </Column>
     </Row>
+    
     @if (_readers.Any())
     {
         <Row>
@@ -61,7 +65,11 @@
             <Column ColumnSize="ColumnSize.IsAuto">
                 <Icon Name="IconName.Tv" IconSize="IconSize.x5" TextColor="TextColor.Muted" Margin="Margin.Is3.FromBottom" />
                 <Heading Size="HeadingSize.Is4" Margin="Margin.Is3.FromTop">No Readers Configured</Heading>
-                <Paragraph TextColor="TextColor.Muted" Margin="Margin.Is3.FromBottom">Use the "Add Reader" button above to get started</Paragraph>
+                <Paragraph TextColor="TextColor.Muted" Margin="Margin.Is3.FromBottom">Add your first reader to get started</Paragraph>
+                <Button Color="Color.Primary" Size="Size.Large" Clicked="ShowAddReaderModal" ElementId="add-first-reader-button">
+                    <Icon Name="IconName.Add" Margin="Margin.Is2.FromEnd" />
+                    Add Reader
+                </Button>
             </Column>
         </Row>
     }
@@ -110,6 +118,12 @@
     </ModalContent>
 </Modal>
 
+<Snackbar @ref="_snackbar">
+    <SnackbarBody>
+        @_snackBarMessage
+    </SnackbarBody>
+</Snackbar>
+
 @code {
     [Parameter] public EventCallback<string> OnShowMessage { get; set; }
     
@@ -120,6 +134,9 @@
     private Modal? _deleteModal;
     private bool _saving;
     private bool _deleting;
+    
+    Snackbar? _snackbar;
+    string? _snackBarMessage;
     
     // Form data
     private ReaderFormModel _readerForm = new();
@@ -139,7 +156,7 @@
         }
         catch (Exception ex)
         {
-            await OnShowMessage.InvokeAsync($"Error loading readers: {ex.Message}|danger");
+            await ShowSnackbar($"Error loading readers: {ex.Message}", SnackbarColor.Danger);
         }
     }
 
@@ -180,7 +197,7 @@
     {
         if (string.IsNullOrWhiteSpace(_readerForm.ReaderName))
         {
-            await OnShowMessage.InvokeAsync("Reader name is required|danger");
+            await ShowSnackbar("Reader name is required", SnackbarColor.Danger);
             return;
         }
         
@@ -199,11 +216,11 @@
             
             if (_editingReader != null)
             {
-                await OnShowMessage.InvokeAsync($"Reader '{readerConfig.ReaderName}' updated successfully|success");
+                await ShowSnackbar($"Reader '{readerConfig.ReaderName}' updated successfully", SnackbarColor.Success);
             }
             else
             {
-                await OnShowMessage.InvokeAsync($"Reader '{readerConfig.ReaderName}' created successfully|success");
+                await ShowSnackbar($"Reader '{readerConfig.ReaderName}' created successfully", SnackbarColor.Success);
             }
             
             await CloseReaderModal();
@@ -211,7 +228,7 @@
         }
         catch (Exception ex)
         {
-            await OnShowMessage.InvokeAsync($"Error saving reader: {ex.Message}|danger");
+            await ShowSnackbar($"Error saving reader: {ex.Message}", SnackbarColor.Danger);
         }
         finally
         {
@@ -230,19 +247,29 @@
         try
         {
             await ReaderConfigurationService.DeleteReaderAsync(_readerToDelete.ReaderId);
-            await OnShowMessage.InvokeAsync($"Reader '{_readerToDelete.ReaderName}' deleted successfully|success");
+            await ShowSnackbar($"Reader '{_readerToDelete.ReaderName}' deleted successfully", SnackbarColor.Success);
             
             await CloseDeleteModal();
             await LoadData();
         }
         catch (Exception ex)
         {
-            await OnShowMessage.InvokeAsync($"Error deleting reader: {ex.Message}|danger");
+            await ShowSnackbar($"Error deleting reader: {ex.Message}", SnackbarColor.Danger);
         }
         finally
         {
             _deleting = false;
             StateHasChanged();
+        }
+    }
+
+    private async Task ShowSnackbar(string message, SnackbarColor color)
+    {
+        if (_snackbar != null)
+        {
+            _snackbar.Color = color;
+            _snackBarMessage = message;
+            await _snackbar.Show();
         }
     }
 

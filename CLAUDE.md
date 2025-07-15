@@ -193,3 +193,4 @@ The detailed implementation plan is in `apbox_project_plan.md` (excluded from gi
 ## Development Memories
 
 - Use Blazorise components to render HTML pages
+- Use the SnackBar component to notifify user of operation status
