@@ -1,3 +1,4 @@
+using ApBox.Core.Models;
 using ApBox.Plugins;
 
 namespace ApBox.Core.Services;
@@ -11,16 +12,16 @@ public interface ICardProcessingService
 public class CardProcessingService : ICardProcessingService
 {
     private readonly IPluginLoader _pluginLoader;
-    private readonly IFeedbackResolutionService _feedbackService;
+    private readonly IFeedbackConfigurationService _feedbackConfigurationService;
     private readonly ILogger<CardProcessingService> _logger;
     
     public CardProcessingService(
         IPluginLoader pluginLoader,
-        IFeedbackResolutionService feedbackService,
+        IFeedbackConfigurationService feedbackConfigurationService,
         ILogger<CardProcessingService> logger)
     {
         _pluginLoader = pluginLoader;
-        _feedbackService = feedbackService;
+        _feedbackConfigurationService = feedbackConfigurationService;
         _logger = logger;
     }
     
@@ -78,12 +79,15 @@ public class CardProcessingService : ICardProcessingService
     {
         try
         {
-            // For now, we'll use the first available plugin for feedback
-            // In a real implementation, you might want to use a specific plugin or configuration
-            var plugins = await _pluginLoader.LoadPluginsAsync();
-            var plugin = plugins.FirstOrDefault();
-            
-            return await _feedbackService.ResolveFeedbackAsync(readerId, result, plugin);
+            // Get appropriate feedback based on result
+            if (result.Success)
+            {
+                return await _feedbackConfigurationService.GetSuccessFeedbackAsync();
+            }
+            else
+            {
+                return await _feedbackConfigurationService.GetFailureFeedbackAsync();
+            }
         }
         catch (Exception ex)
         {

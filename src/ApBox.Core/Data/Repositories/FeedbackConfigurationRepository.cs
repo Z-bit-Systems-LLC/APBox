@@ -1,4 +1,5 @@
 using ApBox.Core.Data.Models;
+using ApBox.Core.Models;
 using ApBox.Plugins;
 using Dapper;
 
@@ -190,7 +191,7 @@ public class FeedbackConfigurationRepository(IApBoxDbContext dbContext, ILogger<
         {
             // Use a simpler approach: delete and insert
             var deleteSql = "DELETE FROM feedback_configurations WHERE configuration_type = @ConfigurationType";
-            await connection.ExecuteAsync(deleteSql, new { ConfigurationType = entity.ConfigurationType }, transaction);
+            await connection.ExecuteAsync(deleteSql, new { entity.ConfigurationType }, transaction);
 
             var insertSql = @"
                 INSERT INTO feedback_configurations 

@@ -28,16 +28,4 @@ public class PluginInterfaceTests
         Assert.That(result.Data, Is.Not.Null);
         Assert.That(result.Data, Is.Empty);
     }
-    
-    [Test]
-    public void ReaderFeedback_ShouldInitializeWithDefaults()
-    {
-        var feedback = new ReaderFeedback();
-        
-        Assert.That(feedback.Type, Is.EqualTo(ReaderFeedbackType.None));
-        Assert.That(feedback.BeepCount, Is.Null);
-        Assert.That(feedback.LedColor, Is.Null);
-        Assert.That(feedback.LedDurationMs, Is.Null);
-        Assert.That(feedback.DisplayMessage, Is.Null);
-    }
 }

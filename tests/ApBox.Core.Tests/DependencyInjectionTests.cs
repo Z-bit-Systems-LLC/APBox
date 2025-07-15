@@ -42,7 +42,6 @@ public class DependencyInjectionTests
         
         // Assert - Plugin services
         Assert.That(serviceProvider.GetService<IPluginLoader>(), Is.Not.Null);
-        Assert.That(serviceProvider.GetService<IFeedbackResolutionService>(), Is.Not.Null);
         
         // Assert - Core services
         Assert.That(serviceProvider.GetService<ICardProcessingService>(), Is.Not.Null);
@@ -75,9 +74,6 @@ public class DependencyInjectionTests
         var pluginLoader2 = serviceProvider.GetService<IPluginLoader>();
         Assert.That(pluginLoader1, Is.SameAs(pluginLoader2));
         
-        var feedbackService1 = serviceProvider.GetService<IFeedbackResolutionService>();
-        var feedbackService2 = serviceProvider.GetService<IFeedbackResolutionService>();
-        Assert.That(feedbackService1, Is.SameAs(feedbackService2));
     }
     
     [Test]

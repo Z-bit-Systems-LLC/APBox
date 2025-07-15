@@ -7,7 +7,6 @@ public interface IApBoxPlugin
     string Description { get; }
     
     Task<bool> ProcessCardReadAsync(CardReadEvent cardRead);
-    Task<ReaderFeedback?> GetFeedbackAsync(CardReadResult result);
     
     Task InitializeAsync();
     Task ShutdownAsync();

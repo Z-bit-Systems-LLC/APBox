@@ -70,21 +70,6 @@ public class AuditLoggingPlugin : IApBoxPlugin
         }
     }
 
-    public async Task<ReaderFeedback?> GetFeedbackAsync(CardReadResult result)
-    {
-        await Task.CompletedTask;
-
-        // Audit plugin provides minimal feedback - just a brief blue flash
-        return new ReaderFeedback
-        {
-            Type = ReaderFeedbackType.Custom,
-            LedColor = Plugins.LedColor.Blue,
-            BeepCount = 0,
-            LedDurationMs = 100,
-            DisplayMessage = string.Empty // No display message to avoid interfering with other plugins
-        };
-    }
-
     public Task InitializeAsync()
     {
         _logger?.LogInformation("Audit Logging Plugin initialized. Log directory: {LogDirectory}", _logDirectory);

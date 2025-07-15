@@ -107,36 +107,6 @@ public class TimeBasedAccessPlugin : IApBoxPlugin
         return true;
     }
 
-    public async Task<ReaderFeedback?> GetFeedbackAsync(CardReadResult result)
-    {
-        await Task.CompletedTask;
-
-        if (result.Success)
-        {
-            // Green LED with double beep for authorized time-based access
-            return new ReaderFeedback
-            {
-                Type = ReaderFeedbackType.Success,
-                LedColor = Plugins.LedColor.Green,
-                BeepCount = 2,
-                LedDurationMs = 3000,
-                DisplayMessage = "TIME ACCESS OK"
-            };
-        }
-        else
-        {
-            // Orange LED for time-based restrictions (different from general denial)
-            return new ReaderFeedback
-            {
-                Type = ReaderFeedbackType.Failure,
-                LedColor = Plugins.LedColor.Amber,
-                BeepCount = 2,
-                LedDurationMs = 4000,
-                DisplayMessage = "TIME RESTRICTED"
-            };
-        }
-    }
-
     public Task InitializeAsync()
     {
         _logger?.LogInformation("Time-Based Access Plugin initialized with {Count} scheduled cards", 

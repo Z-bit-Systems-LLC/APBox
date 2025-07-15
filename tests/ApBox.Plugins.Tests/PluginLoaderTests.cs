@@ -1,5 +1,3 @@
-using ApBox.Plugins;
-
 namespace ApBox.Plugins.Tests;
 
 [TestFixture]

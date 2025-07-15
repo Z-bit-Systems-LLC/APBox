@@ -1,5 +1,5 @@
 using Bunit;
-using ApBox.Plugins;
+using ApBox.Core.Models;
 using Microsoft.AspNetCore.Components;
 using Microsoft.AspNetCore.Components.Web;
 

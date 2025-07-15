@@ -57,36 +57,6 @@ public class AccessControlPlugin : IApBoxPlugin
         return isAuthorized;
     }
 
-    public async Task<ReaderFeedback?> GetFeedbackAsync(CardReadResult result)
-    {
-        await Task.CompletedTask; // Async signature for future extensibility
-
-        if (result.Success)
-        {
-            // Green LED and friendly beep for authorized access
-            return new ReaderFeedback
-            {
-                Type = ReaderFeedbackType.Success,
-                LedColor = Plugins.LedColor.Green,
-                BeepCount = 1,
-                LedDurationMs = 3000,
-                DisplayMessage = "ACCESS GRANTED"
-            };
-        }
-        else
-        {
-            // Red LED and warning beep for unauthorized access
-            return new ReaderFeedback
-            {
-                Type = ReaderFeedbackType.Failure,
-                LedColor = Plugins.LedColor.Red,
-                BeepCount = 3,
-                LedDurationMs = 2000,
-                DisplayMessage = "ACCESS DENIED"
-            };
-        }
-    }
-
     public Task InitializeAsync()
     {
         _logger?.LogInformation("Access Control Plugin initialized with {Count} authorized cards", 

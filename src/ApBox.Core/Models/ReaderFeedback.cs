@@ -1,4 +1,4 @@
-namespace ApBox.Plugins;
+namespace ApBox.Core.Models;
 
 public class ReaderFeedback
 {

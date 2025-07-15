@@ -1,5 +1,5 @@
 using ApBox.Core.Data.Models;
-using ApBox.Plugins;
+using ApBox.Core.Models;
 using Dapper;
 
 namespace ApBox.Core.Data.Repositories;
@@ -42,8 +42,8 @@ public class ReaderConfigurationRepository(IApBoxDbContext dbContext, ILogger<Re
         
         var sql = @"
             INSERT INTO reader_configurations 
-            (reader_id, reader_name, created_at, updated_at)
-            VALUES (@ReaderId, @ReaderName, @CreatedAt, @UpdatedAt)";
+            (reader_id, reader_name, address, is_enabled, created_at, updated_at)
+            VALUES (@ReaderId, @ReaderName, @Address, @IsEnabled, @CreatedAt, @UpdatedAt)";
         
         await connection.ExecuteAsync(sql, entity);
         
@@ -63,7 +63,9 @@ public class ReaderConfigurationRepository(IApBoxDbContext dbContext, ILogger<Re
         
         var sql = @"
             UPDATE reader_configurations 
-            SET reader_name = @ReaderName, 
+            SET reader_name = @ReaderName,
+                address = @Address,
+                is_enabled = @IsEnabled,
                 updated_at = @UpdatedAt
             WHERE reader_id = @ReaderId";
         

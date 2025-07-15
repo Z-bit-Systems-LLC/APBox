@@ -1,6 +1,6 @@
 using Bunit;
 using ApBox.Web.Pages;
-using ApBox.Plugins;
+using ApBox.Core.Models;
 
 namespace ApBox.Web.Tests.Pages;
 

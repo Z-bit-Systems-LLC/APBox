@@ -1,4 +1,4 @@
-using ApBox.Plugins;
+using ApBox.Core.Models;
 
 namespace ApBox.Core.Data.Models;
 
@@ -6,6 +6,8 @@ public class ReaderConfigurationEntity
 {
     public string ReaderId { get; set; } = string.Empty;
     public string ReaderName { get; set; } = string.Empty;
+    public byte Address { get; set; } = 1;
+    public bool IsEnabled { get; set; } = true;
     public DateTime CreatedAt { get; set; }
     public DateTime UpdatedAt { get; set; }
     
@@ -19,7 +21,11 @@ public class ReaderConfigurationEntity
         return new ReaderConfiguration
         {
             ReaderId = readerId,
-            ReaderName = ReaderName
+            ReaderName = ReaderName,
+            Address = Address,
+            IsEnabled = IsEnabled,
+            CreatedAt = CreatedAt,
+            UpdatedAt = UpdatedAt
         };
     }
     
@@ -29,8 +35,10 @@ public class ReaderConfigurationEntity
         {
             ReaderId = config.ReaderId.ToString(),
             ReaderName = config.ReaderName,
-            CreatedAt = DateTime.UtcNow,
-            UpdatedAt = DateTime.UtcNow
+            Address = config.Address,
+            IsEnabled = config.IsEnabled,
+            CreatedAt = config.CreatedAt,
+            UpdatedAt = config.UpdatedAt
         };
     }
 }

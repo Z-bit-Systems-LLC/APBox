@@ -1,7 +1,13 @@
 @using ApBox.Core.Services
+@using ApBox.Core.Models
 @using ApBox.Plugins
+@using Microsoft.Extensions.Logging
 @inject IReaderConfigurationService ReaderConfigurationService
 @inject IPluginLoader PluginLoader
+@inject IConfigurationExportService ConfigurationExportService
+@inject ISystemRestartService SystemRestartService
+@inject ILogService LogService
+@inject IJSRuntime JSRuntime
 
 <Container Fluid>
     <Row Margin="Margin.Is3.FromBottom">
@@ -179,15 +185,53 @@
                             System logging viewer will be implemented here. This will show recent application logs, errors, and diagnostic information.
                         </AlertMessage>
                     </Alert>
-                    <Div Display="Display.Flex" JustifyContent="JustifyContent.Between">
-                        <Button Color="Color.Primary" Outline="true" Size="Size.Small" ElementId="view-logs-btn">
-                            <Icon Name="IconName.Eye" Margin="Margin.Is1.FromEnd" />
-                            View Logs
-                        </Button>
-                        <Button Color="Color.Secondary" Outline="true" Size="Size.Small" ElementId="download-logs-btn">
-                            <Icon Name="IconName.Download" Margin="Margin.Is1.FromEnd" />
-                            Download Logs
-                        </Button>
+                    <!-- Log Filter Controls -->
+                    <Row Margin="Margin.Is3.FromBottom">
+                        <Column ColumnSize="ColumnSize.Is4">
+                            <Select TValue="LogLevel" @bind-SelectedValue="_selectedLogLevel" @bind-SelectedValue:after="FilterLogs">
+                                <SelectItem TValue="LogLevel" Value="LogLevel.Trace">All Levels</SelectItem>
+                                <SelectItem TValue="LogLevel" Value="LogLevel.Debug">Debug+</SelectItem>
+                                <SelectItem TValue="LogLevel" Value="LogLevel.Information">Info+</SelectItem>
+                                <SelectItem TValue="LogLevel" Value="LogLevel.Warning">Warning+</SelectItem>
+                                <SelectItem TValue="LogLevel" Value="LogLevel.Error">Error+</SelectItem>
+                            </Select>
+                        </Column>
+                        <Column ColumnSize="ColumnSize.Is6">
+                            <TextEdit @bind-Text="_searchTerm" @bind-Text:after="FilterLogs" Placeholder="Search logs..." />
+                        </Column>
+                        <Column ColumnSize="ColumnSize.Is2">
+                            <Button Color="Color.Secondary" Outline="true" Size="Size.Small" @onclick="ExportLogs" Loading="_exportingLogs" ElementId="download-logs-btn">
+                                <Icon Name="IconName.Download" Margin="Margin.Is1.FromEnd" />
+                                Export
+                            </Button>
+                        </Column>
+                    </Row>
+
+                    <!-- Log Entries -->
+                    <Div Style="max-height: 400px; overflow-y: auto; border: 1px solid var(--bs-border-color); border-radius: 0.375rem; padding: 0.75rem;">
+                        @if (_filteredLogs?.Any() == true)
+                        {
+                            @foreach (var log in _filteredLogs.Take(100))
+                            {
+                                <Div Style="font-family: monospace; font-size: 0.875rem; margin-bottom: 0.5rem; padding-bottom: 0.5rem; border-bottom: 1px solid var(--bs-border-color-translucent);">
+                                    <Div Display="Display.Flex" JustifyContent="JustifyContent.Between" Margin="Margin.Is1.FromBottom">
+                                        <Small TextColor="TextColor.Muted">@log.Timestamp.ToString("yyyy-MM-dd HH:mm:ss")</Small>
+                                        <Badge Color="@GetLogLevelColor(log.Level)" Pill="true">@log.LevelDisplay</Badge>
+                                    </Div>
+                                    <Text TextColor="@GetLogLevelTextColor(log.Level)" Style="font-weight: 500;">[@log.Source] @log.Message</Text>
+                                    @if (!string.IsNullOrEmpty(log.Exception))
+                                    {
+                                        <Div Margin="Margin.Is2.FromTop" Padding="Padding.Is2" Background="Background.Light" Border="Border.Light" Style="border-radius: 0.25rem;">
+                                            <Small TextColor="TextColor.Danger" Style="font-family: monospace; white-space: pre-wrap;">@log.Exception</Small>
+                                        </Div>
+                                    }
+                                </Div>
+                            }
+                        }
+                        else
+                        {
+                            <Paragraph TextColor="TextColor.Muted" TextAlignment="TextAlignment.Center">No logs available</Paragraph>
+                        }
                     </Div>
                 </CardBody>
             </Card>
@@ -237,14 +281,22 @@
     private bool _exporting = false;
     private bool _importing = false;
     private bool _restarting = false;
+    private bool _exportingLogs = false;
     private DateTime _startTime = DateTime.UtcNow;
     
     // Modal reference
     private Modal? _restartModal;
+    
+    // Log viewer state
+    private IEnumerable<LogEntry>? _recentLogs;
+    private IEnumerable<LogEntry>? _filteredLogs;
+    private LogLevel _selectedLogLevel = LogLevel.Information;
+    private string _searchTerm = string.Empty;
 
     protected override async Task OnInitializedAsync()
     {
         await LoadSystemInfo();
+        await LoadRecentLogs();
     }
 
     private async Task LoadSystemInfo()
@@ -291,9 +343,22 @@
         
         try
         {
-            // TODO: Implement export functionality
-            await Task.Delay(1000); // Simulate export
-            await OnShowMessage.InvokeAsync("Export configuration functionality coming soon|info");
+            var exportData = await ConfigurationExportService.ExportConfigurationAsync();
+            var json = System.Text.Json.JsonSerializer.Serialize(exportData, new System.Text.Json.JsonSerializerOptions
+            {
+                WriteIndented = true,
+                PropertyNamingPolicy = System.Text.Json.JsonNamingPolicy.CamelCase
+            });
+            
+            var fileName = $"apbox-config-{DateTime.UtcNow:yyyyMMdd-HHmmss}.json";
+            var bytes = System.Text.Encoding.UTF8.GetBytes(json);
+            
+            await JSRuntime.InvokeVoidAsync("downloadFile", fileName, "application/json", bytes);
+            await OnShowMessage.InvokeAsync("Configuration exported successfully|success");
+        }
+        catch (Exception ex)
+        {
+            await OnShowMessage.InvokeAsync($"Error exporting configuration: {ex.Message}|danger");
         }
         finally
         {
@@ -309,9 +374,9 @@
         
         try
         {
-            // TODO: Implement import functionality
-            await Task.Delay(1000); // Simulate import
-            await OnShowMessage.InvokeAsync("Import configuration functionality coming soon|info");
+            // Note: File upload would normally be handled through a file input
+            // For now, show a message about the feature
+            await OnShowMessage.InvokeAsync("Configuration import requires file upload implementation|info");
         }
         finally
         {
@@ -343,9 +408,22 @@
         
         try
         {
-            // TODO: Implement system restart functionality
-            await Task.Delay(2000); // Simulate restart preparation
-            await OnShowMessage.InvokeAsync("System restart functionality coming soon|info");
+            var canRestart = await SystemRestartService.CanRestartAsync();
+            if (!canRestart)
+            {
+                await OnShowMessage.InvokeAsync("System cannot be restarted at this time|warning");
+                return;
+            }
+            
+            await OnShowMessage.InvokeAsync("Preparing system for restart...|info");
+            await SystemRestartService.PrepareRestartAsync();
+            
+            await OnShowMessage.InvokeAsync("Restarting system...|warning");
+            await SystemRestartService.RestartApplicationAsync();
+        }
+        catch (Exception ex)
+        {
+            await OnShowMessage.InvokeAsync($"Error restarting system: {ex.Message}|danger");
         }
         finally
         {
@@ -359,4 +437,86 @@
         var uptime = DateTime.UtcNow - _startTime;
         return $"{uptime.Days}d {uptime.Hours}h {uptime.Minutes}m";
     }
+    
+    private async Task LoadRecentLogs()
+    {
+        try
+        {
+            _recentLogs = await LogService.GetRecentLogsAsync(100);
+            await FilterLogs();
+        }
+        catch (Exception ex)
+        {
+            await OnShowMessage.InvokeAsync($"Error loading logs: {ex.Message}|danger");
+        }
+    }
+    
+    private async Task FilterLogs()
+    {
+        if (_recentLogs == null)
+        {
+            _filteredLogs = Enumerable.Empty<LogEntry>();
+            StateHasChanged();
+            return;
+        }
+        
+        var filtered = _recentLogs.Where(l => l.Level >= _selectedLogLevel);
+        
+        if (!string.IsNullOrWhiteSpace(_searchTerm))
+        {
+            filtered = filtered.Where(l => 
+                l.Message.Contains(_searchTerm, StringComparison.OrdinalIgnoreCase) ||
+                l.Source.Contains(_searchTerm, StringComparison.OrdinalIgnoreCase) ||
+                (l.Exception?.Contains(_searchTerm, StringComparison.OrdinalIgnoreCase) ?? false));
+        }
+        
+        _filteredLogs = filtered.OrderByDescending(l => l.Timestamp);
+        StateHasChanged();
+    }
+    
+    private async Task ExportLogs()
+    {
+        _exportingLogs = true;
+        StateHasChanged();
+        
+        try
+        {
+            var logData = await LogService.ExportLogsAsync();
+            var fileName = $"apbox-logs-{DateTime.UtcNow:yyyyMMdd-HHmmss}.json";
+            
+            await JSRuntime.InvokeVoidAsync("downloadFile", fileName, "application/json", logData);
+            await OnShowMessage.InvokeAsync("Logs exported successfully|success");
+        }
+        catch (Exception ex)
+        {
+            await OnShowMessage.InvokeAsync($"Error exporting logs: {ex.Message}|danger");
+        }
+        finally
+        {
+            _exportingLogs = false;
+            StateHasChanged();
+        }
+    }
+    
+    private Color GetLogLevelColor(LogLevel level) => level switch
+    {
+        LogLevel.Trace => Color.Light,
+        LogLevel.Debug => Color.Secondary,
+        LogLevel.Information => Color.Info,
+        LogLevel.Warning => Color.Warning,
+        LogLevel.Error => Color.Danger,
+        LogLevel.Critical => Color.Dark,
+        _ => Color.Light
+    };
+    
+    private TextColor GetLogLevelTextColor(LogLevel level) => level switch
+    {
+        LogLevel.Trace => TextColor.Muted,
+        LogLevel.Debug => TextColor.Secondary,
+        LogLevel.Information => TextColor.Info,
+        LogLevel.Warning => TextColor.Warning,
+        LogLevel.Error => TextColor.Danger,
+        LogLevel.Critical => TextColor.Dark,
+        _ => TextColor.Body
+    };
 }

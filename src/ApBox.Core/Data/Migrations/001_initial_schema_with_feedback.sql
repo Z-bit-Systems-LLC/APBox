@@ -5,6 +5,8 @@
 CREATE TABLE reader_configurations (
     reader_id TEXT PRIMARY KEY,
     reader_name TEXT NOT NULL,
+    address INTEGER NOT NULL DEFAULT 1,
+    is_enabled INTEGER NOT NULL DEFAULT 1,
     created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
     updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
 );

@@ -1,4 +1,6 @@
-namespace ApBox.Plugins;
+using ApBox.Plugins;
+
+namespace ApBox.Core.Models;
 
 /// <summary>
 /// Complete feedback configuration containing success, failure, and idle state settings

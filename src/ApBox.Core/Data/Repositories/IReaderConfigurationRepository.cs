@@ -1,5 +1,5 @@
 using ApBox.Core.Data.Models;
-using ApBox.Plugins;
+using ApBox.Core.Models;
 
 namespace ApBox.Core.Data.Repositories;
 

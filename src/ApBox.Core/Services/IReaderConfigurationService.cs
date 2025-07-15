@@ -1,4 +1,4 @@
-using ApBox.Plugins;
+using ApBox.Core.Models;
 
 namespace ApBox.Core.Services;
 

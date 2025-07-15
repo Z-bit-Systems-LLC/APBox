@@ -1,4 +1,5 @@
 using Bunit;
+using ApBox.Core.Models;
 using ApBox.Plugins;
 
 namespace ApBox.Web.Tests.Pages;

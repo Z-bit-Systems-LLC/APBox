@@ -16,18 +16,22 @@ public static class ServiceCollectionExtensions
             return new PluginLoader(pluginDirectory);
         });
         
-        services.AddSingleton<IFeedbackResolutionService, FeedbackResolutionService>();
         
         // Register OSDP services
         services.AddSingleton<IOsdpCommunicationManager, OsdpCommunicationManager>();
         
         // Register core application services
-        services.AddSingleton<ICardProcessingService, CardProcessingService>();
+        services.AddScoped<ICardProcessingService, CardProcessingService>();
         services.AddScoped<IEnhancedCardProcessingService, EnhancedCardProcessingService>();
         services.AddScoped<IReaderService, ReaderService>();
         
         // Register SignalR notification service
         services.AddSingleton<ICardEventNotificationService, CardEventNotificationService>();
+        
+        // Register system management services
+        services.AddScoped<IConfigurationExportService, ConfigurationExportService>();
+        services.AddScoped<ISystemRestartService, SystemRestartService>();
+        services.AddSingleton<ILogService, LogService>();
         
         // Register database services
         var connectionString = configuration.GetConnectionString("DefaultConnection") ?? "Data Source=apbox.db";

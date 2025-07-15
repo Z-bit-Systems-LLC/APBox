@@ -1,5 +1,3 @@
-using ApBox.Plugins;
-
 namespace ApBox.Plugins.Tests;
 
 [TestFixture]
@@ -7,7 +5,6 @@ namespace ApBox.Plugins.Tests;
 public class PluginSystemIntegrationTests
 {
     private PluginLoader _pluginLoader;
-    private FeedbackResolutionService _feedbackService;
     private string _testPluginDirectory;
     
     [SetUp]
@@ -16,7 +13,6 @@ public class PluginSystemIntegrationTests
         _testPluginDirectory = Path.Combine(Path.GetTempPath(), "ApBoxTestPlugins", Guid.NewGuid().ToString());
         Directory.CreateDirectory(_testPluginDirectory);
         _pluginLoader = new PluginLoader(_testPluginDirectory);
-        _feedbackService = new FeedbackResolutionService();
     }
     
     [TearDown]
@@ -29,7 +25,7 @@ public class PluginSystemIntegrationTests
     }
     
     [Test]
-    public async Task EndToEndWorkflow_WithMockPlugin_ProcessesCardAndReturnsFeedback()
+    public async Task EndToEndWorkflow_WithMockPlugin_ProcessesCard()
     {
         // Arrange
         var readerId = Guid.NewGuid();
@@ -47,30 +43,25 @@ public class PluginSystemIntegrationTests
         
         // Act
         var processResult = await mockPlugin.ProcessCardReadAsync(cardReadEvent);
-        var cardResult = new CardReadResult { Success = processResult, Message = "Test processed" };
-        var feedback = await _feedbackService.ResolveFeedbackAsync(readerId, cardResult, mockPlugin);
         
         // Assert
         Assert.That(processResult, Is.True);
-        Assert.That(feedback, Is.Not.Null);
-        Assert.That(feedback.Type, Is.EqualTo(ReaderFeedbackType.Custom));
-        Assert.That(feedback.BeepCount, Is.EqualTo(2));
-        Assert.That(feedback.LedColor, Is.EqualTo(LedColor.Blue));
     }
     
     [Test]
-    public async Task PluginLifecycle_InitializeAndShutdown_ExecutesCorrectly()
+    public Task PluginLifecycle_InitializeAndShutdown_ExecutesCorrectly()
     {
         // Arrange
         var plugin = new TestPlugin();
         
         // Act & Assert - Initialize
         Assert.DoesNotThrowAsync(async () => await plugin.InitializeAsync());
-        Assert.That(((TestPlugin)plugin).IsInitialized, Is.True);
+        Assert.That(plugin.IsInitialized, Is.True);
         
         // Act & Assert - Shutdown
         Assert.DoesNotThrowAsync(async () => await plugin.ShutdownAsync());
-        Assert.That(((TestPlugin)plugin).IsShutdown, Is.True);
+        Assert.That(plugin.IsShutdown, Is.True);
+        return Task.CompletedTask;
     }
     
     [Test]
@@ -98,21 +89,6 @@ public class PluginSystemIntegrationTests
         Assert.That(metadata.Configuration, Is.Not.Null);
     }
     
-    [Test]
-    public async Task FeedbackResolution_WithMultipleSources_ReturnsHighestPriority()
-    {
-        // Arrange
-        var readerId = Guid.NewGuid();
-        var result = new CardReadResult { Success = true };
-        var plugin = new TestPlugin();
-        
-        // Act
-        var feedback = await _feedbackService.ResolveFeedbackAsync(readerId, result, plugin);
-        
-        // Assert
-        Assert.That(feedback, Is.Not.Null);
-        Assert.That(feedback.Type, Is.EqualTo(ReaderFeedbackType.Custom)); // Plugin has higher priority
-    }
     
     private class TestPlugin : IApBoxPlugin
     {
@@ -129,16 +105,6 @@ public class PluginSystemIntegrationTests
             return Task.FromResult(true);
         }
         
-        public Task<ReaderFeedback?> GetFeedbackAsync(CardReadResult result)
-        {
-            return Task.FromResult<ReaderFeedback?>(new ReaderFeedback
-            {
-                Type = ReaderFeedbackType.Custom,
-                BeepCount = 2,
-                LedColor = LedColor.Blue,
-                LedDurationMs = 1500
-            });
-        }
         
         public Task InitializeAsync()
         {

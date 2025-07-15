@@ -59,28 +59,6 @@ public class EventLoggingPlugin : IApBoxPlugin
         return true;
     }
 
-    public async Task<ReaderFeedback?> GetFeedbackAsync(CardReadResult result)
-    {
-        await Task.CompletedTask;
-
-        // Update failure counter if needed
-        if (!result.Success)
-        {
-            Interlocked.Increment(ref _failedEvents);
-            Interlocked.Decrement(ref _successfulEvents); // Adjust since we incremented it earlier
-        }
-
-        // Logging plugin provides no visual feedback to avoid interference
-        return new ReaderFeedback
-        {
-            Type = ReaderFeedbackType.None,
-            LedColor = Plugins.LedColor.Off,
-            BeepCount = 0,
-            LedDurationMs = 0,
-            DisplayMessage = string.Empty
-        };
-    }
-
     public Task InitializeAsync()
     {
         _logger?.LogInformation("Event Logging Plugin initialized");

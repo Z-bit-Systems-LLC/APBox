@@ -1,6 +1,7 @@
 using ApBox.Core.Services;
 using ApBox.Core.Data.Repositories;
 using ApBox.Core.Data.Models;
+using ApBox.Core.Models;
 using ApBox.Plugins;
 
 namespace ApBox.Web.Services;

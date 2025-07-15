@@ -1,4 +1,6 @@
-namespace ApBox.Plugins;
+using ApBox.Plugins;
+
+namespace ApBox.Core.Models;
 
 /// <summary>
 /// Idle state LED configuration for when no card activity is occurring
