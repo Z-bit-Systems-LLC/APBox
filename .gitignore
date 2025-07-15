@@ -57,3 +57,5 @@ apbox_project_plan.md
 
 .idea/
 .claude/
+
+src/ApBox.Web/plugins/ApBox.SamplePlugins.dll
