@@ -14,26 +14,26 @@ public class SystemRestartService(
 
     public bool IsRestartInProgress => _restartInProgress;
 
-    public async Task<bool> CanRestartAsync()
+    public Task<bool> CanRestartAsync()
     {
         try
         {
             if (_restartInProgress)
             {
                 logger.LogWarning("Restart already in progress");
-                return false;
+                return Task.FromResult(false);
             }
 
             // Check if any critical operations are running
             // This could be expanded to check for active OSDP connections, running plugins, etc.
             
             logger.LogInformation("System restart capability check passed");
-            return true;
+            return Task.FromResult(true);
         }
         catch (Exception ex)
         {
             logger.LogError(ex, "Error checking restart capability");
-            return false;
+            return Task.FromResult(false);
         }
     }
 

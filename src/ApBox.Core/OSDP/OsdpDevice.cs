@@ -1,28 +1,32 @@
 using ApBox.Core.Models;
+using ApBox.Core.Services;
 using ApBox.Plugins;
 using OSDP.Net;
 using OSDP.Net.Connections;
-using OSDP.Net.Model.ReplyData;
 using OSDP.Net.Model.CommandData;
 using System.IO.Ports;
+using System.Security.Cryptography;
 using OsdpLedColor = OSDP.Net.Model.CommandData.LedColor;
 using ApBoxLedColor = ApBox.Core.Models.LedColor;
 
 namespace ApBox.Core.OSDP;
 
-public class RealOsdpDevice : IOsdpDevice, IDisposable
+public class OsdpDevice : IOsdpDevice, IDisposable
 {
     private readonly OsdpDeviceConfiguration _config;
     private readonly ILogger _logger;
-    private ControlPanel? _controlPanel;
-    private Guid _connectionId;
-    private bool _disposed = false;
-    private Timer? _statusMonitoringTimer;
+    private readonly IServiceProvider _serviceProvider;
+    private readonly ControlPanel _controlPanel;
+    private readonly Guid _connectionId;
+    private bool _disposed;
     
-    public RealOsdpDevice(OsdpDeviceConfiguration config, ILogger logger)
+    public OsdpDevice(OsdpDeviceConfiguration config, ILogger logger, IServiceProvider serviceProvider, ControlPanel controlPanel, Guid connectionId)
     {
         _config = config;
         _logger = logger;
+        _serviceProvider = serviceProvider;
+        _controlPanel = controlPanel;
+        _connectionId = connectionId;
         Id = config.Id;
         Address = config.Address;
         Name = config.Name;
@@ -45,79 +49,26 @@ public class RealOsdpDevice : IOsdpDevice, IDisposable
         
         try
         {
-            // Validate serial port configuration
-            if (string.IsNullOrEmpty(_config.ConnectionString))
-            {
-                _logger.LogWarning("No serial port configured for OSDP device {DeviceName}", Name);
-                return false;
-            }
+            _logger.LogInformation("Connecting OSDP device {DeviceName} with address {Address}", 
+                Name, Address);
             
-            // Check if serial port exists
-            if (!SerialPort.GetPortNames().Contains(_config.ConnectionString))
-            {
-                _logger.LogWarning("Serial port {SerialPort} not found for OSDP device {DeviceName}", 
-                    _config.ConnectionString, Name);
-                return false;
-            }
-            
-            _logger.LogInformation("Connecting to OSDP device {DeviceName} on {SerialPort} at {BaudRate} baud", 
-                Name, _config.ConnectionString, _config.BaudRate);
-            
-            // Create control panel
-            _controlPanel = new ControlPanel();
-            
-            // Subscribe to events before starting connection
+            // Subscribe to events before adding device
             // Note: Using basic event handlers due to OSDP.Net API uncertainty
             // In a real implementation, we would use the correct event types
             // _controlPanel.RawCardDataReplyReceived += OnCardRead;
-            // _controlPanel.ConnectionStatusChanged += OnConnectionStatusChanged;
+            _controlPanel.ConnectionStatusChanged += OnConnectionStatusChanged;
             
-            // Start connection with serial port
-            _connectionId = _controlPanel.StartConnection(new SerialPortOsdpConnection(
-                _config.ConnectionString, 
-                _config.BaudRate));
-            
-            // Add device to the connection
+            // Add device to the existing connection
             _controlPanel.AddDevice(
                 _connectionId, 
                 Address, 
                 useCrc: true, 
                 useSecureChannel: _config.UseSecureChannel,
                 secureChannelKey: _config.SecureChannelKey);
-            
-            // Wait a moment for connection to establish
-            await Task.Delay(1000);
-            
-            // Check if device is online
-            IsOnline = _controlPanel.IsOnline(_connectionId, Address);
-            LastActivity = DateTime.UtcNow;
-            
-            if (IsOnline)
-            {
-                _logger.LogInformation("OSDP device {DeviceName} connected successfully on address {Address}", 
-                    Name, Address);
-                
-                StatusChanged?.Invoke(this, new OsdpStatusChangedEventArgs
-                {
-                    IsOnline = true,
-                    Message = "Connected successfully"
-                });
-                
-                // Start periodic status monitoring
-                StartStatusMonitoring();
-                
-                return true;
-            }
-            else
-            {
-                _logger.LogWarning("OSDP device {DeviceName} failed to come online", Name);
-                
-                // Start periodic status monitoring even if initial connection failed
-                // This will help detect when the device comes online later
-                StartStatusMonitoring();
-                
-                return false;
-            }
+
+            // Connection success is now handled by the OnConnectionStatusChanged event
+            // The event will fire when the device comes online or goes offline
+            return true;
         }
         catch (Exception ex)
         {
@@ -128,76 +79,154 @@ public class RealOsdpDevice : IOsdpDevice, IDisposable
     
     public async Task DisconnectAsync()
     {
-        if (_controlPanel != null)
-        {
-            _logger.LogInformation("Disconnecting OSDP device {DeviceName}", Name);
-            
-            try
-            {
-                _controlPanel.RemoveDevice(_connectionId, Address);
-                await _controlPanel.StopConnection(_connectionId);
-                await Task.Delay(500); // Give it time to shutdown gracefully
-            }
-            catch (Exception ex)
-            {
-                _logger.LogWarning(ex, "Error during OSDP device {DeviceName} shutdown", Name);
-            }
-        }
-        
-        IsOnline = false;
-        
-        StatusChanged?.Invoke(this, new OsdpStatusChangedEventArgs
-        {
-            IsOnline = false,
-            Message = "Disconnected"
-        });
-        
-        // Stop status monitoring
-        _statusMonitoringTimer?.Dispose();
-        _statusMonitoringTimer = null;
-    }
-    
-    private void StartStatusMonitoring()
-    {
-        // Stop any existing timer
-        _statusMonitoringTimer?.Dispose();
-        
-        // Start a timer to periodically check device status
-        _statusMonitoringTimer = new Timer(CheckDeviceStatus, null, TimeSpan.FromSeconds(5), TimeSpan.FromSeconds(5));
-    }
-    
-    private void CheckDeviceStatus(object? state)
-    {
-        if (_disposed || _controlPanel == null) return;
+        _logger.LogInformation("Disconnecting OSDP device {DeviceName}", Name);
         
         try
         {
-            var currentStatus = _controlPanel.IsOnline(_connectionId, Address);
+            // Remove device from the shared connection
+            _controlPanel.RemoveDevice(_connectionId, Address);
+            await Task.Delay(500); // Give it time to shutdown gracefully
             
-            if (currentStatus != IsOnline)
+            // Unsubscribe from events after disconnecting
+            // This ensures any final status change events are processed
+            _controlPanel.ConnectionStatusChanged -= OnConnectionStatusChanged;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogWarning(ex, "Error during OSDP device {DeviceName} shutdown", Name);
+        }
+    }
+    
+    
+    private async Task AttemptSecureChannelInstallation()
+    {
+        if (!IsOnline)
+        {
+            _logger.LogWarning("Cannot install secure channel for device {DeviceName} - device not online", Name);
+            return;
+        }
+        
+        try
+        {
+            _logger.LogInformation("Starting secure channel installation for device {DeviceName}", Name);
+            
+            // Generate a random 16-byte security key
+            var secureChannelKey = GenerateSecureChannelKey();
+            
+            // Install the secure channel key using the default OSDP key
+            // The OSDP.Net library should handle the key installation process
+            var installSuccess = await InstallSecureChannelKey(secureChannelKey);
+            
+            if (installSuccess)
             {
-                IsOnline = currentStatus;
-                LastActivity = DateTime.UtcNow;
+                _logger.LogInformation("Successfully installed secure channel key for device {DeviceName}", Name);
                 
-                var message = currentStatus ? "Device came online" : "Device went offline";
-                _logger.LogInformation("OSDP device {DeviceName} status changed: {Status}", Name, message);
+                // Update the configuration to use the new key
+                _config.SecureChannelKey = secureChannelKey;
+                _config.UseSecureChannel = true;
                 
-                StatusChanged?.Invoke(this, new OsdpStatusChangedEventArgs
-                {
-                    IsOnline = currentStatus,
-                    Message = message
-                });
+                // Notify that the security mode has changed
+                await NotifySecurityModeChanged(OsdpSecurityMode.Secure);
+            }
+            else
+            {
+                _logger.LogWarning("Failed to install secure channel key for device {DeviceName}", Name);
             }
         }
         catch (Exception ex)
         {
-            _logger.LogWarning(ex, "Error checking status for OSDP device {DeviceName}", Name);
+            _logger.LogError(ex, "Error during secure channel installation for device {DeviceName}", Name);
+        }
+    }
+    
+    private byte[] GenerateSecureChannelKey()
+    {
+        // Generate a cryptographically secure random 16-byte key
+        var key = new byte[16];
+        using (var rng = RandomNumberGenerator.Create())
+        {
+            rng.GetBytes(key);
+        }
+        
+        _logger.LogDebug("Generated secure channel key for device {DeviceName}", Name);
+        return key;
+    }
+    
+    private async Task<bool> InstallSecureChannelKey(byte[] secureChannelKey)
+    {
+        // ControlPanel is always available as it's injected
+        
+        try
+        {
+            _logger.LogInformation("Installing secure channel key for device {DeviceName}", Name);
+            
+            // Create the encryption key configuration
+            // Using SecureChannelBaseKey as the key type for secure channel installation
+            var keyConfiguration = new EncryptionKeyConfiguration(KeyType.SecureChannelBaseKey, secureChannelKey);
+            
+            // Use the OSDP.Net API to set the encryption key
+            // This will install the new secure channel key on the device
+            var result = await _controlPanel.EncryptionKeySet(_connectionId, Address, keyConfiguration);
+            
+            if (result)
+            {
+                _logger.LogInformation("Successfully installed secure channel key for device {DeviceName}", Name);
+                return true;
+            }
+            else
+            {
+                _logger.LogWarning("Failed to install secure channel key for device {DeviceName} - device rejected the key", Name);
+                return false;
+            }
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Failed to install secure channel key for device {DeviceName}", Name);
+            return false;
+        }
+    }
+    
+    private async Task NotifySecurityModeChanged(OsdpSecurityMode newMode)
+    {
+        try
+        {
+            _logger.LogInformation("Security mode changed to {SecurityMode} for device {DeviceName}", 
+                newMode, Name);
+            
+            // Update the database configuration using the SecurityModeUpdateService
+            using var scope = _serviceProvider.CreateScope();
+            var securityModeUpdateService = scope.ServiceProvider.GetRequiredService<ISecurityModeUpdateService>();
+            
+            var updateSuccess = await securityModeUpdateService.UpdateSecurityModeAsync(
+                Id, 
+                newMode, 
+                _config.SecureChannelKey);
+            
+            if (updateSuccess)
+            {
+                _logger.LogInformation("Database updated with new security mode for device {DeviceName}", Name);
+            }
+            else
+            {
+                _logger.LogWarning("Failed to update database with new security mode for device {DeviceName}", Name);
+            }
+            
+            // Fire a status change event to update the UI
+            StatusChanged?.Invoke(this, new OsdpStatusChangedEventArgs
+            {
+                IsOnline = IsOnline,
+                Message = $"Security mode changed to {newMode}"
+            });
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error notifying security mode change for device {DeviceName}", Name);
         }
     }
     
     public async Task<bool> SendCommandAsync(OsdpCommand command)
     {
-        if (!IsOnline || _controlPanel == null) return false;
+        if (!IsOnline) return false;
         
         try
         {
@@ -219,7 +248,7 @@ public class RealOsdpDevice : IOsdpDevice, IDisposable
     
     public async Task<bool> SendFeedbackAsync(ReaderFeedback feedback)
     {
-        if (!IsOnline || _controlPanel == null) return false;
+        if (!IsOnline) return false;
         
         try
         {
@@ -298,24 +327,40 @@ public class RealOsdpDevice : IOsdpDevice, IDisposable
     {
         // For now, use a simpler approach since we can't access the exact event args
         // In a real implementation, we would extract connection status from the event args
-        var wasOnline = IsOnline;
+        var wasOnline = IsOnline; 
         
         // Check the device online status using the control panel
-        if (_controlPanel != null)
-        {
-            IsOnline = _controlPanel.IsOnline(_connectionId, Address);
-        }
+        IsOnline = _controlPanel.IsOnline(_connectionId, Address);
         
         if (wasOnline != IsOnline)
         {
-            _logger.LogInformation("OSDP device {DeviceName} status changed: {Status}", 
-                Name, IsOnline ? "Online" : "Offline");
-            
-            StatusChanged?.Invoke(this, new OsdpStatusChangedEventArgs
+            if (IsOnline)
             {
-                IsOnline = IsOnline,
-                Message = IsOnline ? "Device came online" : "Device went offline"
-            });
+                _logger.LogInformation("OSDP device {DeviceName} connected successfully on address {Address}", 
+                    Name, Address);
+                
+                StatusChanged?.Invoke(this, new OsdpStatusChangedEventArgs
+                {
+                    IsOnline = true,
+                    Message = "Connected successfully"
+                });
+                
+                // If in Install Mode, attempt to install secure channel key
+                if (_config.SecurityMode == OsdpSecurityMode.Install)
+                {
+                    _ = Task.Run(async () => await AttemptSecureChannelInstallation());
+                }
+            }
+            else
+            {
+                _logger.LogInformation("OSDP device {DeviceName} went offline", Name);
+                
+                StatusChanged?.Invoke(this, new OsdpStatusChangedEventArgs
+                {
+                    IsOnline = false,
+                    Message = "Device went offline"
+                });
+            }
         }
         
         if (IsOnline)
@@ -390,12 +435,17 @@ public class RealOsdpDevice : IOsdpDevice, IDisposable
             _logger.LogWarning(ex, "Error during OSDP device {DeviceName} disposal", Name);
         }
         
-        // Stop status monitoring and dispose timer
-        _statusMonitoringTimer?.Dispose();
-        _statusMonitoringTimer = null;
+        // Unsubscribe from events
+        try
+        {
+            _controlPanel.ConnectionStatusChanged -= OnConnectionStatusChanged;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogWarning(ex, "Error unsubscribing from events during disposal for device {DeviceName}", Name);
+        }
         
-        // ControlPanel doesn't implement IDisposable, so we'll just set it to null
-        _controlPanel = null;
+        // ControlPanel is shared, so we don't dispose it here
         _disposed = true;
     }
 }

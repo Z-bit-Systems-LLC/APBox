@@ -1,7 +1,9 @@
 using ApBox.Core.Models;
+using ApBox.Core.OSDP;
 using ApBox.Plugins;
+using Microsoft.Extensions.Logging;
 
-namespace ApBox.Core.OSDP;
+namespace ApBox.Core.Tests.OSDP;
 
 public class MockOsdpDevice : IOsdpDevice
 {

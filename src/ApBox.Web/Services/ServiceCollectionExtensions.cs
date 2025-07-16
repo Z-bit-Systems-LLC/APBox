@@ -20,7 +20,11 @@ public static class ServiceCollectionExtensions
         
         
         // Register OSDP services
-        services.AddSingleton<IOsdpCommunicationManager, OsdpCommunicationManager>();
+        services.AddSingleton<IOsdpCommunicationManager>(provider =>
+        {
+            var logger = provider.GetRequiredService<ILogger<OsdpCommunicationManager>>();
+            return new OsdpCommunicationManager(logger, provider);
+        });
         services.AddHostedService<OsdpStartupService>();
         services.AddHostedService<OsdpStatusBridgeService>();
         

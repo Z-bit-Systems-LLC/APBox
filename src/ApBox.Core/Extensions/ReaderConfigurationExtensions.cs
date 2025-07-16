@@ -26,7 +26,7 @@ public static class ReaderConfigurationExtensions
             BaudRate = reader.BaudRate,
             UseSecureChannel = reader.SecurityMode != OsdpSecurityMode.ClearText,
             SecureChannelKey = securityService.GetSecurityKey(reader.SecurityMode, reader.SecureChannelKey),
-            PollInterval = TimeSpan.FromMilliseconds(50), // Default OSDP poll interval
+            SecurityMode = reader.SecurityMode,
             IsEnabled = reader.IsEnabled
         };
     }

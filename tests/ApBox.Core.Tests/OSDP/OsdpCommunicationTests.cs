@@ -1,6 +1,10 @@
+using ApBox.Core.Models;
 using ApBox.Core.OSDP;
+using ApBox.Core.Services;
 using ApBox.Plugins;
 using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.DependencyInjection;
+using Moq;
 
 namespace ApBox.Core.Tests.OSDP;
 
@@ -10,13 +14,33 @@ public class OsdpCommunicationTests
 {
     private OsdpCommunicationManager _communicationManager;
     private ILogger<OsdpCommunicationManager> _logger;
+    private Mock<IServiceProvider> _mockServiceProvider;
+    private Mock<IServiceScope> _mockServiceScope;
+    private Mock<IServiceScopeFactory> _mockServiceScopeFactory;
     
     [SetUp]
     public void Setup()
     {
         var loggerFactory = LoggerFactory.Create(builder => builder.AddConsole());
         _logger = loggerFactory.CreateLogger<OsdpCommunicationManager>();
-        _communicationManager = new OsdpCommunicationManager(_logger);
+        
+        // Create mocks for dependency injection
+        _mockServiceProvider = new Mock<IServiceProvider>();
+        _mockServiceScope = new Mock<IServiceScope>();
+        _mockServiceScopeFactory = new Mock<IServiceScopeFactory>();
+        
+        // Setup service provider to return mocked services
+        _mockServiceScope.Setup(s => s.ServiceProvider).Returns(_mockServiceProvider.Object);
+        _mockServiceScopeFactory.Setup(f => f.CreateScope()).Returns(_mockServiceScope.Object);
+        _mockServiceProvider.Setup(p => p.GetService(typeof(IServiceScopeFactory))).Returns(_mockServiceScopeFactory.Object);
+        
+        // Mock the SecurityModeUpdateService
+        var mockSecurityModeUpdateService = new Mock<ISecurityModeUpdateService>();
+        mockSecurityModeUpdateService.Setup(s => s.UpdateSecurityModeAsync(It.IsAny<Guid>(), It.IsAny<OsdpSecurityMode>(), It.IsAny<byte[]>()))
+                                     .ReturnsAsync(true);
+        _mockServiceProvider.Setup(p => p.GetService(typeof(ISecurityModeUpdateService))).Returns(mockSecurityModeUpdateService.Object);
+        
+        _communicationManager = new OsdpCommunicationManager(_logger, _mockServiceProvider.Object);
     }
     
     [TearDown]

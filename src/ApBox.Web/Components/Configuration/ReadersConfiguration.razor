@@ -88,24 +88,6 @@
                                     </div>
                                 </div>
                             }
-                            
-                            <div class="row mt-2">
-                                <div class="col-12">
-                                    <small class="text-muted">Security:</small><br>
-                                    @switch (reader.SecurityMode)
-                                    {
-                                        case OsdpSecurityMode.ClearText:
-                                            <Badge Color="Color.Warning">🔓 Clear Text</Badge>
-                                            break;
-                                        case OsdpSecurityMode.Install:
-                                            <Badge Color="Color.Info">🔧 Install Mode</Badge>
-                                            break;
-                                        case OsdpSecurityMode.Secure:
-                                            <Badge Color="Color.Success">🔒 Secure</Badge>
-                                            break;
-                                    }
-                                </div>
-                            </div>
                         </CardBody>
                     </Card>
                 </Column>
