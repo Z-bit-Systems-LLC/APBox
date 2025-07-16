@@ -42,8 +42,10 @@ public class ReaderConfigurationRepository(IApBoxDbContext dbContext, ILogger<Re
         
         var sql = @"
             INSERT INTO reader_configurations 
-            (reader_id, reader_name, address, is_enabled, created_at, updated_at)
-            VALUES (@ReaderId, @ReaderName, @Address, @IsEnabled, @CreatedAt, @UpdatedAt)";
+            (reader_id, reader_name, address, serial_port, baud_rate, security_mode, 
+             secure_channel_key, is_enabled, created_at, updated_at)
+            VALUES (@ReaderId, @ReaderName, @Address, @SerialPort, @BaudRate, @SecurityMode, 
+                    @SecureChannelKey, @IsEnabled, @CreatedAt, @UpdatedAt)";
         
         await connection.ExecuteAsync(sql, entity);
         
@@ -65,6 +67,10 @@ public class ReaderConfigurationRepository(IApBoxDbContext dbContext, ILogger<Re
             UPDATE reader_configurations 
             SET reader_name = @ReaderName,
                 address = @Address,
+                serial_port = @SerialPort,
+                baud_rate = @BaudRate,
+                security_mode = @SecurityMode,
+                secure_channel_key = @SecureChannelKey,
                 is_enabled = @IsEnabled,
                 updated_at = @UpdatedAt
             WHERE reader_id = @ReaderId";

@@ -49,7 +49,50 @@
                             </Row>
                         </CardHeader>
                         <CardBody>
-                            <!-- Reader details can be added here in the future -->
+                            <div class="row">
+                                <div class="col-6">
+                                    <small class="text-muted">OSDP Address:</small><br>
+                                    <span>@reader.Address</span>
+                                </div>
+                                <div class="col-6">
+                                    <small class="text-muted">Status:</small><br>
+                                    <Badge Color="@(reader.IsEnabled ? Color.Success : Color.Secondary)">
+                                        @(reader.IsEnabled ? "Enabled" : "Disabled")
+                                    </Badge>
+                                </div>
+                            </div>
+                            
+                            @if (!string.IsNullOrEmpty(reader.SerialPort))
+                            {
+                                <div class="row mt-2">
+                                    <div class="col-6">
+                                        <small class="text-muted">Serial Port:</small><br>
+                                        <span>@reader.SerialPort</span>
+                                    </div>
+                                    <div class="col-6">
+                                        <small class="text-muted">Baud Rate:</small><br>
+                                        <span>@reader.BaudRate</span>
+                                    </div>
+                                </div>
+                            }
+                            
+                            <div class="row mt-2">
+                                <div class="col-12">
+                                    <small class="text-muted">Security:</small><br>
+                                    @switch (reader.SecurityMode)
+                                    {
+                                        case OsdpSecurityMode.ClearText:
+                                            <Badge Color="Color.Warning">🔓 Clear Text</Badge>
+                                            break;
+                                        case OsdpSecurityMode.Install:
+                                            <Badge Color="Color.Info">🔧 Install Mode</Badge>
+                                            break;
+                                        case OsdpSecurityMode.Secure:
+                                            <Badge Color="Color.Success">🔒 Secure</Badge>
+                                            break;
+                                    }
+                                </div>
+                            </div>
                         </CardBody>
                     </Card>
                 </Column>
@@ -81,17 +124,102 @@
         </ModalHeader>
         <ModalBody>
             <Validations @ref="_validations" Model="_readerForm" ValidateOnLoad="false">
-                <Validation>
-                    <Field>
-                        <FieldLabel>Reader Name</FieldLabel>
-                        <TextEdit @bind-Text="_readerForm.ReaderName" Placeholder="e.g., Main Entrance" ElementId="reader-name-input">
-                            <Feedback>
-                                <ValidationError />
-                            </Feedback>
-                        </TextEdit>
-                        <FieldHelp>Enter a descriptive name for this reader</FieldHelp>
-                    </Field>
-                </Validation>
+                <!-- Basic Settings -->
+                <Heading Size="HeadingSize.Is5" Margin="Margin.Is3.FromBottom">Basic Settings</Heading>
+                <Row>
+                    <Column ColumnSize="ColumnSize.Is8">
+                        <Validation>
+                            <Field>
+                                <FieldLabel>Reader Name</FieldLabel>
+                                <TextEdit @bind-Text="_readerForm.ReaderName" Placeholder="e.g., Main Entrance" ElementId="reader-name-input">
+                                    <Feedback>
+                                        <ValidationError />
+                                    </Feedback>
+                                </TextEdit>
+                                <FieldHelp>Enter a descriptive name for this reader</FieldHelp>
+                            </Field>
+                        </Validation>
+                    </Column>
+                    <Column ColumnSize="ColumnSize.Is4">
+                        <Field>
+                            <FieldLabel>OSDP Address</FieldLabel>
+                            <NumericEdit TValue="byte" @bind-Value="_readerForm.Address" Min="0" Max="127" ElementId="reader-address-input">
+                                <Feedback>
+                                    <ValidationError />
+                                </Feedback>
+                            </NumericEdit>
+                            <FieldHelp>Device address on OSDP bus (0-127)</FieldHelp>
+                        </Field>
+                    </Column>
+                </Row>
+
+                <!-- Communication Settings -->
+                <Heading Size="HeadingSize.Is5" Margin="Margin.Is4.FromTop.Is3.FromBottom">Communication Settings</Heading>
+                <Row>
+                    <Column ColumnSize="ColumnSize.Is8">
+                        <Field>
+                            <FieldLabel>Serial Port</FieldLabel>
+                            <Select @bind-SelectedValue="_readerForm.SerialPort" ElementId="serial-port-select">
+                                <SelectItem Value="@((string?)null)">Select a serial port...</SelectItem>
+                                @foreach (var port in _availablePorts)
+                                {
+                                    <SelectItem Value="@port">@port</SelectItem>
+                                }
+                            </Select>
+                            <FieldHelp>Serial port for OSDP communication</FieldHelp>
+                        </Field>
+                    </Column>
+                    <Column ColumnSize="ColumnSize.Is4">
+                        <Field>
+                            <FieldLabel>Baud Rate</FieldLabel>
+                            <Select @bind-SelectedValue="_readerForm.BaudRate" ElementId="baud-rate-select">
+                                <SelectItem Value="9600">9600</SelectItem>
+                                <SelectItem Value="19200">19200</SelectItem>
+                                <SelectItem Value="38400">38400</SelectItem>
+                                <SelectItem Value="57600">57600</SelectItem>
+                                <SelectItem Value="115200">115200</SelectItem>
+                            </Select>
+                            <FieldHelp>Communication speed</FieldHelp>
+                        </Field>
+                    </Column>
+                </Row>
+
+                <!-- Security Settings -->
+                <Heading Size="HeadingSize.Is5" Margin="Margin.Is4.FromTop.Is3.FromBottom">Security Settings</Heading>
+                <Row>
+                    <Column ColumnSize="ColumnSize.Is6">
+                        <Field>
+                            <FieldLabel>Security Mode</FieldLabel>
+                            <Select @bind-SelectedValue="_readerForm.SecurityMode" ElementId="security-mode-select">
+                                <SelectItem Value="OsdpSecurityMode.ClearText">🔓 Clear Text (No Security)</SelectItem>
+                                <SelectItem Value="OsdpSecurityMode.Install">🔧 Install Secure Channel</SelectItem>
+                            </Select>
+                            <FieldHelp>
+                                @if (_readerForm.SecurityMode == OsdpSecurityMode.ClearText)
+                                {
+                                    <Text>No encryption will be used</Text>
+                                }
+                                else if (_readerForm.SecurityMode == OsdpSecurityMode.Install)
+                                {
+                                    <Text>Will install a random key using the default OSDP key</Text>
+                                }
+                            </FieldHelp>
+                        </Field>
+                    </Column>
+                    <Column ColumnSize="ColumnSize.Is6">
+                        <!-- Poll interval removed - using default OSDP bus timing -->
+                    </Column>
+                </Row>
+
+                <!-- Status -->
+                <Row Margin="Margin.Is3.FromTop">
+                    <Column>
+                        <Field>
+                            <Check @bind-Checked="_readerForm.IsEnabled" ElementId="reader-enabled-check">Enabled</Check>
+                            <FieldHelp>Enable communication with this reader</FieldHelp>
+                        </Field>
+                    </Column>
+                </Row>
             </Validations>
         </ModalBody>
         <ModalFooter>
@@ -133,6 +261,7 @@
     [Parameter] public EventCallback<string> OnShowMessage { get; set; }
     
     private List<ReaderConfiguration> _readers = new();
+    private List<string> _availablePorts = new();
     
     // Modal references
     private Modal? _readerModal;
@@ -172,6 +301,7 @@
     {
         _editingReader = null;
         _readerForm = new ReaderFormModel();
+        await RefreshSerialPorts();
         await _readerModal!.Show();
         
         // Clear previous validation state
@@ -185,6 +315,7 @@
     {
         _editingReader = reader;
         _readerForm = ReaderFormModel.FromReaderConfiguration(reader);
+        await RefreshSerialPorts();
         await _readerModal!.Show();
         
         // Clear previous validation state
@@ -294,6 +425,35 @@
         }
     }
 
+    private async Task RefreshSerialPorts()
+    {
+        try
+        {
+            // Get available serial ports
+            _availablePorts = System.IO.Ports.SerialPort.GetPortNames().ToList();
+            
+            // Add common Linux/Docker ports if running on non-Windows
+            if (!OperatingSystem.IsWindows())
+            {
+                var linuxPorts = new[] { "/dev/ttyUSB0", "/dev/ttyUSB1", "/dev/ttyS0", "/dev/ttyS1", "/dev/ttyAMA0" };
+                foreach (var port in linuxPorts)
+                {
+                    if (Directory.Exists(Path.GetDirectoryName(port)) && !_availablePorts.Contains(port))
+                    {
+                        _availablePorts.Add(port);
+                    }
+                }
+            }
+            
+            _availablePorts = _availablePorts.OrderBy(p => p).ToList();
+        }
+        catch (Exception ex)
+        {
+            await ShowSnackbar($"Error detecting serial ports: {ex.Message}", SnackbarColor.Warning);
+            _availablePorts = new List<string>();
+        }
+    }
+
     // Form model for reader data binding
     public class ReaderFormModel
     {
@@ -302,11 +462,32 @@
         [Display(Name = "Reader Name")]
         public string ReaderName { get; set; } = string.Empty;
 
+        [Display(Name = "OSDP Address")]
+        public byte Address { get; set; }
+
+        [Display(Name = "Serial Port")]
+        public string? SerialPort { get; set; }
+
+        [Display(Name = "Baud Rate")]
+        public int BaudRate { get; set; } = 9600;
+
+        [Display(Name = "Security Mode")]
+        public OsdpSecurityMode SecurityMode { get; set; } = OsdpSecurityMode.ClearText;
+
+
+        [Display(Name = "Enabled")]
+        public bool IsEnabled { get; set; } = true;
+
         public static ReaderFormModel FromReaderConfiguration(ReaderConfiguration reader)
         {
             return new ReaderFormModel
             {
-                ReaderName = reader.ReaderName
+                ReaderName = reader.ReaderName,
+                Address = reader.Address,
+                SerialPort = reader.SerialPort,
+                BaudRate = reader.BaudRate,
+                SecurityMode = reader.SecurityMode,
+                IsEnabled = reader.IsEnabled
             };
         }
 
@@ -315,7 +496,12 @@
             return new ReaderConfiguration
             {
                 ReaderId = Guid.Empty, // Will be set in SaveReader method
-                ReaderName = ReaderName
+                ReaderName = ReaderName,
+                Address = Address,
+                SerialPort = SerialPort,
+                BaudRate = BaudRate,
+                SecurityMode = SecurityMode,
+                IsEnabled = IsEnabled
             };
         }
     }

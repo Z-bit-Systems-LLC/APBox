@@ -6,6 +6,10 @@ CREATE TABLE reader_configurations (
     reader_id TEXT PRIMARY KEY,
     reader_name TEXT NOT NULL,
     address INTEGER NOT NULL DEFAULT 1,
+    serial_port TEXT,
+    baud_rate INTEGER DEFAULT 9600,
+    security_mode INTEGER DEFAULT 0, -- 0=ClearText, 1=Install, 2=Secure
+    secure_channel_key TEXT, -- Encrypted, system managed
     is_enabled INTEGER NOT NULL DEFAULT 1,
     created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
     updated_at DATETIME DEFAULT CURRENT_TIMESTAMP

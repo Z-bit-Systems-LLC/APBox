@@ -39,6 +39,10 @@ public static class ServiceCollectionExtensions
         services.AddScoped<IReaderConfigurationService, ReaderConfigurationService>();
         services.AddScoped<IFeedbackConfigurationService, FeedbackConfigurationService>();
         
+        // Register OSDP services
+        services.AddScoped<IOsdpSecurityService, OsdpSecurityService>();
+        services.AddScoped<IReaderService, ReaderService>();
+        
         return services;
     }
     

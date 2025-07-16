@@ -11,4 +11,10 @@ public class ReaderConfiguration
     public bool IsEnabled { get; set; } = true;
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
     public DateTime UpdatedAt { get; set; } = DateTime.UtcNow;
+    
+    // OSDP Communication Settings
+    public string? SerialPort { get; set; }
+    public int BaudRate { get; set; } = 9600;
+    public OsdpSecurityMode SecurityMode { get; set; } = OsdpSecurityMode.ClearText;
+    public byte[]? SecureChannelKey { get; set; }
 }
