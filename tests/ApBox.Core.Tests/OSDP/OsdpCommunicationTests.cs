@@ -1,6 +1,7 @@
 using ApBox.Core.Models;
 using ApBox.Core.OSDP;
 using ApBox.Core.Services;
+using ApBox.Core.Tests.Mocks;
 using ApBox.Plugins;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.DependencyInjection;
@@ -17,6 +18,7 @@ public class OsdpCommunicationTests
     private Mock<IServiceProvider> _mockServiceProvider;
     private Mock<IServiceScope> _mockServiceScope;
     private Mock<IServiceScopeFactory> _mockServiceScopeFactory;
+    private MockSerialPortService _mockSerialPortService;
     
     [SetUp]
     public void Setup()
@@ -40,7 +42,10 @@ public class OsdpCommunicationTests
                                      .ReturnsAsync(true);
         _mockServiceProvider.Setup(p => p.GetService(typeof(ISecurityModeUpdateService))).Returns(mockSecurityModeUpdateService.Object);
         
-        _communicationManager = new OsdpCommunicationManager(_logger, _mockServiceProvider.Object);
+        // Create mock serial port service
+        _mockSerialPortService = new MockSerialPortService();
+        
+        _communicationManager = new OsdpCommunicationManager(_logger, _mockServiceProvider.Object, _mockSerialPortService);
     }
     
     [TearDown]

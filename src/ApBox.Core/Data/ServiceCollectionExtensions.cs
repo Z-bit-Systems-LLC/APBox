@@ -42,6 +42,7 @@ public static class ServiceCollectionExtensions
         // Register OSDP services
         services.AddScoped<IOsdpSecurityService, OsdpSecurityService>();
         services.AddScoped<ISecurityModeUpdateService, SecurityModeUpdateService>();
+        services.AddScoped<ISerialPortService, SerialPortService>();
         services.AddScoped<IReaderService, ReaderService>();
         
         return services;

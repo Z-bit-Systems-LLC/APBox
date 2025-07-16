@@ -23,7 +23,8 @@ public static class ServiceCollectionExtensions
         services.AddSingleton<IOsdpCommunicationManager>(provider =>
         {
             var logger = provider.GetRequiredService<ILogger<OsdpCommunicationManager>>();
-            return new OsdpCommunicationManager(logger, provider);
+            var serialPortService = provider.GetRequiredService<ISerialPortService>();
+            return new OsdpCommunicationManager(logger, provider, serialPortService);
         });
         services.AddHostedService<OsdpStartupService>();
         services.AddHostedService<OsdpStatusBridgeService>();

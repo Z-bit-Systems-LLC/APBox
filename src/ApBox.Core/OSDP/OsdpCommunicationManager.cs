@@ -1,4 +1,4 @@
-﻿using System.IO.Ports;
+using ApBox.Core.Services;
 using ApBox.Plugins;
 using OSDP.Net;
 using OSDP.Net.Connections;
@@ -11,14 +11,16 @@ public class OsdpCommunicationManager : IOsdpCommunicationManager
     private readonly Dictionary<string, Guid> _connectionMappings = new(); // Maps connection strings to connection IDs
     private readonly ILogger<OsdpCommunicationManager> _logger;
     private readonly IServiceProvider _serviceProvider;
+    private readonly ISerialPortService _serialPortService;
     private readonly CancellationTokenSource _cancellationTokenSource = new();
     private ControlPanel? _controlPanel;
     private bool _isRunning;
     
-    public OsdpCommunicationManager(ILogger<OsdpCommunicationManager> logger, IServiceProvider serviceProvider)
+    public OsdpCommunicationManager(ILogger<OsdpCommunicationManager> logger, IServiceProvider serviceProvider, ISerialPortService serialPortService)
     {
         _logger = logger;
         _serviceProvider = serviceProvider;
+        _serialPortService = serialPortService;
     }
     
     public event EventHandler<CardReadEvent>? CardRead;
@@ -60,7 +62,7 @@ public class OsdpCommunicationManager : IOsdpCommunicationManager
                 }
                 
                 // Check if serial port exists
-                if (!SerialPort.GetPortNames().Contains(config.ConnectionString))
+                if (!_serialPortService.PortExists(config.ConnectionString))
                 {
                     _logger.LogWarning("Serial port {SerialPort} not found for OSDP device {DeviceName}", 
                         config.ConnectionString, config.Name);
@@ -68,9 +70,8 @@ public class OsdpCommunicationManager : IOsdpCommunicationManager
                 }
                 
                 // Create new connection
-                connectionId = _controlPanel.StartConnection(new SerialPortOsdpConnection(
-                    config.ConnectionString, 
-                    config.BaudRate));
+                var connection = _serialPortService.CreateConnection(config.ConnectionString, config.BaudRate);
+                connectionId = _controlPanel.StartConnection(connection);
                     
                 _connectionMappings[config.ConnectionString] = connectionId;
                 
