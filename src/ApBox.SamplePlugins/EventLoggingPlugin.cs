@@ -23,6 +23,7 @@ public class EventLoggingPlugin : IApBoxPlugin
         _logger = logger;
     }
 
+    public Guid Id => new Guid("B2C3D4E5-6789-ABCD-EF01-123456789002");
     public string Name => "Event Logging Plugin";
     public string Version => "1.0.0";
     public string Description => "Logs card events to the standard .NET logging infrastructure with statistics tracking";

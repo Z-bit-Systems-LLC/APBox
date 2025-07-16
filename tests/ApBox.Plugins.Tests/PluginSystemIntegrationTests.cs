@@ -92,6 +92,7 @@ public class PluginSystemIntegrationTests
     
     private class TestPlugin : IApBoxPlugin
     {
+        public Guid Id => new Guid("E5F6A7B8-9ABC-DEF0-1234-123456789999");
         public string Name => "Test Plugin";
         public string Version => "1.0.0";
         public string Description => "A test plugin for unit testing";

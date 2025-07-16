@@ -33,6 +33,7 @@ public class AuditLoggingPlugin : IApBoxPlugin
         Directory.CreateDirectory(_logDirectory);
     }
 
+    public Guid Id => new Guid("C3D4E5F6-789A-BCDE-F012-123456789003");
     public string Name => "Audit Logging Plugin";
     public string Version => "1.0.0";
     public string Description => "Records all card access attempts to audit log files for security and compliance";

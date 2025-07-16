@@ -178,6 +178,7 @@ public class ApBoxTestContext : Bunit.TestContext
     private static IEnumerable<IApBoxPlugin> GetDefaultPlugins()
     {
         var mockPlugin = new Mock<IApBoxPlugin>();
+        mockPlugin.Setup(x => x.Id).Returns(new Guid("F6A7B8C9-ABCD-EF01-2345-123456789999"));
         mockPlugin.Setup(x => x.Name).Returns("Test Plugin");
         mockPlugin.Setup(x => x.Version).Returns("1.0.0");
         mockPlugin.Setup(x => x.Description).Returns("Test plugin for unit tests");

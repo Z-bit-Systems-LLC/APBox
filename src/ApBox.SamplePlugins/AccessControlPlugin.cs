@@ -31,6 +31,7 @@ public class AccessControlPlugin : IApBoxPlugin
         _logger = logger;
     }
 
+    public Guid Id => new Guid("A1B2C3D4-5678-9ABC-DEF0-123456789001");
     public string Name => "Access Control Plugin";
     public string Version => "1.0.0";
     public string Description => "Provides basic access control functionality by maintaining a list of authorized card numbers";

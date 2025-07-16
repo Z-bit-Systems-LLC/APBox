@@ -59,6 +59,7 @@ public class TimeBasedAccessPlugin : IApBoxPlugin
         _logger = logger;
     }
 
+    public Guid Id => new Guid("D4E5F6A7-89AB-CDEF-0123-123456789004");
     public string Name => "Time-Based Access Plugin";
     public string Version => "1.0.0";
     public string Description => "Controls access based on time of day and day of week restrictions";

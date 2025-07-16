@@ -78,7 +78,7 @@ public class CardProcessingBridgeService : BackgroundService
             using var scope = _serviceProvider.CreateScope();
             var cardProcessingService = scope.ServiceProvider.GetRequiredService<IEnhancedCardProcessingService>();
             
-            await cardProcessingService.ProcessCardReadAsync(e);
+            await cardProcessingService.ProcessCardReadWithNotificationAsync(e);
             
             _logger.LogDebug("Card read processed successfully for card {CardNumber}", e.CardNumber);
         }

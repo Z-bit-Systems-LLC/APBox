@@ -33,7 +33,7 @@ public class CardProcessingService : ICardProcessingService
         try
         {
             var plugins = await _pluginLoader.LoadPluginsAsync();
-            var results = new List<bool>();
+            var results = new List<(string PluginName, bool Success)>();
             var processedByPlugins = new List<string>();
             
             foreach (var plugin in plugins)
@@ -41,21 +41,49 @@ public class CardProcessingService : ICardProcessingService
                 try
                 {
                     var result = await plugin.ProcessCardReadAsync(cardRead);
-                    results.Add(result);
+                    results.Add((plugin.Name, result));
                     processedByPlugins.Add(plugin.Name);
                     
-                    _logger.LogDebug("Plugin {PluginName} processed card with result: {Result}", 
-                        plugin.Name, result);
+                    if (result)
+                    {
+                        _logger.LogDebug("Plugin {PluginName} approved card {CardNumber}", 
+                            plugin.Name, cardRead.CardNumber);
+                    }
+                    else
+                    {
+                        _logger.LogWarning("Plugin {PluginName} denied card {CardNumber}", 
+                            plugin.Name, cardRead.CardNumber);
+                    }
                 }
                 catch (Exception ex)
                 {
-                    _logger.LogError(ex, "Error processing card read with plugin {PluginName}", plugin.Name);
-                    results.Add(false);
+                    _logger.LogError(ex, "Plugin {PluginName} failed with exception while processing card {CardNumber}", 
+                        plugin.Name, cardRead.CardNumber);
+                    results.Add((plugin.Name, false));
+                    processedByPlugins.Add(plugin.Name);
                 }
             }
             
             // All plugins must approve for success
-            var success = results.Count > 0 && results.All(r => r);
+            var success = results.Count > 0 && results.All(r => r.Success);
+            
+            // Log detailed results
+            if (!success && results.Any())
+            {
+                var failedPlugins = results.Where(r => !r.Success).Select(r => r.PluginName).ToList();
+                _logger.LogWarning("Card {CardNumber} processing failed. Failed plugins: {FailedPlugins}", 
+                    cardRead.CardNumber, string.Join(", ", failedPlugins));
+            }
+            else if (success)
+            {
+                _logger.LogInformation("Card {CardNumber} processing succeeded. All {PluginCount} plugins approved.", 
+                    cardRead.CardNumber, results.Count);
+            }
+            else
+            {
+                _logger.LogWarning("Card {CardNumber} processing failed. No plugins were loaded.", 
+                    cardRead.CardNumber);
+            }
             
             return new CardReadResult
             {
