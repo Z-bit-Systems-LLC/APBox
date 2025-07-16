@@ -55,38 +55,40 @@
                             </Row>
                         </CardHeader>
                         <CardBody>
-                            <div class="row">
-                                <div class="col-6">
-                                    <small class="text-muted">OSDP Address:</small><br>
-                                    <span>@reader.Address</span>
-                                </div>
-                                <div class="col-6">
-                                    <small class="text-muted">Status:</small><br>
-                                    @{
-                                        var (statusText, statusColor, statusIcon) = ReaderStatusHelper.GetReaderStatusDisplay(reader, _readerStatuses);
-                                    }
-                                    <Badge Color="@statusColor">
-                                        @if (statusIcon != null)
-                                        {
-                                            <Icon Name="@statusIcon" Margin="Margin.Is1.FromEnd" />
+                            <Row>
+                                <Column ColumnSize="ColumnSize.Is6">
+                                    <Text TextColor="TextColor.Muted" TextSize="TextSize.Small">OSDP Address:</Text>
+                                    <Paragraph Margin="Margin.Is0">@reader.Address</Paragraph>
+                                </Column>
+                                <Column ColumnSize="ColumnSize.Is6">
+                                    <Text TextColor="TextColor.Muted" TextSize="TextSize.Small">Status:</Text>
+                                    <Paragraph Margin="Margin.Is0">
+                                        @{
+                                            var (statusText, statusColor, statusIcon) = ReaderStatusHelper.GetReaderStatusDisplay(reader, _readerStatuses);
                                         }
-                                        @statusText
-                                    </Badge>
-                                </div>
-                            </div>
+                                        <Badge Color="@statusColor">
+                                            @if (statusIcon != null)
+                                            {
+                                                <Icon Name="@statusIcon" Margin="Margin.Is1.FromEnd" />
+                                            }
+                                            @statusText
+                                        </Badge>
+                                    </Paragraph>
+                                </Column>
+                            </Row>
                             
                             @if (!string.IsNullOrEmpty(reader.SerialPort))
                             {
-                                <div class="row mt-2">
-                                    <div class="col-6">
-                                        <small class="text-muted">Serial Port:</small><br>
-                                        <span>@reader.SerialPort</span>
-                                    </div>
-                                    <div class="col-6">
-                                        <small class="text-muted">Baud Rate:</small><br>
-                                        <span>@reader.BaudRate</span>
-                                    </div>
-                                </div>
+                                <Row Margin="Margin.Is2.FromTop">
+                                    <Column ColumnSize="ColumnSize.Is6">
+                                        <Text TextColor="TextColor.Muted" TextSize="TextSize.Small">Serial Port:</Text>
+                                        <Paragraph Margin="Margin.Is0">@reader.SerialPort</Paragraph>
+                                    </Column>
+                                    <Column ColumnSize="ColumnSize.Is6">
+                                        <Text TextColor="TextColor.Muted" TextSize="TextSize.Small">Baud Rate:</Text>
+                                        <Paragraph Margin="Margin.Is0">@reader.BaudRate</Paragraph>
+                                    </Column>
+                                </Row>
                             }
                         </CardBody>
                     </Card>
