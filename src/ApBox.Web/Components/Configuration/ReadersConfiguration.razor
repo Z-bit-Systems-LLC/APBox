@@ -567,10 +567,10 @@
         // Online - check security mode
         return reader.SecurityMode switch
         {
-            OsdpSecurityMode.ClearText => ("Online", Color.Warning, "IconName.LockOpen"),
-            OsdpSecurityMode.Install => ("Online", Color.Warning, "IconName.LockOpen"),
+            OsdpSecurityMode.ClearText => ("Online", Color.Warning, "IconName.Unlock"),
+            OsdpSecurityMode.Install => ("Online", Color.Warning, "IconName.Wrench"),
             OsdpSecurityMode.Secure => ("Online", Color.Success, "IconName.Lock"),
-            _ => ("Online", Color.Warning, "IconName.LockOpen")
+            _ => ("Online", Color.Warning, "IconName.Unlock")
         };
     }
 
