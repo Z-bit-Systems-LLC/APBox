@@ -53,9 +53,7 @@ public class OsdpDevice : IOsdpDevice, IDisposable
                 Name, Address);
             
             // Subscribe to events before adding device
-            // Note: Using basic event handlers due to OSDP.Net API uncertainty
-            // In a real implementation, we would use the correct event types
-            // _controlPanel.RawCardDataReplyReceived += OnCardRead;
+            _controlPanel.RawCardDataReplyReceived += OnCardRead;
             _controlPanel.ConnectionStatusChanged += OnConnectionStatusChanged;
             
             // Add device to the existing connection
@@ -89,6 +87,7 @@ public class OsdpDevice : IOsdpDevice, IDisposable
             
             // Unsubscribe from events after disconnecting
             // This ensures any final status change events are processed
+            _controlPanel.RawCardDataReplyReceived -= OnCardRead;
             _controlPanel.ConnectionStatusChanged -= OnConnectionStatusChanged;
         }
         catch (Exception ex)
@@ -438,6 +437,7 @@ public class OsdpDevice : IOsdpDevice, IDisposable
         // Unsubscribe from events
         try
         {
+            _controlPanel.RawCardDataReplyReceived -= OnCardRead;
             _controlPanel.ConnectionStatusChanged -= OnConnectionStatusChanged;
         }
         catch (Exception ex)

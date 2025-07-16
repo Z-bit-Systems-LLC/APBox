@@ -28,6 +28,7 @@ public static class ServiceCollectionExtensions
         });
         services.AddHostedService<OsdpStartupService>();
         services.AddHostedService<OsdpStatusBridgeService>();
+        services.AddHostedService<CardProcessingBridgeService>();
         
         // Register core application services
         services.AddScoped<ICardProcessingService, CardProcessingService>();
