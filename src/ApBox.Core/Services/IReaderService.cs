@@ -18,6 +18,10 @@ public interface IReaderService
     Task<bool> TestConnectionAsync(Guid readerId);
     Task<bool> InstallSecureKeyAsync(Guid readerId);
     Task RefreshAllReadersAsync();
+    
+    // Status Information
+    Task<bool> GetReaderOnlineStatusAsync(Guid readerId);
+    Task<Dictionary<Guid, bool>> GetAllReaderStatusesAsync();
 }
 
 public class ReaderService : IReaderService
@@ -268,6 +272,34 @@ public class ReaderService : IReaderService
         catch (Exception ex)
         {
             _logger.LogError(ex, "Failed to refresh readers");
+        }
+    }
+
+    public async Task<bool> GetReaderOnlineStatusAsync(Guid readerId)
+    {
+        try
+        {
+            var device = await _osdpManager.GetDeviceAsync(readerId);
+            return device?.IsOnline ?? false;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Failed to get online status for reader {ReaderId}", readerId);
+            return false;
+        }
+    }
+
+    public async Task<Dictionary<Guid, bool>> GetAllReaderStatusesAsync()
+    {
+        try
+        {
+            var devices = await _osdpManager.GetDevicesAsync();
+            return devices.ToDictionary(d => d.Id, d => d.IsOnline);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Failed to get all reader statuses");
+            return new Dictionary<Guid, bool>();
         }
     }
 }

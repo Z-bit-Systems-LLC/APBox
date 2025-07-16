@@ -22,6 +22,7 @@ public static class ServiceCollectionExtensions
         // Register OSDP services
         services.AddSingleton<IOsdpCommunicationManager, OsdpCommunicationManager>();
         services.AddHostedService<OsdpStartupService>();
+        services.AddHostedService<OsdpStatusBridgeService>();
         
         // Register core application services
         services.AddScoped<ICardProcessingService, CardProcessingService>();

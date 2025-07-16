@@ -93,6 +93,9 @@ public class ApBoxTestContext : Bunit.TestContext
         // Setup default behaviors for mocks
         MockReaderService.Setup(x => x.GetReadersAsync())
             .ReturnsAsync(GetDefaultReaderConfigurations());
+            
+        MockReaderService.Setup(x => x.GetAllReaderStatusesAsync())
+            .ReturnsAsync(GetDefaultReaderStatuses());
 
         MockPluginLoader.Setup(x => x.LoadPluginsAsync())
             .ReturnsAsync(GetDefaultPlugins());
@@ -143,20 +146,32 @@ public class ApBoxTestContext : Bunit.TestContext
             .Returns(false);
     }
 
+    private static readonly Guid Reader1Id = Guid.NewGuid();
+    private static readonly Guid Reader2Id = Guid.NewGuid();
+
     private static IEnumerable<ReaderConfiguration> GetDefaultReaderConfigurations()
     {
         return new List<ReaderConfiguration>
         {
             new ReaderConfiguration
             {
-                ReaderId = Guid.NewGuid(),
+                ReaderId = Reader1Id,
                 ReaderName = "Test Reader 1"
             },
             new ReaderConfiguration
             {
-                ReaderId = Guid.NewGuid(),
+                ReaderId = Reader2Id,
                 ReaderName = "Test Reader 2"
             }
+        };
+    }
+
+    private static Dictionary<Guid, bool> GetDefaultReaderStatuses()
+    {
+        return new Dictionary<Guid, bool>
+        {
+            { Reader1Id, true },  // First reader online
+            { Reader2Id, true }   // Second reader online
         };
     }
 

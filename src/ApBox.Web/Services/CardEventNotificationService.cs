@@ -19,7 +19,7 @@ public interface ICardEventNotificationService
     /// <summary>
     /// Broadcast reader status change to all connected clients
     /// </summary>
-    Task BroadcastReaderStatusAsync(Guid readerId, string readerName, bool isOnline, DateTime? lastActivity = null);
+    Task BroadcastReaderStatusAsync(Guid readerId, string readerName, bool isOnline, bool isEnabled, OsdpSecurityMode securityMode, DateTime? lastActivity = null);
 
     /// <summary>
     /// Broadcast system statistics update to all connected clients
@@ -67,7 +67,7 @@ public class CardEventNotificationService : ICardEventNotificationService
         }
     }
 
-    public async Task BroadcastReaderStatusAsync(Guid readerId, string readerName, bool isOnline, DateTime? lastActivity = null)
+    public async Task BroadcastReaderStatusAsync(Guid readerId, string readerName, bool isOnline, bool isEnabled, OsdpSecurityMode securityMode, DateTime? lastActivity = null)
     {
         try
         {
@@ -76,6 +76,8 @@ public class CardEventNotificationService : ICardEventNotificationService
                 ReaderId = readerId,
                 ReaderName = readerName,
                 IsOnline = isOnline,
+                IsEnabled = isEnabled,
+                SecurityMode = securityMode,
                 LastActivity = lastActivity,
                 Status = isOnline ? "Online" : "Offline"
             };

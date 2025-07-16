@@ -1,8 +1,6 @@
 using ApBox.Core.Data.Repositories;
 using ApBox.Core.Extensions;
 using ApBox.Core.OSDP;
-using Microsoft.Extensions.Hosting;
-using Microsoft.Extensions.DependencyInjection;
 
 namespace ApBox.Core.Services;
 
@@ -37,7 +35,7 @@ public class OsdpStartupService : IHostedService
             var securityService = scope.ServiceProvider.GetRequiredService<IOsdpSecurityService>();
             
             // Load all reader configurations from database
-            var readerConfigs = await readerConfigRepository.GetAllAsync();
+            var readerConfigs = (await readerConfigRepository.GetAllAsync()).ToList();
             
             _logger.LogInformation("Found {ReaderCount} reader configurations", readerConfigs.Count());
 

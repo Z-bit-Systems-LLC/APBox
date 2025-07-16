@@ -17,6 +17,7 @@ public class RealOsdpDevice : IOsdpDevice, IDisposable
     private ControlPanel? _controlPanel;
     private Guid _connectionId;
     private bool _disposed = false;
+    private Timer? _statusMonitoringTimer;
     
     public RealOsdpDevice(OsdpDeviceConfiguration config, ILogger logger)
     {
@@ -102,11 +103,19 @@ public class RealOsdpDevice : IOsdpDevice, IDisposable
                     Message = "Connected successfully"
                 });
                 
+                // Start periodic status monitoring
+                StartStatusMonitoring();
+                
                 return true;
             }
             else
             {
                 _logger.LogWarning("OSDP device {DeviceName} failed to come online", Name);
+                
+                // Start periodic status monitoring even if initial connection failed
+                // This will help detect when the device comes online later
+                StartStatusMonitoring();
+                
                 return false;
             }
         }
@@ -142,6 +151,48 @@ public class RealOsdpDevice : IOsdpDevice, IDisposable
             IsOnline = false,
             Message = "Disconnected"
         });
+        
+        // Stop status monitoring
+        _statusMonitoringTimer?.Dispose();
+        _statusMonitoringTimer = null;
+    }
+    
+    private void StartStatusMonitoring()
+    {
+        // Stop any existing timer
+        _statusMonitoringTimer?.Dispose();
+        
+        // Start a timer to periodically check device status
+        _statusMonitoringTimer = new Timer(CheckDeviceStatus, null, TimeSpan.FromSeconds(5), TimeSpan.FromSeconds(5));
+    }
+    
+    private void CheckDeviceStatus(object? state)
+    {
+        if (_disposed || _controlPanel == null) return;
+        
+        try
+        {
+            var currentStatus = _controlPanel.IsOnline(_connectionId, Address);
+            
+            if (currentStatus != IsOnline)
+            {
+                IsOnline = currentStatus;
+                LastActivity = DateTime.UtcNow;
+                
+                var message = currentStatus ? "Device came online" : "Device went offline";
+                _logger.LogInformation("OSDP device {DeviceName} status changed: {Status}", Name, message);
+                
+                StatusChanged?.Invoke(this, new OsdpStatusChangedEventArgs
+                {
+                    IsOnline = currentStatus,
+                    Message = message
+                });
+            }
+        }
+        catch (Exception ex)
+        {
+            _logger.LogWarning(ex, "Error checking status for OSDP device {DeviceName}", Name);
+        }
     }
     
     public async Task<bool> SendCommandAsync(OsdpCommand command)
@@ -338,6 +389,10 @@ public class RealOsdpDevice : IOsdpDevice, IDisposable
         {
             _logger.LogWarning(ex, "Error during OSDP device {DeviceName} disposal", Name);
         }
+        
+        // Stop status monitoring and dispose timer
+        _statusMonitoringTimer?.Dispose();
+        _statusMonitoringTimer = null;
         
         // ControlPanel doesn't implement IDisposable, so we'll just set it to null
         _controlPanel = null;

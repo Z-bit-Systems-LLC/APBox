@@ -141,9 +141,16 @@
                     {
                         @foreach (var reader in _readers)
                         {
+                            var (statusText, statusColor, statusIcon) = GetReaderStatusDisplay(reader);
                             <Div Flex="Flex.JustifyContent.Between.AlignItems.Center" Margin="Margin.Is2.FromBottom">
                                 <Span>@reader.ReaderName</Span>
-                                <Badge Color="Color.Success" ElementId="reader-status-badge">Online</Badge>
+                                <Badge Color="@statusColor" ElementId="reader-status-badge">
+                                    @if (!string.IsNullOrEmpty(statusIcon))
+                                    {
+                                        <Icon Name="@statusIcon" Margin="Margin.Is1.FromEnd" />
+                                    }
+                                    @statusText
+                                </Badge>
                             </Div>
                         }
                     }
@@ -170,6 +177,7 @@
     private string _systemStatus = "Online";
     private List<CardReadEvent> _recentEvents = [];
     private List<ReaderConfiguration> _readers = [];
+    private Dictionary<Guid, bool> _readerStatuses = new();
     private HubConnection? _hubConnection;
 
     protected override async Task OnInitializedAsync()
@@ -215,9 +223,13 @@
             });
 
             // Handle reader status notifications
-            _hubConnection.On<ReaderStatusNotification>("ReaderStatusChanged", async (_) =>
+            _hubConnection.On<ReaderStatusNotification>("ReaderStatusChanged", async (notification) =>
             {
-                await InvokeAsync(StateHasChanged);
+                await InvokeAsync(() =>
+                {
+                    _readerStatuses[notification.ReaderId] = notification.IsOnline;
+                    StateHasChanged();
+                });
             });
 
             // Handle statistics updates
@@ -248,7 +260,12 @@
             // Load readers
             var readerConfigs = await ReaderService.GetReadersAsync();
             _readers = readerConfigs.ToList();
-            _activeReaders = _readers.Count;
+            
+            // Load reader statuses
+            _readerStatuses = await ReaderService.GetAllReaderStatusesAsync() ?? new Dictionary<Guid, bool>();
+            
+            // Calculate active readers (online readers)
+            _activeReaders = _readerStatuses.Count(kvp => kvp.Value);
 
             // Load plugins
             var plugins = await PluginLoader.LoadPluginsAsync();
@@ -306,6 +323,30 @@
             "error" => Background.Danger,
             "offline" => Background.Secondary,
             _ => Background.Info
+        };
+    }
+
+    private (string statusText, Color statusColor, string statusIcon) GetReaderStatusDisplay(ReaderConfiguration reader)
+    {
+        if (!reader.IsEnabled)
+        {
+            return ("Disabled", Color.Secondary, "");
+        }
+
+        var isOnline = _readerStatuses?.TryGetValue(reader.ReaderId, out var status) == true && status;
+        
+        if (!isOnline)
+        {
+            return ("Offline", Color.Danger, "");
+        }
+
+        // Online - check security mode
+        return reader.SecurityMode switch
+        {
+            OsdpSecurityMode.ClearText => ("Online", Color.Warning, "IconName.LockOpen"),
+            OsdpSecurityMode.Install => ("Online", Color.Warning, "IconName.LockOpen"),
+            OsdpSecurityMode.Secure => ("Online", Color.Success, "IconName.Lock"),
+            _ => ("Online", Color.Warning, "IconName.LockOpen")
         };
     }
 

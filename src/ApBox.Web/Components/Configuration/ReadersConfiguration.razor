@@ -1,8 +1,13 @@
 @using ApBox.Core.Services
 @using ApBox.Core.Models
 @using System.ComponentModel.DataAnnotations
+@using ApBox.Web.Hubs
+@using Microsoft.AspNetCore.SignalR.Client
 
 @inject IReaderConfigurationService ReaderConfigurationService
+@inject IReaderService ReaderService
+@inject NavigationManager Navigation
+@implements IAsyncDisposable
 
 <Container Fluid>
     <Row Margin="Margin.Is3.FromBottom">
@@ -56,8 +61,15 @@
                                 </div>
                                 <div class="col-6">
                                     <small class="text-muted">Status:</small><br>
-                                    <Badge Color="@(reader.IsEnabled ? Color.Success : Color.Secondary)">
-                                        @(reader.IsEnabled ? "Enabled" : "Disabled")
+                                    @{
+                                        var (statusText, statusColor, statusIcon) = GetReaderStatusDisplay(reader);
+                                    }
+                                    <Badge Color="@statusColor">
+                                        @if (!string.IsNullOrEmpty(statusIcon))
+                                        {
+                                            <Icon Name="@statusIcon" Margin="Margin.Is1.FromEnd" />
+                                        }
+                                        @statusText
                                     </Badge>
                                 </div>
                             </div>
@@ -261,7 +273,9 @@
     [Parameter] public EventCallback<string> OnShowMessage { get; set; }
     
     private List<ReaderConfiguration> _readers = new();
+    private Dictionary<Guid, bool> _readerStatuses = new();
     private List<string> _availablePorts = new();
+    private HubConnection? _hubConnection;
     
     // Modal references
     private Modal? _readerModal;
@@ -283,6 +297,7 @@
     protected override async Task OnInitializedAsync()
     {
         await LoadData();
+        await InitializeSignalR();
     }
 
     private async Task LoadData()
@@ -290,10 +305,39 @@
         try
         {
             _readers = (await ReaderConfigurationService.GetAllReadersAsync()).ToList();
+            
+            // Load reader statuses using the IReaderService
+            _readerStatuses = await ReaderService.GetAllReaderStatusesAsync() ?? new Dictionary<Guid, bool>();
         }
         catch (Exception ex)
         {
             await ShowSnackbar($"Error loading readers: {ex.Message}", SnackbarColor.Danger);
+        }
+    }
+
+    private async Task InitializeSignalR()
+    {
+        try
+        {
+            _hubConnection = new HubConnectionBuilder()
+                .WithUrl(Navigation.ToAbsoluteUri("/cardevents"))
+                .Build();
+
+            // Handle reader status notifications
+            _hubConnection.On<ReaderStatusNotification>("ReaderStatusChanged", async (notification) =>
+            {
+                await InvokeAsync(() =>
+                {
+                    _readerStatuses[notification.ReaderId] = notification.IsOnline;
+                    StateHasChanged();
+                });
+            });
+
+            await _hubConnection.StartAsync();
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error initializing SignalR: {ex.Message}");
         }
     }
 
@@ -503,6 +547,38 @@
                 SecurityMode = SecurityMode,
                 IsEnabled = IsEnabled
             };
+        }
+    }
+
+    private (string statusText, Color statusColor, string statusIcon) GetReaderStatusDisplay(ReaderConfiguration reader)
+    {
+        if (!reader.IsEnabled)
+        {
+            return ("Disabled", Color.Secondary, "");
+        }
+
+        var isOnline = _readerStatuses?.TryGetValue(reader.ReaderId, out var status) == true && status;
+        
+        if (!isOnline)
+        {
+            return ("Offline", Color.Danger, "");
+        }
+
+        // Online - check security mode
+        return reader.SecurityMode switch
+        {
+            OsdpSecurityMode.ClearText => ("Online", Color.Warning, "IconName.LockOpen"),
+            OsdpSecurityMode.Install => ("Online", Color.Warning, "IconName.LockOpen"),
+            OsdpSecurityMode.Secure => ("Online", Color.Success, "IconName.Lock"),
+            _ => ("Online", Color.Warning, "IconName.LockOpen")
+        };
+    }
+
+    public async ValueTask DisposeAsync()
+    {
+        if (_hubConnection is not null)
+        {
+            await _hubConnection.DisposeAsync();
         }
     }
 }

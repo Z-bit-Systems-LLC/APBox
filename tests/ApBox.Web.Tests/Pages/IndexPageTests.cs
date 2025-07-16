@@ -130,6 +130,8 @@ public class IndexPageTests : ApBoxTestContext
         // Arrange
         MockReaderService.Setup(x => x.GetReadersAsync())
             .ReturnsAsync(new List<ReaderConfiguration>());
+        MockReaderService.Setup(x => x.GetAllReaderStatusesAsync())
+            .ReturnsAsync(new Dictionary<Guid, bool>());
 
         // Act
         var component = RenderComponent<ApBox.Web.Pages.Index>();

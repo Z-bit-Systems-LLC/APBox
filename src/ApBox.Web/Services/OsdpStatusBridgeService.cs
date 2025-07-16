@@ -1,0 +1,95 @@
+using ApBox.Core.OSDP;
+using ApBox.Core.Models;
+using ApBox.Core.Services;
+using ApBox.Core.Data.Repositories;
+using ApBox.Plugins;
+using ApBox.Web.Hubs;
+using Microsoft.Extensions.Hosting;
+
+namespace ApBox.Web.Services;
+
+/// <summary>
+/// Service that bridges OSDP communication status events to the notification system
+/// </summary>
+public class OsdpStatusBridgeService : IHostedService
+{
+    private readonly IOsdpCommunicationManager _osdpManager;
+    private readonly IServiceProvider _serviceProvider;
+    private readonly ILogger<OsdpStatusBridgeService> _logger;
+
+    public OsdpStatusBridgeService(
+        IOsdpCommunicationManager osdpManager,
+        IServiceProvider serviceProvider,
+        ILogger<OsdpStatusBridgeService> logger)
+    {
+        _osdpManager = osdpManager;
+        _serviceProvider = serviceProvider;
+        _logger = logger;
+    }
+
+    public Task StartAsync(CancellationToken cancellationToken)
+    {
+        _logger.LogInformation("Starting OSDP status bridge service");
+        
+        // Subscribe to OSDP device status changes
+        _osdpManager.DeviceStatusChanged += OnDeviceStatusChanged;
+        
+        return Task.CompletedTask;
+    }
+
+    public Task StopAsync(CancellationToken cancellationToken)
+    {
+        _logger.LogInformation("Stopping OSDP status bridge service");
+        
+        // Unsubscribe from events
+        _osdpManager.DeviceStatusChanged -= OnDeviceStatusChanged;
+        
+        return Task.CompletedTask;
+    }
+
+    private async void OnDeviceStatusChanged(object? sender, OsdpDeviceStatusEventArgs e)
+    {
+        try
+        {
+            _logger.LogDebug("Device status changed: {DeviceId} - {Status}", 
+                e.DeviceId, e.IsOnline ? "Online" : "Offline");
+
+            // Create a scope to access scoped services
+            using var scope = _serviceProvider.CreateScope();
+            var notificationService = scope.ServiceProvider.GetService<ICardEventNotificationService>();
+            
+            if (notificationService != null)
+            {
+                // Get reader configuration from repository
+                var readerRepo = scope.ServiceProvider.GetService<IReaderConfigurationRepository>();
+                var readerName = "Unknown Reader";
+                var isEnabled = false;
+                var securityMode = OsdpSecurityMode.ClearText;
+                
+                if (readerRepo != null)
+                {
+                    var readers = await readerRepo.GetAllAsync();
+                    var reader = readers.FirstOrDefault(r => r.ReaderId == e.DeviceId);
+                    if (reader != null)
+                    {
+                        readerName = reader.ReaderName;
+                        isEnabled = reader.IsEnabled;
+                        securityMode = reader.SecurityMode;
+                    }
+                }
+                
+                await notificationService.BroadcastReaderStatusAsync(
+                    e.DeviceId,
+                    readerName,
+                    e.IsOnline,
+                    isEnabled,
+                    securityMode,
+                    e.Timestamp);
+            }
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error broadcasting reader status change for device {DeviceId}", e.DeviceId);
+        }
+    }
+}

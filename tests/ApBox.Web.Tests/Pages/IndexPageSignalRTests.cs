@@ -36,6 +36,13 @@ public class IndexPageSignalRTests : ApBoxTestContext
         MockReaderService.Setup(x => x.GetReadersAsync())
             .ReturnsAsync(readers);
         
+        MockReaderService.Setup(x => x.GetAllReaderStatusesAsync())
+            .ReturnsAsync(new Dictionary<Guid, bool>
+            {
+                { Guid.Parse("12345678-1234-1234-1234-123456789abc"), true },
+                { Guid.Parse("87654321-4321-4321-4321-cba987654321"), true }
+            });
+        
         MockPluginLoader.Setup(x => x.LoadPluginsAsync())
             .ReturnsAsync(plugins);
 

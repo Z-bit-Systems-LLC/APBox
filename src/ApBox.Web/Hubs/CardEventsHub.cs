@@ -70,17 +70,6 @@ public class CardEventNotification
     public ReaderFeedback? Feedback { get; set; }
 }
 
-/// <summary>
-/// Notification sent when reader status changes
-/// </summary>
-public class ReaderStatusNotification
-{
-    public Guid ReaderId { get; set; }
-    public string ReaderName { get; set; } = string.Empty;
-    public bool IsOnline { get; set; }
-    public DateTime? LastActivity { get; set; }
-    public string Status { get; set; } = string.Empty;
-}
 
 /// <summary>
 /// Notification sent when system statistics are updated
