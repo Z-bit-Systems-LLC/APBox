@@ -13,18 +13,15 @@ public class OsdpStartupService : IHostedService
 {
     private readonly IOsdpCommunicationManager _osdpManager;
     private readonly IServiceProvider _serviceProvider;
-    private readonly IOsdpSecurityService _securityService;
     private readonly ILogger<OsdpStartupService> _logger;
 
     public OsdpStartupService(
         IOsdpCommunicationManager osdpManager,
         IServiceProvider serviceProvider,
-        IOsdpSecurityService securityService,
         ILogger<OsdpStartupService> logger)
     {
         _osdpManager = osdpManager;
         _serviceProvider = serviceProvider;
-        _securityService = securityService;
         _logger = logger;
     }
 
@@ -37,6 +34,7 @@ public class OsdpStartupService : IHostedService
             // Create a scope to access scoped services
             using var scope = _serviceProvider.CreateScope();
             var readerConfigRepository = scope.ServiceProvider.GetRequiredService<IReaderConfigurationRepository>();
+            var securityService = scope.ServiceProvider.GetRequiredService<IOsdpSecurityService>();
             
             // Load all reader configurations from database
             var readerConfigs = await readerConfigRepository.GetAllAsync();
@@ -49,7 +47,7 @@ public class OsdpStartupService : IHostedService
                 try
                 {
                     // Convert reader configuration to OSDP device configuration
-                    var osdpConfig = readerConfig.ToOsdpConfiguration(_securityService);
+                    var osdpConfig = readerConfig.ToOsdpConfiguration(securityService);
                     
                     // Add device to communication manager
                     var success = await _osdpManager.AddDeviceAsync(osdpConfig);
