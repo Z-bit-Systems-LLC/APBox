@@ -9,6 +9,7 @@ public interface IOsdpDevice
     byte Address { get; }
     string Name { get; }
     bool IsOnline { get; }
+    bool IsEnabled { get; }
     DateTime LastActivity { get; }
     
     Task<bool> ConnectAsync();

@@ -1,4 +1,6 @@
 using ApBox.Core.Models;
+using ApBox.Core.Extensions;
+using ApBox.Core.OSDP;
 using ApBox.Plugins;
 
 namespace ApBox.Core.Services;
@@ -22,15 +24,18 @@ public class ReaderService : IReaderService
 {
     private readonly IReaderConfigurationService _configurationService;
     private readonly IOsdpSecurityService _securityService;
+    private readonly IOsdpCommunicationManager _osdpManager;
     private readonly ILogger<ReaderService> _logger;
     
     public ReaderService(
         IReaderConfigurationService configurationService,
         IOsdpSecurityService securityService,
+        IOsdpCommunicationManager osdpManager,
         ILogger<ReaderService> logger)
     {
         _configurationService = configurationService;
         _securityService = securityService;
+        _osdpManager = osdpManager;
         _logger = logger;
     }
     
@@ -56,12 +61,28 @@ public class ReaderService : IReaderService
             _logger.LogInformation("Sending feedback to reader {ReaderId}: {FeedbackType}", 
                 readerId, feedback.Type);
             
-            // TODO: Implement actual OSDP communication
-            // For now, just log the feedback
-            _logger.LogDebug("Feedback details - Beeps: {BeepCount}, LED: {LedColor}, Duration: {Duration}ms", 
-                feedback.BeepCount, feedback.LedColor, feedback.LedDurationMs);
+            // Get the OSDP device for this reader
+            var osdpDevice = await _osdpManager.GetDeviceAsync(readerId);
+            if (osdpDevice == null)
+            {
+                _logger.LogWarning("OSDP device not found for reader {ReaderId}", readerId);
+                return false;
+            }
             
-            return true;
+            // Send feedback to the device
+            var result = await osdpDevice.SendFeedbackAsync(feedback);
+            
+            if (result)
+            {
+                _logger.LogDebug("Feedback sent successfully - Beeps: {BeepCount}, LED: {LedColor}, Duration: {Duration}ms", 
+                    feedback.BeepCount, feedback.LedColor, feedback.LedDurationMs);
+            }
+            else
+            {
+                _logger.LogWarning("Failed to send feedback to OSDP device {ReaderId}", readerId);
+            }
+            
+            return result;
         }
         catch (Exception ex)
         {
@@ -81,9 +102,22 @@ public class ReaderService : IReaderService
                 return false;
             }
 
-            // TODO: Add OSDP device to communication manager
-            _logger.LogInformation("Connected to reader {ReaderName} ({ReaderId})", reader.ReaderName, readerId);
-            return true;
+            // Convert reader configuration to OSDP device configuration
+            var osdpConfig = reader.ToOsdpConfiguration(_securityService);
+            
+            // Add device to communication manager
+            var result = await _osdpManager.AddDeviceAsync(osdpConfig);
+            
+            if (result)
+            {
+                _logger.LogInformation("Connected to reader {ReaderName} ({ReaderId})", reader.ReaderName, readerId);
+            }
+            else
+            {
+                _logger.LogWarning("Failed to connect to reader {ReaderName} ({ReaderId})", reader.ReaderName, readerId);
+            }
+            
+            return result;
         }
         catch (Exception ex)
         {
@@ -96,9 +130,19 @@ public class ReaderService : IReaderService
     {
         try
         {
-            // TODO: Remove OSDP device from communication manager
-            _logger.LogInformation("Disconnected from reader {ReaderId}", readerId);
-            return true;
+            // Remove OSDP device from communication manager
+            var result = await _osdpManager.RemoveDeviceAsync(readerId);
+            
+            if (result)
+            {
+                _logger.LogInformation("Disconnected from reader {ReaderId}", readerId);
+            }
+            else
+            {
+                _logger.LogWarning("Failed to disconnect from reader {ReaderId} (device not found)", readerId);
+            }
+            
+            return result;
         }
         catch (Exception ex)
         {
@@ -118,13 +162,30 @@ public class ReaderService : IReaderService
                 return false;
             }
 
-            // TODO: Test OSDP connection
             _logger.LogInformation("Testing connection to reader {ReaderName} on {SerialPort}", 
                 reader.ReaderName, reader.SerialPort);
             
-            // For now, simulate a successful connection test
-            await Task.Delay(1000); // Simulate connection time
-            return true;
+            // Get the OSDP device for this reader
+            var osdpDevice = await _osdpManager.GetDeviceAsync(readerId);
+            if (osdpDevice == null)
+            {
+                _logger.LogWarning("OSDP device not found for reader {ReaderId}", readerId);
+                return false;
+            }
+            
+            // Check if device is online
+            var isOnline = osdpDevice.IsOnline;
+            
+            if (isOnline)
+            {
+                _logger.LogInformation("Reader {ReaderName} is online", reader.ReaderName);
+            }
+            else
+            {
+                _logger.LogWarning("Reader {ReaderName} is offline", reader.ReaderName);
+            }
+            
+            return isOnline;
         }
         catch (Exception ex)
         {
@@ -179,12 +240,29 @@ public class ReaderService : IReaderService
         {
             var readers = await _configurationService.GetAllReadersAsync();
             
-            // TODO: Refresh all OSDP devices in communication manager
             _logger.LogInformation("Refreshing {ReaderCount} readers", readers.Count());
             
+            // Get current OSDP devices
+            var currentDevices = await _osdpManager.GetDevicesAsync();
+            var currentDeviceIds = currentDevices.Select(d => d.Id).ToHashSet();
+            
+            // Add new or changed readers
             foreach (var reader in readers.Where(r => r.IsEnabled))
             {
-                await ConnectReaderAsync(reader.ReaderId);
+                if (!currentDeviceIds.Contains(reader.ReaderId))
+                {
+                    await ConnectReaderAsync(reader.ReaderId);
+                }
+            }
+            
+            // Remove disabled readers
+            var enabledReaderIds = readers.Where(r => r.IsEnabled).Select(r => r.ReaderId).ToHashSet();
+            foreach (var device in currentDevices)
+            {
+                if (!enabledReaderIds.Contains(device.Id))
+                {
+                    await DisconnectReaderAsync(device.Id);
+                }
             }
         }
         catch (Exception ex)

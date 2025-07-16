@@ -1,5 +1,6 @@
 using ApBox.Core.Models;
 using ApBox.Core.Services;
+using ApBox.Core.OSDP;
 using Microsoft.Extensions.Logging;
 using Moq;
 using NUnit.Framework;
@@ -11,6 +12,7 @@ public class ReaderServiceTests
 {
     private Mock<IReaderConfigurationService> _mockConfigService = null!;
     private Mock<IOsdpSecurityService> _mockSecurityService = null!;
+    private Mock<IOsdpCommunicationManager> _mockOsdpManager = null!;
     private Mock<ILogger<ReaderService>> _mockLogger = null!;
     private ReaderService _service = null!;
 
@@ -19,11 +21,13 @@ public class ReaderServiceTests
     {
         _mockConfigService = new Mock<IReaderConfigurationService>();
         _mockSecurityService = new Mock<IOsdpSecurityService>();
+        _mockOsdpManager = new Mock<IOsdpCommunicationManager>();
         _mockLogger = new Mock<ILogger<ReaderService>>();
         
         _service = new ReaderService(
             _mockConfigService.Object,
             _mockSecurityService.Object,
+            _mockOsdpManager.Object,
             _mockLogger.Object);
     }
 
@@ -93,6 +97,8 @@ public class ReaderServiceTests
 
         _mockConfigService.Setup(s => s.GetReaderAsync(readerId))
             .ReturnsAsync(reader);
+        _mockOsdpManager.Setup(m => m.AddDeviceAsync(It.IsAny<OsdpDeviceConfiguration>()))
+            .ReturnsAsync(true);
 
         // Act
         var result = await _service.ConnectReaderAsync(readerId);
@@ -100,6 +106,7 @@ public class ReaderServiceTests
         // Assert
         Assert.That(result, Is.True);
         _mockConfigService.Verify(s => s.GetReaderAsync(readerId), Times.Once);
+        _mockOsdpManager.Verify(m => m.AddDeviceAsync(It.IsAny<OsdpDeviceConfiguration>()), Times.Once);
     }
 
     [Test]
@@ -124,12 +131,15 @@ public class ReaderServiceTests
     {
         // Arrange
         var readerId = Guid.NewGuid();
+        _mockOsdpManager.Setup(m => m.RemoveDeviceAsync(readerId))
+            .ReturnsAsync(true);
 
         // Act
         var result = await _service.DisconnectReaderAsync(readerId);
 
         // Assert
         Assert.That(result, Is.True);
+        _mockOsdpManager.Verify(m => m.RemoveDeviceAsync(readerId), Times.Once);
     }
 
     [Test]
@@ -146,6 +156,11 @@ public class ReaderServiceTests
 
         _mockConfigService.Setup(s => s.GetReaderAsync(readerId))
             .ReturnsAsync(reader);
+        
+        var mockDevice = new Mock<IOsdpDevice>();
+        mockDevice.Setup(d => d.IsOnline).Returns(true);
+        _mockOsdpManager.Setup(m => m.GetDeviceAsync(readerId))
+            .ReturnsAsync(mockDevice.Object);
 
         // Act
         var result = await _service.TestConnectionAsync(readerId);
@@ -153,6 +168,7 @@ public class ReaderServiceTests
         // Assert
         Assert.That(result, Is.True);
         _mockConfigService.Verify(s => s.GetReaderAsync(readerId), Times.Once);
+        _mockOsdpManager.Verify(m => m.GetDeviceAsync(readerId), Times.Once);
     }
 
     [Test]
@@ -292,10 +308,18 @@ public class ReaderServiceTests
             LedDurationMs = 1000
         };
 
+        var mockDevice = new Mock<IOsdpDevice>();
+        mockDevice.Setup(d => d.SendFeedbackAsync(feedback))
+            .ReturnsAsync(true);
+        _mockOsdpManager.Setup(m => m.GetDeviceAsync(readerId))
+            .ReturnsAsync(mockDevice.Object);
+
         // Act
         var result = await _service.SendFeedbackAsync(readerId, feedback);
 
         // Assert
         Assert.That(result, Is.True);
+        _mockOsdpManager.Verify(m => m.GetDeviceAsync(readerId), Times.Once);
+        mockDevice.Verify(d => d.SendFeedbackAsync(feedback), Times.Once);
     }
 }

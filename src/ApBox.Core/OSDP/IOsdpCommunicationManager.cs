@@ -66,7 +66,8 @@ public class OsdpCommunicationManager : IOsdpCommunicationManager
     {
         try
         {
-            var device = new MockOsdpDevice(config, _logger);
+            // Use real OSDP device instead of mock for actual hardware communication
+            var device = new RealOsdpDevice(config, _logger);
             device.CardRead += OnDeviceCardRead;
             device.StatusChanged += OnDeviceStatusChanged;
             
@@ -115,7 +116,7 @@ public class OsdpCommunicationManager : IOsdpCommunicationManager
         
         // Connect to all enabled devices
         var connectTasks = _devices.Values
-            .Where(d => d is MockOsdpDevice mockDevice && mockDevice.IsEnabled)
+            .Where(d => d.IsEnabled)
             .Select(d => d.ConnectAsync());
             
         await Task.WhenAll(connectTasks);
