@@ -4,6 +4,7 @@
 @using ApBox.Core.Models
 @using ApBox.Plugins
 @using ApBox.Web.Hubs
+@using ApBox.Web.Helpers
 @using Microsoft.AspNetCore.SignalR.Client
 @inject IReaderService ReaderService
 @inject IPluginLoader PluginLoader
@@ -141,11 +142,11 @@
                     {
                         @foreach (var reader in _readers)
                         {
-                            var (statusText, statusColor, statusIcon) = GetReaderStatusDisplay(reader);
+                            var (statusText, statusColor, statusIcon) = ReaderStatusHelper.GetReaderStatusDisplay(reader, _readerStatuses);
                             <Div Flex="Flex.JustifyContent.Between.AlignItems.Center" Margin="Margin.Is2.FromBottom">
                                 <Span>@reader.ReaderName</Span>
                                 <Badge Color="@statusColor" ElementId="reader-status-badge">
-                                    @if (!string.IsNullOrEmpty(statusIcon))
+                                    @if (statusIcon != null)
                                     {
                                         <Icon Name="@statusIcon" Margin="Margin.Is1.FromEnd" />
                                     }
@@ -326,29 +327,6 @@
         };
     }
 
-    private (string statusText, Color statusColor, string statusIcon) GetReaderStatusDisplay(ReaderConfiguration reader)
-    {
-        if (!reader.IsEnabled)
-        {
-            return ("Disabled", Color.Secondary, "");
-        }
-
-        var isOnline = _readerStatuses?.TryGetValue(reader.ReaderId, out var status) == true && status;
-        
-        if (!isOnline)
-        {
-            return ("Offline", Color.Danger, "");
-        }
-
-        // Online - check security mode
-        return reader.SecurityMode switch
-        {
-            OsdpSecurityMode.ClearText => ("Online", Color.Warning, "IconName.Unlock"),
-            OsdpSecurityMode.Install => ("Online", Color.Warning, "IconName.Wrench"),
-            OsdpSecurityMode.Secure => ("Online", Color.Success, "IconName.Lock"),
-            _ => ("Online", Color.Warning, "IconName.Unlock")
-        };
-    }
 
     public async ValueTask DisposeAsync()
     {
