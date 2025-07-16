@@ -34,7 +34,7 @@ public class CardProcessingService : ICardProcessingService
         {
             var plugins = await _pluginLoader.LoadPluginsAsync();
             var results = new List<(string PluginName, bool Success)>();
-            var processedByPlugins = new List<string>();
+            var pluginResults = new List<PluginResult>();
             
             foreach (var plugin in plugins)
             {
@@ -42,7 +42,14 @@ public class CardProcessingService : ICardProcessingService
                 {
                     var result = await plugin.ProcessCardReadAsync(cardRead);
                     results.Add((plugin.Name, result));
-                    processedByPlugins.Add(plugin.Name);
+                    
+                    pluginResults.Add(new PluginResult
+                    {
+                        PluginName = plugin.Name,
+                        PluginId = plugin.Id,
+                        Success = result,
+                        ErrorMessage = result ? null : "Plugin denied access"
+                    });
                     
                     if (result)
                     {
@@ -60,7 +67,14 @@ public class CardProcessingService : ICardProcessingService
                     _logger.LogError(ex, "Plugin {PluginName} failed with exception while processing card {CardNumber}", 
                         plugin.Name, cardRead.CardNumber);
                     results.Add((plugin.Name, false));
-                    processedByPlugins.Add(plugin.Name);
+                    
+                    pluginResults.Add(new PluginResult
+                    {
+                        PluginName = plugin.Name,
+                        PluginId = plugin.Id,
+                        Success = false,
+                        ErrorMessage = ex.Message
+                    });
                 }
             }
             
@@ -85,11 +99,21 @@ public class CardProcessingService : ICardProcessingService
                     cardRead.CardNumber);
             }
             
+            // Create plugin result collection and convert to storage format
+            var pluginResultCollection = new PluginResultCollection();
+            foreach (var pluginResult in pluginResults)
+            {
+                if (pluginResult.Success)
+                    pluginResultCollection.SuccessfulPlugins.Add(pluginResult);
+                else
+                    pluginResultCollection.FailedPlugins.Add(pluginResult);
+            }
+            
             return new CardReadResult
             {
                 Success = success,
                 Message = success ? "Card read processed successfully" : "Card read failed processing",
-                ProcessedByPlugin = processedByPlugins.Any() ? string.Join(", ", processedByPlugins) : null
+                ProcessedByPlugin = pluginResultCollection.HasAnyResults ? pluginResultCollection.ToStorageString() : null
             };
         }
         catch (Exception ex)

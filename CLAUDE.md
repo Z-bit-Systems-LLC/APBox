@@ -192,6 +192,11 @@ The detailed implementation plan is in `apbox_project_plan.md` (excluded from gi
 
 ## Development Memories
 
-- Use Blazorise components to render HTML pages
-- Use the SnackBar component to notifify user of operation status
+- **ALWAYS use Blazorise components** instead of raw HTML elements for consistent UI
+  - Use `<Div>`, `<Text>`, `<Badge>`, `<Button>`, etc. instead of `<div>`, `<span>`, `<p>`, etc.
+  - Use Blazorise styling properties like `TextColor="TextColor.Success"`, `Margin="Margin.Is2.FromBottom"`
+  - Avoid raw CSS classes like `class="text-success"` - use Blazorise equivalents
+- Use the SnackBar component to notify user of operation status
 - Use Validation component for forms
+- Plugin system stores detailed results with success/failure status per plugin
+- Card event UI shows plugins grouped by success/failure with color-coded badges

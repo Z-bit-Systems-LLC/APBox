@@ -72,7 +72,6 @@
                                     <TableHeaderCell>Card Number</TableHeaderCell>
                                     <TableHeaderCell>Bit Length</TableHeaderCell>
                                     <TableHeaderCell>Status</TableHeaderCell>
-                                    <TableHeaderCell>Actions</TableHeaderCell>
                                 </TableRow>
                             </TableHeader>
                             <TableBody>
@@ -88,12 +87,18 @@
                                         </TableRowCell>
                                         <TableRowCell>@cardEvent.BitLength bits</TableRowCell>
                                         <TableRowCell>
-                                            <Badge Color="Color.Success">Processed</Badge>
-                                        </TableRowCell>
-                                        <TableRowCell>
-                                            <Button Size="Size.Small" Color="Color.Primary" Outline Clicked="() => ViewEventDetails(cardEvent)">
-                                                <Icon Name="IconName.Eye" />
-                                            </Button>
+                                            @if (cardEvent.Success)
+                                            {
+                                                <span @onclick="() => ViewEventDetails(cardEvent)" style="cursor: pointer;" title="Click to view plugin details">
+                                                    <Badge Color="Color.Success">Success</Badge>
+                                                </span>
+                                            }
+                                            else
+                                            {
+                                                <span @onclick="() => ViewEventDetails(cardEvent)" style="cursor: pointer;" title="Click to view plugin details">
+                                                    <Badge Color="Color.Danger">Failed</Badge>
+                                                </span>
+                                            }
                                         </TableRowCell>
                                     </TableRow>
                                 }
@@ -124,14 +129,141 @@
     </Row>
 </Container>
 
+<!-- Plugin Details Modal -->
+<Modal @ref="pluginDetailsModal" ElementId="plugin-details-modal">
+    <ModalContent Centered Size="ModalSize.Default">
+        <ModalHeader>
+            <ModalTitle>Card Processing Details</ModalTitle>
+            <CloseButton />
+        </ModalHeader>
+        <ModalBody>
+            @if (_selectedEvent != null)
+            {
+                var pluginResults = _selectedEvent.GetPluginResults();
+                
+                <!-- Basic Information Section -->
+                <Div Margin="Margin.Is4.FromBottom">
+                    <Row Margin="Margin.Is3.FromBottom">
+                        <Column ColumnSize="ColumnSize.Is4">
+                            <Text TextWeight="TextWeight.Bold">Card Number</Text>
+                        </Column>
+                        <Column>
+                            <Text TextStyle="TextStyle.Monospace">@_selectedEvent.CardNumber</Text>
+                        </Column>
+                    </Row>
+                    
+                    <Row Margin="Margin.Is3.FromBottom">
+                        <Column ColumnSize="ColumnSize.Is4">
+                            <Text TextWeight="TextWeight.Bold">Reader</Text>
+                        </Column>
+                        <Column>
+                            <Text>@_selectedEvent.ReaderName</Text>
+                        </Column>
+                    </Row>
+                    
+                    <Row Margin="Margin.Is3.FromBottom">
+                        <Column ColumnSize="ColumnSize.Is4">
+                            <Text TextWeight="TextWeight.Bold">Timestamp</Text>
+                        </Column>
+                        <Column>
+                            <Text>@_selectedEvent.Timestamp.ToString("MM/dd/yyyy HH:mm:ss")</Text>
+                        </Column>
+                    </Row>
+                    
+                    <Row Margin="Margin.Is3.FromBottom">
+                        <Column ColumnSize="ColumnSize.Is4">
+                            <Text TextWeight="TextWeight.Bold">Status</Text>
+                        </Column>
+                        <Column>
+                            @if (_selectedEvent.Success)
+                            {
+                                <Badge Color="Color.Success">Success</Badge>
+                            }
+                            else
+                            {
+                                <Badge Color="Color.Danger">Failed</Badge>
+                            }
+                        </Column>
+                    </Row>
+                    
+                    @if (!string.IsNullOrWhiteSpace(_selectedEvent.Message))
+                    {
+                        <Row>
+                            <Column ColumnSize="ColumnSize.Is4">
+                                <Text TextWeight="TextWeight.Bold">Message</Text>
+                            </Column>
+                            <Column>
+                                <Text>@_selectedEvent.Message</Text>
+                            </Column>
+                        </Row>
+                    }
+                </Div>
+                
+                <!-- Plugin Results Section -->
+                @if (pluginResults.HasAnyResults)
+                {
+                    <Div Margin="Margin.Is5.FromTop">
+                        <Heading Size="HeadingSize.Is5" Margin="Margin.Is4.FromBottom">Plugin Processing Results</Heading>
+                        
+                        @if (pluginResults.SuccessfulPlugins.Any())
+                        {
+                            <Div Margin="Margin.Is4.FromBottom">
+                                <Text TextColor="TextColor.Success" TextWeight="TextWeight.Bold" TextSize="TextSize.Medium" Margin="Margin.Is3.FromBottom">
+                                    ✓ Successful Plugins
+                                </Text>
+                                <Div>
+                                    @foreach (var plugin in pluginResults.SuccessfulPlugins)
+                                    {
+                                        <Badge Color="Color.Success" Margin="Margin.Is1.FromEnd.Is2.FromBottom" Title="@($"Plugin approved access at {plugin.ProcessedAt:HH:mm:ss}")">
+                                            @plugin.PluginName
+                                        </Badge>
+                                    }
+                                </Div>
+                            </Div>
+                        }
+                        
+                        @if (pluginResults.FailedPlugins.Any())
+                        {
+                            <Div Margin="Margin.Is4.FromBottom">
+                                <Text TextColor="TextColor.Danger" TextWeight="TextWeight.Bold" TextSize="TextSize.Medium" Margin="Margin.Is3.FromBottom">
+                                    ✗ Failed Plugins
+                                </Text>
+                                <Div>
+                                    @foreach (var plugin in pluginResults.FailedPlugins)
+                                    {
+                                        <Badge Color="Color.Danger" Margin="Margin.Is1.FromEnd.Is2.FromBottom" Title="@($"Error: {plugin.ErrorMessage}")">
+                                            @plugin.PluginName
+                                        </Badge>
+                                    }
+                                </Div>
+                            </Div>
+                        }
+                        
+                        <Alert Color="Color.Info" Visible="true" Margin="Margin.Is4.FromTop">
+                            <Text TextSize="TextSize.Small">
+                                <strong>Summary:</strong> @pluginResults.SuccessfulPlugins.Count successful, @pluginResults.FailedPlugins.Count failed out of @pluginResults.TotalPlugins total plugins
+                            </Text>
+                        </Alert>
+                    </Div>
+                }
+            }
+        </ModalBody>
+        <ModalFooter>
+            <Button Color="Color.Secondary" Clicked="() => pluginDetailsModal.Hide()">Close</Button>
+        </ModalFooter>
+    </ModalContent>
+</Modal>
+
 @code {
-    private List<CardReadEvent> _allEvents = [];
+    private List<CardEventDisplay> _allEvents = [];
     private List<ReaderConfiguration> _readers = [];
     private string _searchTerm = "";
     private string _selectedReader = "";
     private int _pageSize = 20;
+    private Modal pluginDetailsModal = default!;
+    private CardEventDisplay? _selectedEvent;
 
-    private IEnumerable<CardReadEvent> FilteredEvents => FilterEvents();
+    private IEnumerable<CardEventDisplay> FilteredEvents => FilterEvents();
 
     protected override async Task OnInitializedAsync()
     {
@@ -160,7 +292,7 @@
         try
         {
             var eventEntities = await CardEventRepository.GetRecentAsync(500); // Load more for filtering
-            _allEvents = eventEntities.Select(e => e.ToCardReadEvent()).ToList();
+            _allEvents = eventEntities.Select(CardEventDisplay.FromEntity).ToList();
         }
         catch (Exception ex)
         {
@@ -168,7 +300,7 @@
         }
     }
 
-    private IEnumerable<CardReadEvent> FilterEvents()
+    private IEnumerable<CardEventDisplay> FilterEvents()
     {
         var filtered = _allEvents.AsEnumerable();
 
@@ -204,9 +336,9 @@
         _pageSize += 20;
     }
 
-    private void ViewEventDetails(CardReadEvent cardEvent)
+    private async Task ViewEventDetails(CardEventDisplay cardEvent)
     {
-        // TODO: Implement event details modal or navigation
-        Console.WriteLine($"Viewing details for event: {cardEvent.CardNumber} at {cardEvent.Timestamp}");
+        _selectedEvent = cardEvent;
+        await pluginDetailsModal.Show();
     }
 }
