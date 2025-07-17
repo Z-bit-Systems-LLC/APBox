@@ -1,13 +1,13 @@
 using ApBox.Core.Models;
 using ApBox.Core.OSDP;
 using ApBox.Core.Services;
-using ApBox.Core.Tests.Mocks;
 using ApBox.Plugins;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.DependencyInjection;
 using Moq;
 using System.Numerics;
 using System.Reflection;
+using OSDP.Net.Connections;
 
 namespace ApBox.Core.Tests.OSDP;
 
@@ -17,10 +17,7 @@ public class OsdpCommunicationTests
 {
     private OsdpCommunicationManager _communicationManager;
     private ILogger<OsdpCommunicationManager> _logger;
-    private Mock<IServiceProvider> _mockServiceProvider;
-    private Mock<IServiceScope> _mockServiceScope;
-    private Mock<IServiceScopeFactory> _mockServiceScopeFactory;
-    private MockSerialPortService _mockSerialPortService;
+    private Mock<ISerialPortService> _mockSerialPortService;
     
     [SetUp]
     public void Setup()
@@ -28,21 +25,10 @@ public class OsdpCommunicationTests
         var loggerFactory = LoggerFactory.Create(builder => builder.AddConsole());
         _logger = loggerFactory.CreateLogger<OsdpCommunicationManager>();
         
-        // Create mocks for dependency injection
-        _mockServiceProvider = new Mock<IServiceProvider>();
-        _mockServiceScope = new Mock<IServiceScope>();
-        _mockServiceScopeFactory = new Mock<IServiceScopeFactory>();
-        
-        // Setup service provider to return mocked services
-        _mockServiceScope.Setup(s => s.ServiceProvider).Returns(_mockServiceProvider.Object);
-        _mockServiceScopeFactory.Setup(f => f.CreateScope()).Returns(_mockServiceScope.Object);
-        _mockServiceProvider.Setup(p => p.GetService(typeof(IServiceScopeFactory))).Returns(_mockServiceScopeFactory.Object);
-        
         // Mock the SecurityModeUpdateService
         var mockSecurityModeUpdateService = new Mock<ISecurityModeUpdateService>();
         mockSecurityModeUpdateService.Setup(s => s.UpdateSecurityModeAsync(It.IsAny<Guid>(), It.IsAny<OsdpSecurityMode>(), It.IsAny<byte[]>()))
                                      .ReturnsAsync(true);
-        _mockServiceProvider.Setup(p => p.GetService(typeof(ISecurityModeUpdateService))).Returns(mockSecurityModeUpdateService.Object);
         
         // Mock the FeedbackConfigurationService
         var mockFeedbackConfigurationService = new Mock<IFeedbackConfigurationService>();
@@ -50,9 +36,31 @@ public class OsdpCommunicationTests
                                         .ReturnsAsync(new IdleStateFeedback { PermanentLedColor = LedColor.Blue, HeartbeatFlashColor = LedColor.Green });
         
         // Create mock serial port service
-        _mockSerialPortService = new MockSerialPortService();
+        _mockSerialPortService = new Mock<ISerialPortService>();
         
-        _communicationManager = new OsdpCommunicationManager(_mockSerialPortService, mockSecurityModeUpdateService.Object, mockFeedbackConfigurationService.Object, _logger);
+        // Setup mock serial port service with default behavior
+        _mockSerialPortService.Setup(s => s.GetAvailablePortNames())
+                             .Returns(new[] { "COM1", "COM2", "COM3", "/dev/ttyUSB0", "/dev/ttyUSB1" });
+        
+        _mockSerialPortService.Setup(s => s.PortExists(It.IsAny<string>()))
+                             .Returns<string>(port => !string.IsNullOrEmpty(port) && 
+                                                     new[] { "COM1", "COM2", "COM3", "/dev/ttyUSB0", "/dev/ttyUSB1" }.Contains(port));
+        
+        _mockSerialPortService.Setup(s => s.CreateConnection(It.IsAny<string>(), It.IsAny<int>()))
+                             .Returns<string, int>((port, baud) => {
+                                 // Return a mock connection - in real tests this would be mocked further
+                                 try 
+                                 {
+                                     return new SerialPortOsdpConnection("COM1", 9600);
+                                 }
+                                 catch
+                                 {
+                                     // If we can't create a real connection, throw for proper test behavior
+                                     throw new InvalidOperationException($"Cannot create connection to {port}");
+                                 }
+                             });
+        
+        _communicationManager = new OsdpCommunicationManager(_mockSerialPortService.Object, mockSecurityModeUpdateService.Object, mockFeedbackConfigurationService.Object, _logger);
     }
     
     [TearDown]
