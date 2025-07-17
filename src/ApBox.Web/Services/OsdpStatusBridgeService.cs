@@ -14,16 +14,19 @@ namespace ApBox.Web.Services;
 public class OsdpStatusBridgeService : IHostedService
 {
     private readonly IOsdpCommunicationManager _osdpManager;
-    private readonly IServiceProvider _serviceProvider;
+    private readonly ICardEventNotificationService _notificationService;
+    private readonly IReaderConfigurationRepository _readerConfigRepository;
     private readonly ILogger<OsdpStatusBridgeService> _logger;
 
     public OsdpStatusBridgeService(
         IOsdpCommunicationManager osdpManager,
-        IServiceProvider serviceProvider,
+        ICardEventNotificationService notificationService,
+        IReaderConfigurationRepository readerConfigRepository,
         ILogger<OsdpStatusBridgeService> logger)
     {
         _osdpManager = osdpManager;
-        _serviceProvider = serviceProvider;
+        _notificationService = notificationService;
+        _readerConfigRepository = readerConfigRepository;
         _logger = logger;
     }
 
@@ -54,38 +57,27 @@ public class OsdpStatusBridgeService : IHostedService
             _logger.LogDebug("Device status changed: {DeviceId} - {Status}", 
                 e.DeviceId, e.IsOnline ? "Online" : "Offline");
 
-            // Create a scope to access scoped services
-            using var scope = _serviceProvider.CreateScope();
-            var notificationService = scope.ServiceProvider.GetService<ICardEventNotificationService>();
+            // Get reader configuration from repository
+            var readerName = "Unknown Reader";
+            var isEnabled = false;
+            var securityMode = OsdpSecurityMode.ClearText;
             
-            if (notificationService != null)
+            var readers = await _readerConfigRepository.GetAllAsync();
+            var reader = readers.FirstOrDefault(r => r.ReaderId == e.DeviceId);
+            if (reader != null)
             {
-                // Get reader configuration from repository
-                var readerRepo = scope.ServiceProvider.GetService<IReaderConfigurationRepository>();
-                var readerName = "Unknown Reader";
-                var isEnabled = false;
-                var securityMode = OsdpSecurityMode.ClearText;
-                
-                if (readerRepo != null)
-                {
-                    var readers = await readerRepo.GetAllAsync();
-                    var reader = readers.FirstOrDefault(r => r.ReaderId == e.DeviceId);
-                    if (reader != null)
-                    {
-                        readerName = reader.ReaderName;
-                        isEnabled = reader.IsEnabled;
-                        securityMode = reader.SecurityMode;
-                    }
-                }
-                
-                await notificationService.BroadcastReaderStatusAsync(
-                    e.DeviceId,
-                    readerName,
-                    e.IsOnline,
-                    isEnabled,
-                    securityMode,
-                    e.Timestamp);
+                readerName = reader.ReaderName;
+                isEnabled = reader.IsEnabled;
+                securityMode = reader.SecurityMode;
             }
+            
+            await _notificationService.BroadcastReaderStatusAsync(
+                e.DeviceId,
+                readerName,
+                e.IsOnline,
+                isEnabled,
+                securityMode,
+                e.Timestamp);
         }
         catch (Exception ex)
         {

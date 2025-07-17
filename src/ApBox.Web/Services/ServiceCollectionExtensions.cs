@@ -24,9 +24,9 @@ public static class ServiceCollectionExtensions
         services.AddHostedService<CardProcessingBridgeService>();
         
         // Register core application services
-        services.AddScoped<ICardProcessingService, CardProcessingService>();
-        services.AddScoped<IEnhancedCardProcessingService, EnhancedCardProcessingService>();
-        services.AddScoped<IReaderService, ReaderService>();
+        services.AddSingleton<ICardProcessingService, CardProcessingService>();
+        services.AddSingleton<IEnhancedCardProcessingService, EnhancedCardProcessingService>();
+        services.AddSingleton<IReaderService, ReaderService>();
         
         // Register SignalR notification service
         services.AddSingleton<ICardEventNotificationService, CardEventNotificationService>();
