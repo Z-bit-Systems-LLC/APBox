@@ -1,5 +1,7 @@
+using ApBox.Core.Models;
 using ApBox.Core.Services;
 using ApBox.Plugins;
+using Microsoft.Extensions.DependencyInjection;
 using OSDP.Net;
 using OSDP.Net.Connections;
 
@@ -10,17 +12,24 @@ public class OsdpCommunicationManager : IOsdpCommunicationManager
     private readonly Dictionary<Guid, IOsdpDevice> _devices = new();
     private readonly Dictionary<string, Guid> _connectionMappings = new(); // Maps connection strings to connection IDs
     private readonly ILogger<OsdpCommunicationManager> _logger;
-    private readonly IServiceProvider _serviceProvider;
     private readonly ISerialPortService _serialPortService;
+    private readonly ISecurityModeUpdateService _securityModeUpdateService;
+    private readonly IFeedbackConfigurationService _feedbackConfigurationService;
     private readonly CancellationTokenSource _cancellationTokenSource = new();
     private ControlPanel? _controlPanel;
     private bool _isRunning;
-    
-    public OsdpCommunicationManager(ILogger<OsdpCommunicationManager> logger, IServiceProvider serviceProvider, ISerialPortService serialPortService)
+
+
+    public OsdpCommunicationManager(
+        ISerialPortService serialPortService,
+        ISecurityModeUpdateService securityModeUpdateService,
+        IFeedbackConfigurationService feedbackConfigurationService,
+        ILogger<OsdpCommunicationManager> logger)
     {
         _logger = logger;
-        _serviceProvider = serviceProvider;
         _serialPortService = serialPortService;
+        _securityModeUpdateService = securityModeUpdateService;
+        _feedbackConfigurationService = feedbackConfigurationService;
     }
     
     public event EventHandler<CardReadEvent>? CardRead;
@@ -80,9 +89,10 @@ public class OsdpCommunicationManager : IOsdpCommunicationManager
             }
             
             // Create device with shared ControlPanel and connection
-            var device = new OsdpDevice(config, _logger, _serviceProvider, _controlPanel, connectionId);
+            var device = new OsdpDevice(config, _logger, _controlPanel, connectionId, _feedbackConfigurationService);
             device.CardRead += OnDeviceCardRead;
             device.StatusChanged += OnDeviceStatusChanged;
+            device.SecurityModeChanged += OnDeviceSecurityModeChanged;
             
             _devices[config.Id] = device;
             
@@ -192,6 +202,35 @@ public class OsdpCommunicationManager : IOsdpCommunicationManager
                 Message = e.Message,
                 Timestamp = e.Timestamp
             });
+        }
+    }
+    
+    private async void OnDeviceSecurityModeChanged(object? sender, SecurityModeChangedEventArgs e)
+    {
+        try
+        {
+            _logger.LogInformation("Handling security mode change for device {DeviceName} to {SecurityMode}", 
+                e.DeviceName, e.NewMode);
+            
+            var updateSuccess = await _securityModeUpdateService.UpdateSecurityModeAsync(
+                e.DeviceId, 
+                e.NewMode, 
+                e.SecureChannelKey);
+            
+            if (updateSuccess)
+            {
+                _logger.LogInformation("Successfully updated database with new security mode for device {DeviceName}", 
+                    e.DeviceName);
+            }
+            else
+            {
+                _logger.LogWarning("Failed to update database with new security mode for device {DeviceName}", 
+                    e.DeviceName);
+            }
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error handling security mode change for device {DeviceName}", e.DeviceName);
         }
     }
     

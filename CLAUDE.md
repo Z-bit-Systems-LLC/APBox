@@ -200,3 +200,18 @@ The detailed implementation plan is in `apbox_project_plan.md` (excluded from gi
 - Use Validation component for forms
 - Plugin system stores detailed results with success/failure status per plugin
 - Card event UI shows plugins grouped by success/failure with color-coded badges
+
+## Dependency Injection Best Practices
+
+- **NEVER pass IServiceProvider around** - This is the service locator anti-pattern
+- **Explicitly inject required dependencies** in constructors
+- **Use appropriate service lifetimes**:
+  - Singleton: For stateless services, configuration services, loggers
+  - Scoped: For services that depend on DbContext or request-specific state
+  - Transient: For lightweight services that should be created fresh each time
+- **Handle scoped dependencies in singletons carefully**:
+  - Use IServiceScopeFactory when a singleton needs to access scoped services
+  - Create scopes only when needed and dispose them properly
+  - Consider making services singleton if they don't need DbContext state
+- **Avoid tight coupling** - Services should only depend on what they actually need
+- **Use events and callbacks** instead of passing service providers for cross-cutting concerns

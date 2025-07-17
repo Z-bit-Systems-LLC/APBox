@@ -44,10 +44,15 @@ public class OsdpCommunicationTests
                                      .ReturnsAsync(true);
         _mockServiceProvider.Setup(p => p.GetService(typeof(ISecurityModeUpdateService))).Returns(mockSecurityModeUpdateService.Object);
         
+        // Mock the FeedbackConfigurationService
+        var mockFeedbackConfigurationService = new Mock<IFeedbackConfigurationService>();
+        mockFeedbackConfigurationService.Setup(s => s.GetIdleStateAsync())
+                                        .ReturnsAsync(new IdleStateFeedback { PermanentLedColor = LedColor.Blue, HeartbeatFlashColor = LedColor.Green });
+        
         // Create mock serial port service
         _mockSerialPortService = new MockSerialPortService();
         
-        _communicationManager = new OsdpCommunicationManager(_logger, _mockServiceProvider.Object, _mockSerialPortService);
+        _communicationManager = new OsdpCommunicationManager(_mockSerialPortService, mockSecurityModeUpdateService.Object, mockFeedbackConfigurationService.Object, _logger);
     }
     
     [TearDown]

@@ -2,6 +2,7 @@ using System.Collections;
 using ApBox.Core.Models;
 using ApBox.Core.Services;
 using ApBox.Plugins;
+using Microsoft.Extensions.DependencyInjection;
 using OSDP.Net;
 using OSDP.Net.Model.CommandData;
 using System.Security.Cryptography;
@@ -15,12 +16,13 @@ namespace ApBox.Core.OSDP;
 public class OsdpDevice(
     OsdpDeviceConfiguration config,
     ILogger logger,
-    IServiceProvider serviceProvider,
     ControlPanel controlPanel,
-    Guid connectionId)
+    Guid connectionId,
+    IFeedbackConfigurationService feedbackConfigurationService)
     : IOsdpDevice, IDisposable
 {
     private bool _disposed;
+    private Timer? _idleTimer;
 
     public Guid Id { get; } = config.Id;
     public byte Address { get; } = config.Address;
@@ -31,6 +33,7 @@ public class OsdpDevice(
 
     public event EventHandler<CardReadEvent>? CardRead;
     public event EventHandler<OsdpStatusChangedEventArgs>? StatusChanged;
+    public event EventHandler<SecurityModeChangedEventArgs>? SecurityModeChanged;
     
     public Task<bool> ConnectAsync()
     {
@@ -70,6 +73,8 @@ public class OsdpDevice(
         
         try
         {
+            StopIdleTimer();
+                
             // Remove device from the shared connection
             controlPanel.RemoveDevice(connectionId, Address);
             await Task.Delay(500); // Give it time to shutdown gracefully
@@ -180,23 +185,15 @@ public class OsdpDevice(
             logger.LogInformation("Security mode changed to {SecurityMode} for device {DeviceName}", 
                 newMode, Name);
             
-            // Update the database configuration using the SecurityModeUpdateService
-            using var scope = serviceProvider.CreateScope();
-            var securityModeUpdateService = scope.ServiceProvider.GetRequiredService<ISecurityModeUpdateService>();
-            
-            var updateSuccess = await securityModeUpdateService.UpdateSecurityModeAsync(
-                Id, 
-                newMode, 
-                config.SecureChannelKey);
-            
-            if (updateSuccess)
+            // Fire security mode changed event for external services to handle database updates
+            SecurityModeChanged?.Invoke(this, new SecurityModeChangedEventArgs
             {
-                logger.LogInformation("Database updated with new security mode for device {DeviceName}", Name);
-            }
-            else
-            {
-                logger.LogWarning("Failed to update database with new security mode for device {DeviceName}", Name);
-            }
+                DeviceId = Id,
+                NewMode = newMode,
+                SecureChannelKey = config.SecureChannelKey,
+                DeviceName = Name,
+                Timestamp = DateTime.UtcNow
+            });
             
             // Fire a status change event to update the UI
             StatusChanged?.Invoke(this, new OsdpStatusChangedEventArgs
@@ -221,6 +218,12 @@ public class OsdpDevice(
             LastActivity = DateTime.UtcNow;
             var success = true;
             
+            // Pause idle timer during feedback for the LED duration
+            if (feedback.LedColor.HasValue && feedback.LedDuration > 0)
+            {
+                PauseIdleTimerForFeedback(feedback.LedDuration);
+            }
+            
             // Send LED command if LED color is specified
             if (feedback.LedColor.HasValue)
             {
@@ -236,7 +239,7 @@ public class OsdpDevice(
                     temporaryOnColor: osdpLedColor,
                     temporaryOffColor: OsdpLedColor.Black,
                     temporaryTimer: (ushort)(feedback.LedDuration * 10), // Convert seconds to 100ms units
-                    permanentMode: PermanentReaderControlCode.SetPermanentState,
+                    permanentMode: PermanentReaderControlCode.Nop,
                     permanentOnTime: 1,
                     permanentOffTime: 1,
                     permanentOnColor: OsdpLedColor.Black,
@@ -355,10 +358,16 @@ public class OsdpDevice(
                 {
                     _ = Task.Run(async () => await AttemptSecureChannelInstallation());
                 }
+                
+                // Start idle timer for heartbeat flashing
+                StartIdleTimer();
             }
             else
             {
                 logger.LogInformation("OSDP device {DeviceName} went offline", Name);
+                
+                // Stop idle timer when device goes offline
+                StopIdleTimer();
                 
                 StatusChanged?.Invoke(this, new OsdpStatusChangedEventArgs
                 {
@@ -386,6 +395,139 @@ public class OsdpDevice(
         };
     }
     
+    private void StartIdleTimer()
+    {
+        try
+        {
+            // Stop existing timer if running
+            _idleTimer?.Dispose();
+            
+            // Start timer immediately and then every 5 seconds for heartbeat flash
+            _idleTimer = new Timer(OnIdleHeartbeat, null, TimeSpan.Zero, TimeSpan.FromSeconds(5));
+            
+            logger.LogDebug("Started idle heartbeat timer for device {DeviceName}", Name);
+        }
+        catch (Exception ex)
+        {
+            logger.LogError(ex, "Failed to start idle timer for device {DeviceName}", Name);
+        }
+    }
+    
+    private void StopIdleTimer()
+    {
+        try
+        {
+            _idleTimer?.Dispose();
+            _idleTimer = null;
+            
+            logger.LogDebug("Stopped idle heartbeat timer for device {DeviceName}", Name);
+        }
+        catch (Exception ex)
+        {
+            logger.LogError(ex, "Error stopping idle timer for device {DeviceName}", Name);
+        }
+    }
+    
+    private async void OnIdleHeartbeat(object? state)
+    {
+        if (!IsOnline || _disposed) return;
+        
+        try
+        {
+            await SetIdleLedStateAsync();
+        }
+        catch (Exception ex)
+        {
+            logger.LogError(ex, "Error in idle heartbeat for device {DeviceName}", Name);
+        }
+    }
+    
+    private async Task SetIdleLedStateAsync()
+    {
+        try
+        {
+            // Get idle state configuration from database with defaults as fallback
+            var permanentColor = OsdpLedColor.Black;
+            var heartbeatColor = OsdpLedColor.Black;
+            
+            try
+            {
+                var idleState = await feedbackConfigurationService.GetIdleStateAsync();
+                
+                if (idleState.PermanentLedColor.HasValue)
+                {
+                    permanentColor = ConvertLedColor(idleState.PermanentLedColor.Value);
+                }
+                
+                if (idleState.HeartbeatFlashColor.HasValue)
+                {
+                    heartbeatColor = ConvertLedColor(idleState.HeartbeatFlashColor.Value);
+                }
+            }
+            catch (Exception ex)
+            {
+                logger.LogWarning(ex, "Failed to get idle state configuration from database for device {DeviceName}, using defaults", Name);
+            }
+            
+            // Create LED control for heartbeat flash
+            var readerLedControl = new ReaderLedControl(
+                readerNumber: 0,
+                ledNumber: 0,
+                temporaryMode: TemporaryReaderControlCode.SetTemporaryAndStartTimer,
+                temporaryOnTime: 2, // 500ms flash (5 * 100ms units)
+                temporaryOffTime: 2, // 500ms off (5 * 100ms units)
+                temporaryOnColor: heartbeatColor,
+                temporaryOffColor: permanentColor,
+                temporaryTimer: 4, // Flash for 1 second (10 * 100ms units)
+                permanentMode: PermanentReaderControlCode.SetPermanentState,
+                permanentOnTime: 1,
+                permanentOffTime: 1,
+                permanentOnColor: permanentColor,
+                permanentOffColor: permanentColor // Return to permanent color
+            );
+            
+            var readerLedControls = new ReaderLedControls([readerLedControl]);
+            var result = await controlPanel.ReaderLedControl(connectionId, Address, readerLedControls);
+            
+            if (result)
+            {
+                logger.LogDebug("Idle heartbeat flash sent to device {DeviceName}: Green on Blue", Name);
+            }
+            else
+            {
+                logger.LogWarning("Failed to send idle heartbeat flash to device {DeviceName}", Name);
+            }
+        }
+        catch (Exception ex)
+        {
+            logger.LogError(ex, "Error setting idle LED state for device {DeviceName}", Name);
+        }
+    }
+    
+    private void PauseIdleTimerForFeedback(int feedbackDurationSeconds)
+    {
+        try
+        {
+            // Stop the idle timer during feedback
+            StopIdleTimer();
+            
+            // Schedule restart after feedback duration
+            _ = Task.Delay(TimeSpan.FromSeconds(feedbackDurationSeconds)).ContinueWith(_ => 
+            {
+                if (IsOnline && !_disposed)
+                {
+                    StartIdleTimer();
+                }
+            });
+            
+            logger.LogDebug("Paused idle timer for {Duration}s during feedback on device {DeviceName}", 
+                feedbackDurationSeconds, Name);
+        }
+        catch (Exception ex)
+        {
+            logger.LogError(ex, "Error pausing idle timer for device {DeviceName}", Name);
+        }
+    }
     
     /// <summary>
     /// Converts a BitArray to a binary string representation (as per Aporta WiegandCredentialHandler)
@@ -467,6 +609,17 @@ public class OsdpDevice(
         catch (Exception ex)
         {
             logger.LogWarning(ex, "Error unsubscribing from events during disposal for device {DeviceName}", Name);
+        }
+        
+        // Dispose idle timer
+        try
+        {
+            _idleTimer?.Dispose();
+            _idleTimer = null;
+        }
+        catch (Exception ex)
+        {
+            logger.LogWarning(ex, "Error disposing idle timer during disposal for device {DeviceName}", Name);
         }
         
         // ControlPanel is shared, so we don't dispose it here

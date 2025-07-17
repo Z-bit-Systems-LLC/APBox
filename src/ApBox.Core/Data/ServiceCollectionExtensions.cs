@@ -30,20 +30,20 @@ public static class ServiceCollectionExtensions
         });
         
         // Register repositories
-        services.AddScoped<IReaderConfigurationRepository, ReaderConfigurationRepository>();
-        services.AddScoped<ICardEventRepository, CardEventRepository>();
-        services.AddScoped<IPluginConfigurationRepository, PluginConfigurationRepository>();
-        services.AddScoped<IFeedbackConfigurationRepository, FeedbackConfigurationRepository>();
+        services.AddSingleton<IReaderConfigurationRepository, ReaderConfigurationRepository>();
+        services.AddSingleton<ICardEventRepository, CardEventRepository>();
+        services.AddSingleton<IPluginConfigurationRepository, PluginConfigurationRepository>();
+        services.AddSingleton<IFeedbackConfigurationRepository, FeedbackConfigurationRepository>();
         
         // Register database-backed services
-        services.AddScoped<IReaderConfigurationService, ReaderConfigurationService>();
-        services.AddScoped<IFeedbackConfigurationService, FeedbackConfigurationService>();
+        services.AddSingleton<IReaderConfigurationService, ReaderConfigurationService>();
+        services.AddSingleton<IFeedbackConfigurationService, FeedbackConfigurationService>();
         
         // Register OSDP services
-        services.AddScoped<IOsdpSecurityService, OsdpSecurityService>();
-        services.AddScoped<ISecurityModeUpdateService, SecurityModeUpdateService>();
+        services.AddSingleton<IOsdpSecurityService, OsdpSecurityService>();
+        services.AddSingleton<ISecurityModeUpdateService, SecurityModeUpdateService>();
         services.AddSingleton<ISerialPortService, SerialPortService>();
-        services.AddScoped<IReaderService, ReaderService>();
+        services.AddSingleton<IReaderService, ReaderService>();
         
         return services;
     }

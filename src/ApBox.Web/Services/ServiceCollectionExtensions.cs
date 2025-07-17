@@ -2,7 +2,6 @@ using ApBox.Plugins;
 using ApBox.Core.OSDP;
 using ApBox.Core.Services;
 using ApBox.Core.Data;
-using Microsoft.Extensions.Logging;
 
 namespace ApBox.Web.Services;
 
@@ -18,14 +17,8 @@ public static class ServiceCollectionExtensions
             return new PluginLoader(pluginDirectory, logger);
         });
         
-        
         // Register OSDP services
-        services.AddSingleton<IOsdpCommunicationManager>(provider =>
-        {
-            var logger = provider.GetRequiredService<ILogger<OsdpCommunicationManager>>();
-            var serialPortService = provider.GetRequiredService<ISerialPortService>();
-            return new OsdpCommunicationManager(logger, provider, serialPortService);
-        });
+        services.AddSingleton<IOsdpCommunicationManager, OsdpCommunicationManager>();
         services.AddHostedService<OsdpStartupService>();
         services.AddHostedService<OsdpStatusBridgeService>();
         services.AddHostedService<CardProcessingBridgeService>();

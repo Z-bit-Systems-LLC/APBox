@@ -90,14 +90,14 @@ public class FeedbackConfigurationRepositoryTests
         Assert.That(result.SuccessFeedback, Is.Not.Null, "SuccessFeedback should not be null");
         Assert.That(result.SuccessFeedback.Type, Is.EqualTo(ReaderFeedbackType.Success));
         Assert.That(result.SuccessFeedback.LedColor, Is.EqualTo(LedColor.Green));
-        Assert.That(result.SuccessFeedback.LedDuration, Is.EqualTo(1000)); // 1 second * 1000
+        Assert.That(result.SuccessFeedback.LedDuration, Is.EqualTo(1)); // 1 second * 1000
         Assert.That(result.SuccessFeedback.BeepCount, Is.EqualTo(1));
         Assert.That(result.SuccessFeedback.DisplayMessage, Is.EqualTo("ACCESS GRANTED"));
         
         // Check failure feedback (from migration seed data)
         Assert.That(result.FailureFeedback.Type, Is.EqualTo(ReaderFeedbackType.Failure));
         Assert.That(result.FailureFeedback.LedColor, Is.EqualTo(LedColor.Red));
-        Assert.That(result.FailureFeedback.LedDuration, Is.EqualTo(2000)); // 2 seconds * 1000
+        Assert.That(result.FailureFeedback.LedDuration, Is.EqualTo(2)); // 2 seconds * 1000
         Assert.That(result.FailureFeedback.BeepCount, Is.EqualTo(3));
         Assert.That(result.FailureFeedback.DisplayMessage, Is.EqualTo("ACCESS DENIED"));
         
