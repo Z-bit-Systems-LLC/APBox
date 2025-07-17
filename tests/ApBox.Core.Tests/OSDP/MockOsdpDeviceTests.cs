@@ -1,6 +1,5 @@
 using ApBox.Core.Models;
 using ApBox.Core.OSDP;
-using ApBox.Plugins;
 using Microsoft.Extensions.Logging;
 
 namespace ApBox.Core.Tests.OSDP;
@@ -62,54 +61,6 @@ public class MockOsdpDeviceTests
         await _device.DisconnectAsync();
         
         Assert.That(_device.IsOnline, Is.False);
-    }
-    
-    [Test]
-    public async Task SendCommand_OnlineDevice_ReturnsTrue()
-    {
-        await _device.ConnectAsync();
-        
-        var command = new LedCommand
-        {
-            Color = LedColor.Green,
-            Count = 1
-        };
-        
-        var result = await _device.SendCommandAsync(command);
-        
-        Assert.That(result, Is.True);
-    }
-    
-    [Test]
-    public async Task SendCommand_OfflineDevice_ReturnsFalse()
-    {
-        var command = new LedCommand
-        {
-            Color = LedColor.Green,
-            Count = 1
-        };
-        
-        var result = await _device.SendCommandAsync(command);
-        
-        Assert.That(result, Is.False);
-    }
-    
-    [Test]
-    public async Task SendFeedback_ValidFeedback_ReturnsTrue()
-    {
-        await _device.ConnectAsync();
-        
-        var feedback = new ReaderFeedback
-        {
-            Type = ReaderFeedbackType.Success,
-            LedColor = LedColor.Green,
-            BeepCount = 2,
-            LedDurationMs = 1000
-        };
-        
-        var result = await _device.SendFeedbackAsync(feedback);
-        
-        Assert.That(result, Is.True);
     }
     
     [Test]

@@ -31,7 +31,19 @@ public class MockOsdpDevice : IOsdpDevice
     public bool IsOnline { get; private set; }
     public DateTime LastActivity { get; private set; } = DateTime.UtcNow;
     public bool IsEnabled { get; }
-    
+
+    public Task<bool> SendFeedbackAsync(ReaderFeedback feedback)
+    {
+        if (!IsOnline) return Task.FromResult(false);
+        
+        LastActivity = DateTime.UtcNow;
+        
+        // Log the feedback for testing purposes
+        Console.WriteLine($"Mock device {Name}: LED={feedback.LedColor}, Duration={feedback.LedDuration}s, Beeps={feedback.BeepCount}");
+        
+        return Task.FromResult(true);
+    }
+
     public event EventHandler<CardReadEvent>? CardRead;
     public event EventHandler<OsdpStatusChangedEventArgs>? StatusChanged;
     
@@ -78,57 +90,7 @@ public class MockOsdpDevice : IOsdpDevice
         return Task.CompletedTask;
     }
     
-    public Task<bool> SendCommandAsync(OsdpCommand command)
-    {
-        if (!IsOnline) return Task.FromResult(false);
-        
-        LastActivity = DateTime.UtcNow;
-        
-        _logger.LogDebug("Mock OSDP device {DeviceName} received command {CommandCode}", 
-            Name, command.CommandCode);
-        
-        // Simulate command processing
-        return Task.FromResult(true);
-    }
-    
-    public Task<bool> SendFeedbackAsync(ReaderFeedback feedback)
-    {
-        if (!IsOnline) return Task.FromResult(false);
-        
-        var commands = new List<OsdpCommand>();
-        
-        // Convert feedback to OSDP commands
-        if (feedback.LedColor.HasValue)
-        {
-            commands.Add(new LedCommand
-            {
-                Color = feedback.LedColor.Value,
-                Count = 1,
-                OnTime = (byte)(feedback.LedDurationMs ?? 1000 / 100),
-                OffTime = 0
-            });
-        }
-        
-        if (feedback.BeepCount.HasValue && feedback.BeepCount > 0)
-        {
-            commands.Add(new BuzzerCommand
-            {
-                Count = (byte)feedback.BeepCount.Value,
-                OnTime = 2,
-                OffTime = 2
-            });
-        }
-        
-        // Send all commands
-        foreach (var command in commands)
-        {
-            _logger.LogDebug("Mock OSDP device {DeviceName} executing feedback command {CommandType}", 
-                Name, command.GetType().Name);
-        }
-        
-        return Task.FromResult(true);
-    }
-    
+   
     private void SimulateCardRead(object? state)
     {
         if (!IsOnline || !IsEnabled) return;

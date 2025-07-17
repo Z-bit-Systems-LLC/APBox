@@ -33,7 +33,7 @@ public class FeedbackConfigurationEntity
                 _ => ReaderFeedbackType.None
             },
             LedColor = ParseLedColor(LedColor),
-            LedDurationMs = (LedDurationSeconds ?? 0) * 1000, // Convert seconds to milliseconds, default to 0 if null
+            LedDuration = LedDurationSeconds ?? 0, // Keep in seconds, default to 0 if null
             BeepCount = BeepCount ?? 0,
             DisplayMessage = DisplayMessage
         };
@@ -67,7 +67,7 @@ public class FeedbackConfigurationEntity
         {
             ConfigurationType = configurationType,
             LedColor = feedback.LedColor?.ToString(),
-            LedDurationSeconds = feedback.LedDurationMs / 1000, // Convert milliseconds to seconds
+            LedDurationSeconds = feedback.LedDuration, // Keep in seconds
             BeepCount = feedback.BeepCount,
             DisplayMessage = feedback.DisplayMessage,
             CreatedAt = DateTime.UtcNow,

@@ -1,6 +1,5 @@
 using ApBox.Core.Data.Repositories;
 using ApBox.Core.Models;
-using ApBox.Plugins;
 
 namespace ApBox.Core.Services;
 
@@ -164,7 +163,7 @@ public class FeedbackConfigurationService : IFeedbackConfigurationService
         {
             Type = ReaderFeedbackType.Success,
             LedColor = LedColor.Green,
-            LedDurationMs = 1000, // 1 second
+            LedDuration = 1, // 1 second
             BeepCount = 1,
             DisplayMessage = "ACCESS GRANTED"
         };
@@ -176,7 +175,7 @@ public class FeedbackConfigurationService : IFeedbackConfigurationService
         {
             Type = ReaderFeedbackType.Failure,
             LedColor = LedColor.Red,
-            LedDurationMs = 2000, // 2 seconds
+            LedDuration = 2, // 2 seconds
             BeepCount = 3,
             DisplayMessage = "ACCESS DENIED"
         };
@@ -206,10 +205,10 @@ public class FeedbackConfigurationService : IFeedbackConfigurationService
     {
         ArgumentNullException.ThrowIfNull(feedback);
 
-        if (feedback.LedDurationMs.HasValue && feedback.LedDurationMs.Value < 100)
-            throw new ArgumentException("LED duration must be at least 100ms");
+        if (feedback.LedDuration < 0)
+            throw new ArgumentException("LED duration cannot be negative");
 
-        if (feedback.BeepCount.HasValue && feedback.BeepCount.Value < 0)
+        if (feedback.BeepCount < 0)
             throw new ArgumentException("Beep count cannot be negative");
 
         if (!string.IsNullOrEmpty(feedback.DisplayMessage) && feedback.DisplayMessage.Length > 16)

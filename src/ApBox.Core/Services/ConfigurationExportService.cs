@@ -211,7 +211,7 @@ public class ConfigurationExportService(
         // Validate success feedback
         if (config.SuccessFeedback != null)
         {
-            if (config.SuccessFeedback.LedDurationMs <= 0)
+            if (config.SuccessFeedback.LedDuration <= 0)
             {
                 result.AddWarning("Success feedback LED duration should be positive");
             }
@@ -225,7 +225,7 @@ public class ConfigurationExportService(
         // Validate failure feedback
         if (config.FailureFeedback != null)
         {
-            if (config.FailureFeedback.LedDurationMs <= 0)
+            if (config.FailureFeedback.LedDuration <= 0)
             {
                 result.AddWarning("Failure feedback LED duration should be positive");
             }

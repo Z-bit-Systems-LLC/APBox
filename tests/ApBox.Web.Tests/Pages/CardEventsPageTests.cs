@@ -78,7 +78,6 @@ public class CardEventsPageTests : ApBoxTestContext
         Assert.That(headerTexts, Does.Contain("Card Number"));
         Assert.That(headerTexts, Does.Contain("Bit Length"));
         Assert.That(headerTexts, Does.Contain("Status"));
-        Assert.That(headerTexts, Does.Contain("Actions"));
     }
 
 

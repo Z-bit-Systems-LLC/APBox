@@ -84,8 +84,7 @@ public class OsdpDevice(
             logger.LogWarning(ex, "Error during OSDP device {DeviceName} shutdown", Name);
         }
     }
-    
-    
+
     private async Task AttemptSecureChannelInstallation()
     {
         if (!IsOnline)
@@ -212,69 +211,81 @@ public class OsdpDevice(
         }
     }
     
-    public async Task<bool> SendCommandAsync(OsdpCommand command)
+    
+    public async Task<bool> SendFeedbackAsync(ReaderFeedback feedback)
     {
         if (!IsOnline) return false;
         
         try
         {
             LastActivity = DateTime.UtcNow;
-            
-            logger.LogDebug("Sending OSDP command {CommandCode} to device {DeviceName}", 
-                command.CommandCode, Name);
-            
-            // Convert our command to OSDP.Net command and send it
-            var result = await SendOsdpNetCommand(command);
-            return result;
-        }
-        catch (Exception ex)
-        {
-            logger.LogError(ex, "Failed to send command to OSDP device {DeviceName}", Name);
-            return false;
-        }
-    }
-    
-    public Task<bool> SendFeedbackAsync(ReaderFeedback feedback)
-    {
-        if (!IsOnline) return Task.FromResult(false);
-        
-        try
-        {
             var success = true;
             
-            // Send LED command
+            // Send LED command if LED color is specified
             if (feedback.LedColor.HasValue)
             {
-                // For now, skip LED commands until we fix the constructor parameters
-                // TODO: Implement proper LED control once OSDP.Net API is clarified
-                logger.LogDebug("LED command requested for device {DeviceName}: {Color} for {Duration}ms (not implemented)", 
-                    Name, feedback.LedColor.Value, feedback.LedDurationMs ?? 1000);
+                var osdpLedColor = ConvertLedColor(feedback.LedColor.Value);
+                
+                // Create LED control using OSDP.Net directly
+                var readerLedControl = new ReaderLedControl(
+                    readerNumber: 0, // Default reader number for single-reader devices
+                    ledNumber: 0,    // First LED
+                    temporaryMode: TemporaryReaderControlCode.SetTemporaryAndStartTimer,
+                    temporaryOnTime: 5, // 500ms (5 * 100ms units)
+                    temporaryOffTime: 5, // 500ms (5 * 100ms units)
+                    temporaryOnColor: osdpLedColor,
+                    temporaryOffColor: OsdpLedColor.Black,
+                    temporaryTimer: (ushort)(feedback.LedDuration * 10), // Convert seconds to 100ms units
+                    permanentMode: PermanentReaderControlCode.SetPermanentState,
+                    permanentOnTime: 1,
+                    permanentOffTime: 1,
+                    permanentOnColor: OsdpLedColor.Black,
+                    permanentOffColor: OsdpLedColor.Black // Keep LED solid in idle state
+                );
+                
+                var readerLedControls = new ReaderLedControls([readerLedControl]);
+                var ledResult = await controlPanel.ReaderLedControl(connectionId, Address, readerLedControls);
+                success = success && ledResult;
+                
+                logger.LogDebug("LED feedback sent to device {DeviceName}: {Color} for {Duration}s - Result: {Result}", 
+                    Name, feedback.LedColor.Value, feedback.LedDuration, ledResult);
             }
             
-            // Send buzzer command
-            if (feedback.BeepCount.HasValue && feedback.BeepCount > 0)
+            // Send buzzer command if beep count is specified
+            if (feedback.BeepCount > 0)
             {
-                // For now, skip buzzer commands until we fix the constructor parameters
-                // TODO: Implement proper buzzer control once OSDP.Net API is clarified
-                logger.LogDebug("Buzzer command requested for device {DeviceName}: {BeepCount} beeps (not implemented)", 
-                    Name, feedback.BeepCount.Value);
+                // Create buzzer control using OSDP.Net directly
+                var readerBuzzerControl = new ReaderBuzzerControl(
+                    readerNumber: 0, // Default reader number for single-reader devices
+                    toneCode: ToneCode.Default,
+                    onTime: 2,  // 200ms beep
+                    offTime: 2, // 200ms pause
+                    count: (byte)feedback.BeepCount
+                );
+                
+                var buzzerResult = await controlPanel.ReaderBuzzerControl(connectionId, Address, readerBuzzerControl);
+                success = success && buzzerResult;
+                
+                logger.LogDebug("Buzzer feedback sent to device {DeviceName}: {BeepCount} beeps - Result: {Result}", 
+                    Name, feedback.BeepCount, buzzerResult);
             }
             
-            // Send text command if supported
+            // Send text command if supported (not yet implemented)
             if (!string.IsNullOrEmpty(feedback.DisplayMessage))
             {
-                // For now, skip text commands until we fix the constructor parameters
-                // TODO: Implement proper text output once OSDP.Net API is clarified
-                logger.LogDebug("Text command requested for device {DeviceName}: {Message} (not implemented)", 
+                // Text display commands are not yet implemented in OSDP.Net or our command structure
+                // This would require implementing TextOutputCommand and corresponding OSDP.Net API calls
+                logger.LogDebug("Text command requested for device {DeviceName}: {Message} (text display not yet implemented)", 
                     Name, feedback.DisplayMessage);
+                // Don't mark as failure since text is optional
             }
             
-            return Task.FromResult(success);
+            return success;
         }
         catch (Exception ex)
         {
             logger.LogError(ex, "Failed to send feedback to OSDP device {DeviceName}", Name);
-            return Task.FromResult(false);
+            return false;
         }
     }
     
@@ -375,27 +386,6 @@ public class OsdpDevice(
         };
     }
     
-    private async Task<bool> SendOsdpNetCommand(OsdpCommand command)
-    {
-        // Convert our generic command to OSDP.Net specific command and send it
-        switch (command)
-        {
-            case LedCommand ledCmd:
-                // For now, skip LED commands until we fix the constructor parameters
-                // TODO: Implement proper LED control once OSDP.Net API is clarified
-                logger.LogDebug("LED command requested for device {DeviceName} (not implemented)", Name);
-                return false;
-                
-            case BuzzerCommand buzzerCmd:
-                // For now, skip buzzer commands until we fix the constructor parameters
-                // TODO: Implement proper buzzer control once OSDP.Net API is clarified
-                logger.LogDebug("Buzzer command requested for device {DeviceName} (not implemented)", Name);
-                return false;
-                
-            default:
-                return false;
-        }
-    }
     
     /// <summary>
     /// Converts a BitArray to a binary string representation (as per Aporta WiegandCredentialHandler)

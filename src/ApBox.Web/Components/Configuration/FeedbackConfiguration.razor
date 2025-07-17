@@ -305,8 +305,8 @@
             _successForm = new FeedbackFormModel
             {
                 LedColor = configuration.SuccessFeedback.LedColor ?? LedColor.Green,
-                BeepCount = configuration.SuccessFeedback.BeepCount ?? 1,
-                LedDurationSeconds = (configuration.SuccessFeedback.LedDurationMs ?? 1000) / 1000,
+                BeepCount = configuration.SuccessFeedback.BeepCount,
+                LedDurationSeconds = configuration.SuccessFeedback.LedDuration ,
                 DisplayMessage = configuration.SuccessFeedback.DisplayMessage ?? "ACCESS GRANTED"
             };
 
@@ -314,8 +314,8 @@
             _failureForm = new FeedbackFormModel
             {
                 LedColor = configuration.FailureFeedback.LedColor ?? LedColor.Red,
-                BeepCount = configuration.FailureFeedback.BeepCount ?? 3,
-                LedDurationSeconds = (configuration.FailureFeedback.LedDurationMs ?? 2000) / 1000,
+                BeepCount = configuration.FailureFeedback.BeepCount,
+                LedDurationSeconds = configuration.FailureFeedback.LedDuration,
                 DisplayMessage = configuration.FailureFeedback.DisplayMessage ?? "ACCESS DENIED"
             };
 
@@ -457,7 +457,7 @@
                 {
                     Type = ReaderFeedbackType.Success,
                     LedColor = LedColor.Green,
-                    LedDurationMs = 1000,
+                    LedDuration = 1,
                     BeepCount = 1,
                     DisplayMessage = "ACCESS GRANTED"
                 },
@@ -465,7 +465,7 @@
                 {
                     Type = ReaderFeedbackType.Failure,
                     LedColor = LedColor.Red,
-                    LedDurationMs = 2000,
+                    LedDuration = 2,
                     BeepCount = 3,
                     DisplayMessage = "ACCESS DENIED"
                 },
@@ -539,7 +539,7 @@
                 Type = type,
                 LedColor = LedColor,
                 BeepCount = BeepCount,
-                LedDurationMs = LedDurationSeconds * 1000, // Convert seconds to milliseconds
+                LedDuration = LedDurationSeconds, // Keep in seconds
                 DisplayMessage = DisplayMessage
             };
         }

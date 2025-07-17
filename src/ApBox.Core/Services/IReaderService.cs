@@ -79,7 +79,7 @@ public class ReaderService : IReaderService
             if (result)
             {
                 _logger.LogDebug("Feedback sent successfully - Beeps: {BeepCount}, LED: {LedColor}, Duration: {Duration}ms", 
-                    feedback.BeepCount, feedback.LedColor, feedback.LedDurationMs);
+                    feedback.BeepCount, feedback.LedColor, feedback.LedDuration);
             }
             else
             {

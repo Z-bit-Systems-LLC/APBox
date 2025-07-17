@@ -305,7 +305,7 @@ public class ReaderServiceTests
             Type = ReaderFeedbackType.Success,
             LedColor = ApBox.Core.Models.LedColor.Green,
             BeepCount = 1,
-            LedDurationMs = 1000
+            LedDuration = 1000
         };
 
         var mockDevice = new Mock<IOsdpDevice>();

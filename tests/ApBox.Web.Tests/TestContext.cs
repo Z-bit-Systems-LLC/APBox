@@ -238,7 +238,7 @@ public class ApBoxTestContext : Bunit.TestContext
             {
                 Type = ReaderFeedbackType.Success,
                 LedColor = LedColor.Green,
-                LedDurationMs = 1000,
+                LedDuration = 1000,
                 BeepCount = 1,
                 DisplayMessage = "ACCESS GRANTED"
             },
@@ -246,7 +246,7 @@ public class ApBoxTestContext : Bunit.TestContext
             {
                 Type = ReaderFeedbackType.Failure,
                 LedColor = LedColor.Red,
-                LedDurationMs = 2000,
+                LedDuration = 2000,
                 BeepCount = 3,
                 DisplayMessage = "ACCESS DENIED"
             },

@@ -3,9 +3,9 @@ namespace ApBox.Core.Models;
 public class ReaderFeedback
 {
     public ReaderFeedbackType Type { get; set; }
-    public int? BeepCount { get; set; }
+    public int BeepCount { get; set; }
     public LedColor? LedColor { get; set; }
-    public int? LedDurationMs { get; set; }
+    public int LedDuration { get; set; }
     public string? DisplayMessage { get; set; }
 }
 

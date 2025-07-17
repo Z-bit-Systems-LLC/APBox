@@ -35,7 +35,7 @@ public class FeedbackConfigurationServiceTests
             {
                 Type = ReaderFeedbackType.Success,
                 LedColor = LedColor.Green,
-                LedDurationMs = 1000,
+                LedDuration = 1000,
                 BeepCount = 1,
                 DisplayMessage = "ACCESS GRANTED"
             },
@@ -43,7 +43,7 @@ public class FeedbackConfigurationServiceTests
             {
                 Type = ReaderFeedbackType.Failure,
                 LedColor = LedColor.Red,
-                LedDurationMs = 2000,
+                LedDuration = 2000,
                 BeepCount = 3,
                 DisplayMessage = "ACCESS DENIED"
             },
@@ -87,12 +87,12 @@ public class FeedbackConfigurationServiceTests
         
         // Verify defaults
         Assert.That(result.SuccessFeedback.LedColor, Is.EqualTo(LedColor.Green));
-        Assert.That(result.SuccessFeedback.LedDurationMs, Is.EqualTo(1000));
+        Assert.That(result.SuccessFeedback.LedDuration, Is.EqualTo(1));
         Assert.That(result.SuccessFeedback.BeepCount, Is.EqualTo(1));
         Assert.That(result.SuccessFeedback.DisplayMessage, Is.EqualTo("ACCESS GRANTED"));
         
         Assert.That(result.FailureFeedback.LedColor, Is.EqualTo(LedColor.Red));
-        Assert.That(result.FailureFeedback.LedDurationMs, Is.EqualTo(2000));
+        Assert.That(result.FailureFeedback.LedDuration, Is.EqualTo(2));
         Assert.That(result.FailureFeedback.BeepCount, Is.EqualTo(3));
         Assert.That(result.FailureFeedback.DisplayMessage, Is.EqualTo("ACCESS DENIED"));
         
@@ -138,7 +138,7 @@ public class FeedbackConfigurationServiceTests
             {
                 Type = ReaderFeedbackType.Success,
                 LedColor = LedColor.Green,
-                LedDurationMs = 1000,
+                LedDuration = 1000,
                 BeepCount = 1,
                 DisplayMessage = "OK"
             },
@@ -146,7 +146,7 @@ public class FeedbackConfigurationServiceTests
             {
                 Type = ReaderFeedbackType.Failure,
                 LedColor = LedColor.Red,
-                LedDurationMs = 2000,
+                LedDuration = 2000,
                 BeepCount = 3,
                 DisplayMessage = "FAIL"
             },
@@ -200,7 +200,7 @@ public class FeedbackConfigurationServiceTests
             SuccessFeedback = new ReaderFeedback
             {
                 Type = ReaderFeedbackType.Success,
-                LedDurationMs = 50 // Too short (minimum 100ms)
+                LedDuration = -1 
             },
             FailureFeedback = new ReaderFeedback { Type = ReaderFeedbackType.Failure },
             IdleState = new IdleStateFeedback()
@@ -263,7 +263,7 @@ public class FeedbackConfigurationServiceTests
         {
             Type = ReaderFeedbackType.Success,
             LedColor = LedColor.Green,
-            LedDurationMs = 1000,
+            LedDuration = 1000,
             BeepCount = 1,
             DisplayMessage = "SUCCESS"
         };
@@ -327,7 +327,7 @@ public class FeedbackConfigurationServiceTests
         {
             Type = ReaderFeedbackType.Failure,
             LedColor = LedColor.Red,
-            LedDurationMs = 2000,
+            LedDuration = 2000,
             BeepCount = 3,
             DisplayMessage = "FAILURE"
         };
@@ -385,7 +385,7 @@ public class FeedbackConfigurationServiceTests
         var feedback = new ReaderFeedback
         {
             LedColor = LedColor.Green,
-            LedDurationMs = 1000,
+            LedDuration = 1000,
             BeepCount = 1,
             DisplayMessage = "OK"
         };
@@ -412,7 +412,7 @@ public class FeedbackConfigurationServiceTests
         var feedback = new ReaderFeedback
         {
             LedColor = LedColor.Red,
-            LedDurationMs = 2000,
+            LedDuration = 2000,
             BeepCount = 3,
             DisplayMessage = "FAIL"
         };

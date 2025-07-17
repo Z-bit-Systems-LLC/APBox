@@ -90,14 +90,14 @@ public class FeedbackConfigurationRepositoryTests
         Assert.That(result.SuccessFeedback, Is.Not.Null, "SuccessFeedback should not be null");
         Assert.That(result.SuccessFeedback.Type, Is.EqualTo(ReaderFeedbackType.Success));
         Assert.That(result.SuccessFeedback.LedColor, Is.EqualTo(LedColor.Green));
-        Assert.That(result.SuccessFeedback.LedDurationMs, Is.EqualTo(1000)); // 1 second * 1000
+        Assert.That(result.SuccessFeedback.LedDuration, Is.EqualTo(1000)); // 1 second * 1000
         Assert.That(result.SuccessFeedback.BeepCount, Is.EqualTo(1));
         Assert.That(result.SuccessFeedback.DisplayMessage, Is.EqualTo("ACCESS GRANTED"));
         
         // Check failure feedback (from migration seed data)
         Assert.That(result.FailureFeedback.Type, Is.EqualTo(ReaderFeedbackType.Failure));
         Assert.That(result.FailureFeedback.LedColor, Is.EqualTo(LedColor.Red));
-        Assert.That(result.FailureFeedback.LedDurationMs, Is.EqualTo(2000)); // 2 seconds * 1000
+        Assert.That(result.FailureFeedback.LedDuration, Is.EqualTo(2000)); // 2 seconds * 1000
         Assert.That(result.FailureFeedback.BeepCount, Is.EqualTo(3));
         Assert.That(result.FailureFeedback.DisplayMessage, Is.EqualTo("ACCESS DENIED"));
         
@@ -120,7 +120,7 @@ public class FeedbackConfigurationRepositoryTests
             {
                 Type = ReaderFeedbackType.Success,
                 LedColor = LedColor.Amber,
-                LedDurationMs = 5000,
+                LedDuration = 5000,
                 BeepCount = 2,
                 DisplayMessage = "WELCOME"
             },
@@ -128,7 +128,7 @@ public class FeedbackConfigurationRepositoryTests
             {
                 Type = ReaderFeedbackType.Failure,
                 LedColor = LedColor.Blue,
-                LedDurationMs = 3000,
+                LedDuration = 3000,
                 BeepCount = 5,
                 DisplayMessage = "NO ACCESS"
             },
@@ -146,12 +146,12 @@ public class FeedbackConfigurationRepositoryTests
         var saved = await _repository.GetConfigurationAsync();
         
         Assert.That(saved.SuccessFeedback.LedColor, Is.EqualTo(LedColor.Amber));
-        Assert.That(saved.SuccessFeedback.LedDurationMs, Is.EqualTo(5000));
+        Assert.That(saved.SuccessFeedback.LedDuration, Is.EqualTo(5000));
         Assert.That(saved.SuccessFeedback.BeepCount, Is.EqualTo(2));
         Assert.That(saved.SuccessFeedback.DisplayMessage, Is.EqualTo("WELCOME"));
         
         Assert.That(saved.FailureFeedback.LedColor, Is.EqualTo(LedColor.Blue));
-        Assert.That(saved.FailureFeedback.LedDurationMs, Is.EqualTo(3000));
+        Assert.That(saved.FailureFeedback.LedDuration, Is.EqualTo(3000));
         Assert.That(saved.FailureFeedback.BeepCount, Is.EqualTo(5));
         Assert.That(saved.FailureFeedback.DisplayMessage, Is.EqualTo("NO ACCESS"));
         
@@ -169,7 +169,7 @@ public class FeedbackConfigurationRepositoryTests
             {
                 Type = ReaderFeedbackType.Success,
                 LedColor = LedColor.Green,
-                LedDurationMs = 1000,
+                LedDuration = 1000,
                 BeepCount = 1,
                 DisplayMessage = "OK"
             },
@@ -177,7 +177,7 @@ public class FeedbackConfigurationRepositoryTests
             {
                 Type = ReaderFeedbackType.Failure,
                 LedColor = LedColor.Red,
-                LedDurationMs = 2000,
+                LedDuration = 2000,
                 BeepCount = 3,
                 DisplayMessage = "FAIL"
             },
@@ -196,7 +196,7 @@ public class FeedbackConfigurationRepositoryTests
             {
                 Type = ReaderFeedbackType.Success,
                 LedColor = LedColor.Amber,
-                LedDurationMs = 2500,
+                LedDuration = 2500,
                 BeepCount = 4,
                 DisplayMessage = "UPDATED"
             },
@@ -204,7 +204,7 @@ public class FeedbackConfigurationRepositoryTests
             {
                 Type = ReaderFeedbackType.Failure,
                 LedColor = LedColor.Blue,
-                LedDurationMs = 1500,
+                LedDuration = 1500,
                 BeepCount = 2,
                 DisplayMessage = "CHANGED"
             },
@@ -295,7 +295,7 @@ public class FeedbackConfigurationRepositoryTests
         {
             Type = ReaderFeedbackType.Success,
             LedColor = LedColor.Amber,
-            LedDurationMs = 5000,
+            LedDuration = 5000,
             BeepCount = 2,
             DisplayMessage = "CUSTOM SUCCESS"
         };
@@ -307,7 +307,7 @@ public class FeedbackConfigurationRepositoryTests
         var saved = await _repository.GetFeedbackByTypeAsync(ReaderFeedbackType.Success);
         Assert.That(saved, Is.Not.Null);
         Assert.That(saved.LedColor, Is.EqualTo(LedColor.Amber));
-        Assert.That(saved.LedDurationMs, Is.EqualTo(5000));
+        Assert.That(saved.LedDuration, Is.EqualTo(5000));
         Assert.That(saved.BeepCount, Is.EqualTo(2));
         Assert.That(saved.DisplayMessage, Is.EqualTo("CUSTOM SUCCESS"));
     }
@@ -320,7 +320,7 @@ public class FeedbackConfigurationRepositoryTests
         {
             Type = ReaderFeedbackType.Failure,
             LedColor = LedColor.Blue,
-            LedDurationMs = 3000,
+            LedDuration = 3000,
             BeepCount = 4,
             DisplayMessage = "CUSTOM FAILURE"
         };
@@ -332,7 +332,7 @@ public class FeedbackConfigurationRepositoryTests
         var saved = await _repository.GetFeedbackByTypeAsync(ReaderFeedbackType.Failure);
         Assert.That(saved, Is.Not.Null);
         Assert.That(saved.LedColor, Is.EqualTo(LedColor.Blue));
-        Assert.That(saved.LedDurationMs, Is.EqualTo(3000));
+        Assert.That(saved.LedDuration, Is.EqualTo(3000));
         Assert.That(saved.BeepCount, Is.EqualTo(4));
         Assert.That(saved.DisplayMessage, Is.EqualTo("CUSTOM FAILURE"));
     }
