@@ -6,6 +6,8 @@ using ApBox.Plugins;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.DependencyInjection;
 using Moq;
+using System.Numerics;
+using System.Reflection;
 
 namespace ApBox.Core.Tests.OSDP;
 
@@ -148,4 +150,5 @@ public class OsdpCommunicationTests
         Assert.DoesNotThrowAsync(async () => await _communicationManager.StartAsync());
         Assert.DoesNotThrowAsync(async () => await _communicationManager.StopAsync());
     }
+    
 }
