@@ -50,7 +50,13 @@ public class OsdpStatusBridgeService : IHostedService
         return Task.CompletedTask;
     }
 
-    private async void OnDeviceStatusChanged(object? sender, OsdpDeviceStatusEventArgs e)
+    private void OnDeviceStatusChanged(object? sender, OsdpDeviceStatusEventArgs e)
+    {
+        // Fire and forget with proper error handling
+        _ = Task.Run(async () => await ProcessDeviceStatusChangedAsync(e));
+    }
+    
+    private async Task ProcessDeviceStatusChangedAsync(OsdpDeviceStatusEventArgs e)
     {
         try
         {

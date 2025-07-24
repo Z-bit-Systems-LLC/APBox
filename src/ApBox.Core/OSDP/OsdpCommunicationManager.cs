@@ -205,7 +205,13 @@ public class OsdpCommunicationManager : IOsdpCommunicationManager
         }
     }
     
-    private async void OnDeviceSecurityModeChanged(object? sender, SecurityModeChangedEventArgs e)
+    private void OnDeviceSecurityModeChanged(object? sender, SecurityModeChangedEventArgs e)
+    {
+        // Fire and forget with proper error handling
+        _ = Task.Run(async () => await ProcessSecurityModeChangedAsync(e));
+    }
+    
+    private async Task ProcessSecurityModeChangedAsync(SecurityModeChangedEventArgs e)
     {
         try
         {

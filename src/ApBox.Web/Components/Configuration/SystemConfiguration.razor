@@ -484,10 +484,10 @@
         await LoadRecentLogs();
         
         // Start uptime timer to update every 5 seconds
-        _uptimeTimer = new Timer(async void (_) => await InvokeAsync(StateHasChanged), null, TimeSpan.Zero, TimeSpan.FromSeconds(5));
+        _uptimeTimer = new Timer(_ => InvokeAsync(StateHasChanged), null, TimeSpan.Zero, TimeSpan.FromSeconds(5));
         
         // Start log refresh timer to update every 2 seconds
-        _logRefreshTimer = new Timer(async void (_) => await InvokeAsync(LoadRecentLogs), null, TimeSpan.Zero, TimeSpan.FromSeconds(2));
+        _logRefreshTimer = new Timer(_ => InvokeAsync(LoadRecentLogs), null, TimeSpan.Zero, TimeSpan.FromSeconds(2));
     }
 
     private async Task LoadSystemInfo()

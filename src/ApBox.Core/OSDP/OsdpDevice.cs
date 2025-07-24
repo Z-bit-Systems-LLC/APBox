@@ -428,18 +428,22 @@ public class OsdpDevice(
         }
     }
     
-    private async void OnIdleHeartbeat(object? state)
+    private void OnIdleHeartbeat(object? state)
     {
         if (!IsOnline || _disposed) return;
         
-        try
+        // Fire and forget with proper error handling
+        _ = Task.Run(async () =>
         {
-            await SetIdleLedStateAsync();
-        }
-        catch (Exception ex)
-        {
-            logger.LogError(ex, "Error in idle heartbeat for device {DeviceName}", Name);
-        }
+            try
+            {
+                await SetIdleLedStateAsync();
+            }
+            catch (Exception ex)
+            {
+                logger.LogError(ex, "Error in idle heartbeat for device {DeviceName}", Name);
+            }
+        });
     }
     
     private async Task SetIdleLedStateAsync()

@@ -54,7 +54,13 @@ public class CardProcessingBridgeService : BackgroundService
         }
     }
 
-    private async void OnCardRead(object? sender, CardReadEvent e)
+    private void OnCardRead(object? sender, CardReadEvent e)
+    {
+        // Fire and forget with proper error handling
+        _ = Task.Run(async () => await ProcessCardReadAsync(e));
+    }
+    
+    private async Task ProcessCardReadAsync(CardReadEvent e)
     {
         try
         {
