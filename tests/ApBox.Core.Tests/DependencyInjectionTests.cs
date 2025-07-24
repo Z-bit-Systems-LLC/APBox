@@ -59,7 +59,7 @@ public class DependencyInjectionTests
         
         // Assert
         Assert.That(pluginLoader, Is.Not.Null);
-        Assert.That(pluginLoader, Is.TypeOf<PluginLoader>());
+        Assert.That(pluginLoader, Is.TypeOf<CachedPluginLoader>());
     }
     
     [Test]

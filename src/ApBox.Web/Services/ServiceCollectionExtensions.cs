@@ -9,12 +9,15 @@ public static class ServiceCollectionExtensions
 {
     public static IServiceCollection AddApBoxServices(this IServiceCollection services, IConfiguration configuration)
     {
-        // Register plugin system services
+        // Register caching service
+        services.AddSingleton<ICacheService, MemoryCacheService>();
+        
+        // Register plugin system services with enhanced caching
         services.AddSingleton<IPluginLoader>(provider =>
         {
             var pluginDirectory = configuration.GetValue<string>("PluginSettings:Directory") ?? "plugins";
-            var logger = provider.GetService<ILogger<PluginLoader>>();
-            return new PluginLoader(pluginDirectory, logger);
+            var logger = provider.GetService<ILogger<CachedPluginLoader>>();
+            return new CachedPluginLoader(pluginDirectory, logger);
         });
         
         // Register OSDP services
