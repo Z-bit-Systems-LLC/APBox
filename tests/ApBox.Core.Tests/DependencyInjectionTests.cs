@@ -90,6 +90,19 @@ public class DependencyInjectionTests
     }
     
     [Test]
+    public void CardEventPersistenceService_CanBeResolved()
+    {
+        // Act
+        _services.AddApBoxServices(_configuration);
+        var serviceProvider = _services.BuildServiceProvider();
+        
+        // Assert
+        var persistenceService = serviceProvider.GetService<ICardEventPersistenceService>();
+        Assert.That(persistenceService, Is.Not.Null);
+        Assert.That(persistenceService, Is.TypeOf<CardEventPersistenceService>());
+    }
+    
+    [Test]
     public void ReaderConfigurationService_CanBeResolved()
     {
         // Act

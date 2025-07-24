@@ -6,6 +6,7 @@ using ApBox.Core.Data.Repositories;
 using ApBox.Core.Data.Models;
 using ApBox.Core.Models;
 using ApBox.Plugins;
+using ApBox.Web.Services;
 using Moq;
 using Blazorise;
 using Blazorise.Bootstrap5;
@@ -28,6 +29,8 @@ public class ApBoxTestContext : Bunit.TestContext
     public Mock<ILogService> MockLogService { get; private set; }
     public Mock<IConfigurationExportService> MockConfigurationExportService { get; private set; }
     public Mock<ISystemRestartService> MockSystemRestartService { get; private set; }
+    public Mock<ICardEventPersistenceService> MockCardEventPersistenceService { get; private set; }
+    public Mock<ICardProcessingOrchestrator> MockCardProcessingOrchestrator { get; private set; }
 
     public ApBoxTestContext()
     {
@@ -41,6 +44,8 @@ public class ApBoxTestContext : Bunit.TestContext
         MockLogService = new Mock<ILogService>();
         MockConfigurationExportService = new Mock<IConfigurationExportService>();
         MockSystemRestartService = new Mock<ISystemRestartService>();
+        MockCardEventPersistenceService = new Mock<ICardEventPersistenceService>();
+        MockCardProcessingOrchestrator = new Mock<ICardProcessingOrchestrator>();
 
         // Configure Blazorise for testing
         Services
@@ -62,6 +67,8 @@ public class ApBoxTestContext : Bunit.TestContext
         Services.AddSingleton(MockLogService.Object);
         Services.AddSingleton(MockConfigurationExportService.Object);
         Services.AddSingleton(MockSystemRestartService.Object);
+        Services.AddSingleton(MockCardEventPersistenceService.Object);
+        Services.AddSingleton(MockCardProcessingOrchestrator.Object);
 
         // Add other required services
         Services.AddLogging();

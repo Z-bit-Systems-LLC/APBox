@@ -1,6 +1,4 @@
 using ApBox.Core.Services;
-using ApBox.Core.Data.Repositories;
-using ApBox.Core.Data.Models;
 using ApBox.Core.Models;
 using ApBox.Plugins;
 
@@ -17,25 +15,22 @@ public interface IEnhancedCardProcessingService : ICardProcessingService
     Task<CardReadResult> ProcessCardReadWithNotificationAsync(CardReadEvent cardRead);
 }
 
+/// <summary>
+/// Simplified enhanced card processing service that delegates to the orchestrator
+/// </summary>
 public class EnhancedCardProcessingService : IEnhancedCardProcessingService
 {
     private readonly ICardProcessingService _coreProcessingService;
-    private readonly ICardEventNotificationService _notificationService;
-    private readonly IReaderService _readerService;
-    private readonly ICardEventRepository _cardEventRepository;
+    private readonly ICardProcessingOrchestrator _orchestrator;
     private readonly ILogger<EnhancedCardProcessingService> _logger;
 
     public EnhancedCardProcessingService(
         ICardProcessingService coreProcessingService,
-        ICardEventNotificationService notificationService,
-        IReaderService readerService,
-        ICardEventRepository cardEventRepository,
+        ICardProcessingOrchestrator orchestrator,
         ILogger<EnhancedCardProcessingService> logger)
     {
         _coreProcessingService = coreProcessingService;
-        _notificationService = notificationService;
-        _readerService = readerService;
-        _cardEventRepository = cardEventRepository;
+        _orchestrator = orchestrator;
         _logger = logger;
     }
 
@@ -68,71 +63,10 @@ public class EnhancedCardProcessingService : IEnhancedCardProcessingService
 
     public async Task<CardReadResult> ProcessCardReadWithNotificationAsync(CardReadEvent cardRead)
     {
-        try
-        {
-            _logger.LogInformation("Processing card read with notification for reader {ReaderId}, card {CardNumber}", 
-                cardRead.ReaderId, cardRead.CardNumber);
-
-            // Process the card read using the core service
-            var result = await _coreProcessingService.ProcessCardReadAsync(cardRead);
-
-            // Get feedback for the reader
-            var feedback = await _coreProcessingService.GetFeedbackAsync(cardRead.ReaderId, result);
-
-            // Save the event to the database
-            try
-            {
-                await _cardEventRepository.CreateAsync(cardRead, result);
-                _logger.LogDebug("Card event saved to database for reader {ReaderId}", cardRead.ReaderId);
-            }
-            catch (Exception dbEx)
-            {
-                _logger.LogError(dbEx, "Failed to save card event to database for reader {ReaderId}", cardRead.ReaderId);
-                // Continue processing even if database save fails
-            }
-
-            // Send feedback to the reader
-            await _readerService.SendFeedbackAsync(cardRead.ReaderId, feedback);
-
-            // Broadcast the event via SignalR
-            await _notificationService.BroadcastCardEventAsync(cardRead, result, feedback);
-
-            _logger.LogInformation("Card read processed, saved, and broadcasted for reader {ReaderId}: {Success}", 
-                cardRead.ReaderId, result.Success);
-
-            return result;
-        }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, "Error processing card read with notification for reader {ReaderId}", cardRead.ReaderId);
+        _logger.LogInformation("Processing card read with notification for reader {ReaderId}, card {CardNumber}", 
+            cardRead.ReaderId, cardRead.CardNumber);
             
-            // Still try to broadcast the error
-            var errorResult = new CardReadResult
-            {
-                Success = false,
-                Message = "Processing error occurred"
-            };
-
-            // Try to save the error to database
-            try
-            {
-                await _cardEventRepository.CreateAsync(cardRead, errorResult);
-            }
-            catch (Exception dbEx)
-            {
-                _logger.LogError(dbEx, "Failed to save error event to database");
-            }
-
-            try
-            {
-                await _notificationService.BroadcastCardEventAsync(cardRead, errorResult);
-            }
-            catch (Exception notificationEx)
-            {
-                _logger.LogError(notificationEx, "Failed to broadcast error notification");
-            }
-
-            return errorResult;
-        }
+        // Delegate to the orchestrator which handles all the workflow steps
+        return await _orchestrator.OrchestrateCardProcessingAsync(cardRead);
     }
 }

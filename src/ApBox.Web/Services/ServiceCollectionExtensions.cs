@@ -28,6 +28,8 @@ public static class ServiceCollectionExtensions
         
         // Register core application services
         services.AddSingleton<ICardProcessingService, CardProcessingService>();
+        services.AddSingleton<ICardEventPersistenceService, CardEventPersistenceService>();
+        services.AddSingleton<ICardProcessingOrchestrator, CardProcessingOrchestrator>();
         services.AddSingleton<IEnhancedCardProcessingService, EnhancedCardProcessingService>();
         services.AddSingleton<IReaderService, ReaderService>();
         
