@@ -2,6 +2,7 @@ using ApBox.Plugins;
 using ApBox.Core.OSDP;
 using ApBox.Core.Services;
 using ApBox.Core.Data;
+using ApBox.Web.ViewModels;
 
 namespace ApBox.Web.Services;
 
@@ -35,6 +36,12 @@ public static class ServiceCollectionExtensions
         
         // Register SignalR notification service
         services.AddSingleton<ICardEventNotificationService, CardEventNotificationService>();
+        
+        // Register SignalR wrapper
+        services.AddScoped<IHubConnectionWrapper, HubConnectionWrapper>();
+        
+        // Register ViewModels
+        services.AddScoped<DashboardViewModel>();
         
         // Register system management services
         services.AddScoped<IConfigurationExportService, ConfigurationExportService>();

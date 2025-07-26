@@ -7,6 +7,7 @@ using ApBox.Core.Data.Models;
 using ApBox.Core.Models;
 using ApBox.Plugins;
 using ApBox.Web.Services;
+using ApBox.Web.ViewModels;
 using Moq;
 using Blazorise;
 using Blazorise.Bootstrap5;
@@ -15,6 +16,7 @@ using Blazorise.Tests.bUnit;
 using Blazorise.Modules;
 using Microsoft.JSInterop;
 using Microsoft.AspNetCore.Components;
+using Microsoft.AspNetCore.SignalR.Client;
 
 namespace ApBox.Web.Tests;
 
@@ -31,6 +33,7 @@ public class ApBoxTestContext : Bunit.TestContext
     public Mock<ISystemRestartService> MockSystemRestartService { get; private set; }
     public Mock<ICardEventPersistenceService> MockCardEventPersistenceService { get; private set; }
     public Mock<ICardProcessingOrchestrator> MockCardProcessingOrchestrator { get; private set; }
+    public Mock<IHubConnectionWrapper> MockHubConnectionWrapper { get; private set; }
 
     public ApBoxTestContext()
     {
@@ -46,6 +49,10 @@ public class ApBoxTestContext : Bunit.TestContext
         MockSystemRestartService = new Mock<ISystemRestartService>();
         MockCardEventPersistenceService = new Mock<ICardEventPersistenceService>();
         MockCardProcessingOrchestrator = new Mock<ICardProcessingOrchestrator>();
+        MockHubConnectionWrapper = new Mock<IHubConnectionWrapper>();
+        
+        // Setup hub connection wrapper to return disconnected state by default
+        MockHubConnectionWrapper.Setup(x => x.State).Returns(HubConnectionState.Disconnected);
 
         // Configure Blazorise for testing
         Services
@@ -69,6 +76,10 @@ public class ApBoxTestContext : Bunit.TestContext
         Services.AddSingleton(MockSystemRestartService.Object);
         Services.AddSingleton(MockCardEventPersistenceService.Object);
         Services.AddSingleton(MockCardProcessingOrchestrator.Object);
+        Services.AddScoped<IHubConnectionWrapper>(_ => MockHubConnectionWrapper.Object);
+        
+        // Register DashboardViewModel with its dependencies
+        Services.AddScoped<DashboardViewModel>();
 
         // Add other required services
         Services.AddLogging();
