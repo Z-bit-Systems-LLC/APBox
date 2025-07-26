@@ -1,15 +1,6 @@
 @page "/"
-@using ApBox.Core.Services
-@using ApBox.Core.Data.Repositories
-@using ApBox.Core.Models
-@using ApBox.Plugins
-@using ApBox.Web.Hubs
-@using ApBox.Web.Helpers
-@using Microsoft.AspNetCore.SignalR.Client
-@inject IReaderService ReaderService
-@inject IPluginLoader PluginLoader
-@inject ICardEventRepository CardEventRepository
-@inject NavigationManager Navigation
+@using ApBox.Web.ViewModels
+@inject DashboardViewModel ViewModel
 @implements IAsyncDisposable
 
 <PageTitle>ApBox Dashboard</PageTitle>
@@ -22,317 +13,175 @@
         </Column>
     </Row>
 
-    <Row Margin="Margin.Is4.FromBottom">
-        <Column ColumnSize="ColumnSize.Is3.OnDesktop">
-            <Card Background="Background.Dark" TextColor="TextColor.White" ElementId="active-readers-card">
-                <CardBody>
-                    <Div Flex="Flex.JustifyContent.Between.AlignItems.Center">
-                        <Div>
-                            <Heading Size="HeadingSize.Is2" Margin="Margin.Is0" ElementId="active-readers-value">@_activeReaders</Heading>
-                            <Small>Active Readers</Small>
+    @if (ViewModel.IsLoading)
+    {
+        <Row ElementId="loading-spinner">
+            <Column>
+                <Div Display="Display.Flex" JustifyContent="JustifyContent.Center" Margin="Margin.Is5.FromTop">
+                    <Spinner Type="SpinnerType.Border" Color="Color.Primary" />
+                    <Text Margin="Margin.Is2.FromStart">Loading dashboard...</Text>
+                </Div>
+            </Column>
+        </Row>
+    }
+    else if (!string.IsNullOrEmpty(ViewModel.ErrorMessage))
+    {
+        <Row>
+            <Column>
+                <Alert Color="Color.Danger" Visible="true">
+                    <Icon Name="IconName.ExclamationTriangle" Margin="Margin.Is2.FromEnd" />
+                    @ViewModel.ErrorMessage
+                    <Button Color="Color.Secondary" Size="Size.Small" Margin="Margin.Is2.FromStart" Clicked="ViewModel.RefreshCommand.ExecuteAsync">
+                        <Icon Name="IconName.Redo" />
+                        Retry
+                    </Button>
+                </Alert>
+            </Column>
+        </Row>
+    }
+    else
+    {
+        <Row Margin="Margin.Is4.FromBottom">
+            <Column ColumnSize="ColumnSize.Is3.OnDesktop">
+                <Card Background="Background.Dark" TextColor="TextColor.White" ElementId="active-readers-card">
+                    <CardBody>
+                        <Div Flex="Flex.JustifyContent.Between.AlignItems.Center">
+                            <Div>
+                                <Heading Size="HeadingSize.Is2" Margin="Margin.Is0" ElementId="active-readers-value">@ViewModel.ActiveReaders</Heading>
+                                <Small>Active Readers</Small>
+                            </Div>
+                            <Div>
+                                <Icon Name="IconName.Tv" IconSize="IconSize.x2" />
+                            </Div>
                         </Div>
-                        <Div>
-                            <Icon Name="IconName.Tv" IconSize="IconSize.x2" />
+                    </CardBody>
+                </Card>
+            </Column>
+            
+            <Column ColumnSize="ColumnSize.Is3.OnDesktop">
+                <Card Background="Background.Success" TextColor="TextColor.White" ElementId="loaded-plugins-card">
+                    <CardBody>
+                        <Div Flex="Flex.JustifyContent.Between.AlignItems.Center">
+                            <Div>
+                                <Heading Size="HeadingSize.Is2" Margin="Margin.Is0" ElementId="loaded-plugins-value">@ViewModel.LoadedPlugins</Heading>
+                                <Small>Loaded Plugins</Small>
+                            </Div>
+                            <Div>
+                                <Icon Name="IconName.Plug" IconSize="IconSize.x2" />
+                            </Div>
                         </Div>
-                    </Div>
-                </CardBody>
-            </Card>
-        </Column>
-        
-        <Column ColumnSize="ColumnSize.Is3.OnDesktop">
-            <Card Background="Background.Success" TextColor="TextColor.White" ElementId="loaded-plugins-card">
-                <CardBody>
-                    <Div Flex="Flex.JustifyContent.Between.AlignItems.Center">
-                        <Div>
-                            <Heading Size="HeadingSize.Is2" Margin="Margin.Is0" ElementId="loaded-plugins-value">@_loadedPlugins</Heading>
-                            <Small>Loaded Plugins</Small>
+                    </CardBody>
+                </Card>
+            </Column>
+            
+            <Column ColumnSize="ColumnSize.Is3.OnDesktop">
+                <Card Background="Background.Info" TextColor="TextColor.White" ElementId="total-events-card">
+                    <CardBody>
+                        <Div Flex="Flex.JustifyContent.Between.AlignItems.Center">
+                            <Div>
+                                <Heading Size="HeadingSize.Is2" Margin="Margin.Is0" ElementId="total-events-value">@ViewModel.TotalEvents</Heading>
+                                <Small>Today's Events</Small>
+                            </Div>
+                            <Div>
+                                <Icon Name="IconName.CalendarDay" IconSize="IconSize.x2" />
+                            </Div>
                         </Div>
-                        <Div>
-                            <Icon Name="IconName.PuzzlePiece" IconSize="IconSize.x2" />
+                    </CardBody>
+                </Card>
+            </Column>
+            
+            <Column ColumnSize="ColumnSize.Is3.OnDesktop">
+                <Card Background="Background.Primary" TextColor="TextColor.White" ElementId="system-status-card">
+                    <CardBody>
+                        <Div Flex="Flex.JustifyContent.Between.AlignItems.Center">
+                            <Div>
+                                <Heading Size="HeadingSize.Is4" Margin="Margin.Is0" ElementId="system-status-value">@ViewModel.SystemStatus</Heading>
+                                <Small>System Status</Small>
+                            </Div>
+                            <Div>
+                                <Icon Name="@GetStatusIcon()" IconSize="IconSize.x2" />
+                            </Div>
                         </Div>
-                    </Div>
-                </CardBody>
-            </Card>
-        </Column>
-        
-        <Column ColumnSize="ColumnSize.Is3.OnDesktop">
-            <Card Background="Background.Primary" TextColor="TextColor.White" ElementId="card-events-card">
-                <CardBody>
-                    <Div Flex="Flex.JustifyContent.Between.AlignItems.Center">
-                        <Div>
-                            <Heading Size="HeadingSize.Is2" Margin="Margin.Is0" ElementId="card-events-value">@_totalEvents</Heading>
-                            <Small>Card Events Today</Small>
-                        </Div>
-                        <Div>
-                            <Icon Name="IconName.CreditCard" IconSize="IconSize.x2" />
-                        </Div>
-                    </Div>
-                </CardBody>
-            </Card>
-        </Column>
-        
-        <Column ColumnSize="ColumnSize.Is3.OnDesktop">
-            <Card Background="@GetSystemStatusColor()" TextColor="TextColor.White" ElementId="system-status-card">
-                <CardBody>
-                    <Div Flex="Flex.JustifyContent.Between.AlignItems.Center">
-                        <Div>
-                            <Heading Size="HeadingSize.Is2" Margin="Margin.Is0" ElementId="system-status-value">@_systemStatus</Heading>
-                            <Small>System Status</Small>
-                        </Div>
-                        <Div>
-                            <Icon Name="IconName.CheckCircle" IconSize="IconSize.x2" />
-                        </Div>
-                    </Div>
-                </CardBody>
-            </Card>
-        </Column>
-    </Row>
+                    </CardBody>
+                </Card>
+            </Column>
+        </Row>
 
-    <Row Margin="Margin.Is4.FromTop">
-        <Column ColumnSize="ColumnSize.Is8.OnDesktop">
-            <Card ElementId="recent-events-section">
-                <CardHeader>
-                    <CardTitle Size="5" Margin="Margin.Is0.FromBottom">Recent Card Events</CardTitle>
-                </CardHeader>
-                <CardBody>
-                    @if (_recentEvents.Any())
-                    {
-                        <Table Responsive Striped ElementId="recent-events-table">
-                            <TableHeader>
-                                <TableRow>
-                                    <TableHeaderCell>Time</TableHeaderCell>
-                                    <TableHeaderCell>Reader</TableHeaderCell>
-                                    <TableHeaderCell>Card Number</TableHeaderCell>
-                                    <TableHeaderCell>Status</TableHeaderCell>
-                                </TableRow>
-                            </TableHeader>
-                            <TableBody>
-                                @foreach (var cardEvent in _recentEvents.Take(10))
-                                {
-                                    <TableRow>
-                                        <TableRowCell>@cardEvent.Timestamp.ToString("HH:mm:ss")</TableRowCell>
-                                        <TableRowCell>@cardEvent.ReaderName</TableRowCell>
-                                        <TableRowCell>@cardEvent.CardNumber</TableRowCell>
-                                        <TableRowCell>
-                                            <Badge Color="Color.Success">Processed</Badge>
-                                        </TableRowCell>
-                                    </TableRow>
-                                }
-                            </TableBody>
-                        </Table>
-                    }
-                    else
-                    {
-                        <Div TextAlignment="TextAlignment.Center" Padding="Padding.Is3" ElementId="no-events-message">
-                            <Icon Name="IconName.CreditCard" IconSize="IconSize.x3" TextColor="TextColor.Muted" />
-                            <Heading Size="HeadingSize.Is5" Margin="Margin.Is2.FromTop" TextColor="TextColor.Muted">No recent card events</Heading>
+        <Row>
+            <Column>
+                <Card ElementId="recent-events-card">
+                    <CardHeader>
+                        <Div Flex="Flex.JustifyContent.Between.AlignItems.Center">
+                            <Heading Size="HeadingSize.Is4" Margin="Margin.Is0" ElementId="recent-events-title">Recent Card Events</Heading>
+                            <Button Color="Color.Secondary" Size="Size.Small" Clicked="ViewModel.RefreshCommand.ExecuteAsync" Loading="ViewModel.RefreshCommand.IsRunning">
+                                <Icon Name="IconName.Redo" />
+                                Refresh
+                            </Button>
                         </Div>
-                    }
-                </CardBody>
-            </Card>
-        </Column>
-        
-        <Column ColumnSize="ColumnSize.Is4.OnDesktop">
-            <Card ElementId="reader-status-section">
-                <CardHeader>
-                    <CardTitle Size="5" Margin="Margin.Is0.FromBottom">Reader Status</CardTitle>
-                </CardHeader>
-                <CardBody>
-                    @if (_readers.Any())
-                    {
-                        @foreach (var reader in _readers)
+                    </CardHeader>
+                    <CardBody>
+                        @if (ViewModel.RecentEvents.Any())
                         {
-                            var (statusText, statusColor, statusIcon) = ReaderStatusHelper.GetReaderStatusDisplay(reader, _readerStatuses);
-                            <Div Flex="Flex.JustifyContent.Between.AlignItems.Center" Margin="Margin.Is2.FromBottom">
-                                <Span>@reader.ReaderName</Span>
-                                <Badge Color="@statusColor" ElementId="reader-status-badge">
-                                    @if (statusIcon != null)
+                            <Table Striped Hoverable ElementId="recent-events-table">
+                                <TableHeader>
+                                    <TableRow>
+                                        <TableHeaderCell>Time</TableHeaderCell>
+                                        <TableHeaderCell>Reader</TableHeaderCell>
+                                        <TableHeaderCell>Card Number</TableHeaderCell>
+                                        <TableHeaderCell>Status</TableHeaderCell>
+                                    </TableRow>
+                                </TableHeader>
+                                <TableBody>
+                                    @foreach (var cardEvent in ViewModel.RecentEvents.Take(15))
                                     {
-                                        <Icon Name="@statusIcon" Margin="Margin.Is1.FromEnd" />
+                                        <TableRow>
+                                            <TableRowCell>@cardEvent.Timestamp.ToString("HH:mm:ss")</TableRowCell>
+                                            <TableRowCell>@cardEvent.ReaderName</TableRowCell>
+                                            <TableRowCell>@cardEvent.CardNumber</TableRowCell>
+                                            <TableRowCell>
+                                                <Badge Color="Color.Success">Processed</Badge>
+                                            </TableRowCell>
+                                        </TableRow>
                                     }
-                                    @statusText
-                                </Badge>
+                                </TableBody>
+                            </Table>
+                        }
+                        else
+                        {
+                            <Div Display="Display.Flex" JustifyContent="JustifyContent.Center" Margin="Margin.Is4">
+                                <Text TextColor="TextColor.Muted">No recent card events</Text>
                             </Div>
                         }
-                    }
-                    else
-                    {
-                        <Div TextAlignment="TextAlignment.Center" Padding="Padding.Is3" ElementId="no-readers-message">
-                            <Icon Name="IconName.Tv" IconSize="IconSize.x3" TextColor="TextColor.Muted" />
-                            <Heading Size="HeadingSize.Is6" Margin="Margin.Is2.FromTop" TextColor="TextColor.Muted">No readers configured</Heading>
-                            <Paragraph TextColor="TextColor.Muted" Margin="Margin.Is1.FromTop">
-                                <Anchor To="/configuration" ElementId="configure-readers-link">Configure readers</Anchor> to get started
-                            </Paragraph>
-                        </Div>
-                    }
-                </CardBody>
-            </Card>
-        </Column>
-    </Row>
+                    </CardBody>
+                </Card>
+            </Column>
+        </Row>
+    }
 </Container>
 
 @code {
-    private int _activeReaders;
-    private int _loadedPlugins;
-    private int _totalEvents;
-    private string _systemStatus = "Online";
-    private List<CardReadEvent> _recentEvents = [];
-    private List<ReaderConfiguration> _readers = [];
-    private Dictionary<Guid, bool> _readerStatuses = new();
-    private HubConnection? _hubConnection;
-
     protected override async Task OnInitializedAsync()
     {
-        await LoadDashboardData();
-        await InitializeSignalR();
+        // Set up component callbacks for the ViewModel
+        ViewModel.StateHasChanged = StateHasChanged;
+        ViewModel.InvokeAsync = InvokeAsync;
+        
+        // Initialize the ViewModel
+        await ViewModel.InitializeCommand.ExecuteAsync(null);
     }
 
-    private async Task InitializeSignalR()
+    private IconName GetStatusIcon()
     {
-        try
+        return ViewModel.SystemStatus switch
         {
-            _hubConnection = new HubConnectionBuilder()
-                .WithUrl(Navigation.ToAbsoluteUri("/cardevents"))
-                .Build();
-
-            // Handle card event notifications
-            _hubConnection.On<CardEventNotification>("CardEventProcessed", async (notification) =>
-            {
-                await InvokeAsync(() =>
-                {
-                    // Add new event to the beginning of the list
-                    var newEvent = new CardReadEvent
-                    {
-                        ReaderId = notification.ReaderId,
-                        ReaderName = notification.ReaderName,
-                        CardNumber = notification.CardNumber,
-                        BitLength = notification.BitLength,
-                        Timestamp = notification.Timestamp
-                    };
-
-                    _recentEvents.Insert(0, newEvent);
-                    
-                    // Keep only the latest 25 events
-                    if (_recentEvents.Count > 25)
-                    {
-                        _recentEvents = _recentEvents.Take(25).ToList();
-                    }
-
-                    _totalEvents++;
-                    StateHasChanged();
-                });
-            });
-
-            // Handle reader status notifications
-            _hubConnection.On<ReaderStatusNotification>("ReaderStatusChanged", async (notification) =>
-            {
-                await InvokeAsync(() =>
-                {
-                    _readerStatuses[notification.ReaderId] = notification.IsOnline;
-                    StateHasChanged();
-                });
-            });
-
-            // Handle statistics updates
-            _hubConnection.On<StatisticsNotification>("StatisticsUpdated", async (notification) =>
-            {
-                await InvokeAsync(() =>
-                {
-                    _activeReaders = notification.ActiveReaders;
-                    _loadedPlugins = notification.LoadedPlugins;
-                    _totalEvents = notification.TotalEventsToday;
-                    _systemStatus = notification.SystemStatus;
-                    StateHasChanged();
-                });
-            });
-
-            await _hubConnection.StartAsync();
-        }
-        catch (Exception ex)
-        {
-            Console.WriteLine($"Error initializing SignalR: {ex.Message}");
-        }
-    }
-
-    private async Task LoadDashboardData()
-    {
-        try
-        {
-            // Load readers
-            var readerConfigs = await ReaderService.GetReadersAsync();
-            _readers = readerConfigs.ToList();
-            
-            // Load reader statuses
-            _readerStatuses = await ReaderService.GetAllReaderStatusesAsync() ?? new Dictionary<Guid, bool>();
-            
-            // Calculate active readers (online readers)
-            _activeReaders = _readerStatuses.Count(kvp => kvp.Value);
-
-            // Load plugins
-            var plugins = await PluginLoader.LoadPluginsAsync();
-            _loadedPlugins = plugins.Count();
-
-            // Load recent card events from database
-            await LoadRecentEventsAsync();
-            
-            // Get today's event count
-            _totalEvents = await GetTodaysEventCountAsync();
-        }
-        catch (Exception ex)
-        {
-            _systemStatus = "Error";
-            Console.WriteLine($"Dashboard error: {ex.Message}");
-        }
-    }
-
-    private async Task LoadRecentEventsAsync()
-    {
-        try
-        {
-            var eventEntities = await CardEventRepository.GetRecentAsync(25);
-            _recentEvents = eventEntities.Select(e => e.ToCardReadEvent()).ToList();
-        }
-        catch (Exception ex)
-        {
-            Console.WriteLine($"Error loading recent events: {ex.Message}");
-            _recentEvents = [];
-        }
-    }
-
-    private async Task<int> GetTodaysEventCountAsync()
-    {
-        try
-        {
-            var todayStart = DateTime.Today;
-            var todayEnd = todayStart.AddDays(1);
-            var todaysEvents = await CardEventRepository.GetByDateRangeAsync(todayStart, todayEnd);
-            return todaysEvents.Count();
-        }
-        catch (Exception ex)
-        {
-            Console.WriteLine($"Error getting today's event count: {ex.Message}");
-            return 0;
-        }
-    }
-
-    private Background GetSystemStatusColor()
-    {
-        return _systemStatus.ToLowerInvariant() switch
-        {
-            "online" => Background.Success,
-            "warning" => Background.Warning,
-            "error" => Background.Danger,
-            "offline" => Background.Secondary,
-            _ => Background.Info
+            "Online" => IconName.CheckCircle,
+            "Error" => IconName.ExclamationTriangle,
+            _ => IconName.QuestionCircle
         };
     }
 
-
     public async ValueTask DisposeAsync()
     {
-        if (_hubConnection is not null)
-        {
-            await _hubConnection.DisposeAsync();
-        }
+        await ViewModel.DisposeAsync();
     }
 }

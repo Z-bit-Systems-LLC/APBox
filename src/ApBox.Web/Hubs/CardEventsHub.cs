@@ -1,6 +1,5 @@
 using ApBox.Core.Models;
 using Microsoft.AspNetCore.SignalR;
-using ApBox.Plugins;
 
 namespace ApBox.Web.Hubs;
 

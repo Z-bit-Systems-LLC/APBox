@@ -1,8 +1,8 @@
-using ApBox.Core.Models;
 using Microsoft.AspNetCore.SignalR;
+
+using ApBox.Core.Models;
 using ApBox.Web.Hubs;
 using ApBox.Plugins;
-using ApBox.Core.Services;
 
 namespace ApBox.Web.Services;
 
@@ -27,19 +27,11 @@ public interface ICardEventNotificationService
     Task BroadcastStatisticsAsync(int activeReaders, int loadedPlugins, int totalEventsToday, int totalEvents);
 }
 
-public class CardEventNotificationService : ICardEventNotificationService
+public class CardEventNotificationService(
+    IHubContext<CardEventsHub, ICardEventsClient> hubContext,
+    ILogger<CardEventNotificationService> logger)
+    : ICardEventNotificationService
 {
-    private readonly IHubContext<CardEventsHub, ICardEventsClient> _hubContext;
-    private readonly ILogger<CardEventNotificationService> _logger;
-
-    public CardEventNotificationService(
-        IHubContext<CardEventsHub, ICardEventsClient> hubContext,
-        ILogger<CardEventNotificationService> logger)
-    {
-        _hubContext = hubContext;
-        _logger = logger;
-    }
-
     public async Task BroadcastCardEventAsync(CardReadEvent cardEvent, CardReadResult result, ReaderFeedback? feedback = null)
     {
         try
@@ -56,14 +48,14 @@ public class CardEventNotificationService : ICardEventNotificationService
                 Feedback = feedback
             };
 
-            await _hubContext.Clients.Group("CardEvents").CardEventProcessed(notification);
+            await hubContext.Clients.Group("CardEvents").CardEventProcessed(notification);
 
-            _logger.LogDebug("Broadcasted card event for reader {ReaderName}: {CardNumber}", 
+            logger.LogDebug("Broadcasted card event for reader {ReaderName}: {CardNumber}", 
                 cardEvent.ReaderName, cardEvent.CardNumber);
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Failed to broadcast card event for reader {ReaderId}", cardEvent.ReaderId);
+            logger.LogError(ex, "Failed to broadcast card event for reader {ReaderId}", cardEvent.ReaderId);
         }
     }
 
@@ -82,14 +74,14 @@ public class CardEventNotificationService : ICardEventNotificationService
                 Status = isOnline ? "Online" : "Offline"
             };
 
-            await _hubContext.Clients.Group("CardEvents").ReaderStatusChanged(notification);
+            await hubContext.Clients.Group("CardEvents").ReaderStatusChanged(notification);
 
-            _logger.LogDebug("Broadcasted reader status change for {ReaderName}: {Status}", 
+            logger.LogDebug("Broadcasted reader status change for {ReaderName}: {Status}", 
                 readerName, notification.Status);
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Failed to broadcast reader status for reader {ReaderId}", readerId);
+            logger.LogError(ex, "Failed to broadcast reader status for reader {ReaderId}", readerId);
         }
     }
 
@@ -106,14 +98,14 @@ public class CardEventNotificationService : ICardEventNotificationService
                 SystemStatus = "Online"
             };
 
-            await _hubContext.Clients.Group("CardEvents").StatisticsUpdated(notification);
+            await hubContext.Clients.Group("CardEvents").StatisticsUpdated(notification);
 
-            _logger.LogDebug("Broadcasted statistics update: {ActiveReaders} readers, {LoadedPlugins} plugins", 
+            logger.LogDebug("Broadcasted statistics update: {ActiveReaders} readers, {LoadedPlugins} plugins", 
                 activeReaders, loadedPlugins);
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Failed to broadcast statistics update");
+            logger.LogError(ex, "Failed to broadcast statistics update");
         }
     }
 }

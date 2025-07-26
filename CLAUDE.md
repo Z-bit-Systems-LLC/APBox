@@ -200,6 +200,7 @@ The detailed implementation plan is in `apbox_project_plan.md` (excluded from gi
 - Use Validation component for forms
 - Plugin system stores detailed results with success/failure status per plugin
 - Card event UI shows plugins grouped by success/failure with color-coded badges
+- Use IHubConnectionWrapper for web client SignalR messsaging
 
 ## Dependency Injection Best Practices
 
