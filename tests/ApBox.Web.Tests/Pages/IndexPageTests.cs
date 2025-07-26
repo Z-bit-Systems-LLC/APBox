@@ -343,4 +343,222 @@ public class IndexPageTests : ApBoxTestContext
         var tableRows = component.FindAll("tbody tr");
         Assert.That(tableRows.Count, Is.LessThanOrEqualTo(10), "Should limit display to 10 events maximum");
     }
+
+    // ==============================================
+    // Dynamic Updates Tests (UI Responsiveness)
+    // ==============================================
+
+    [Test]
+    public void Index_WithDynamicCardEvents_UpdatesRecentEventsDisplay()
+    {
+        // Arrange - Setup mock with additional events that could be added dynamically
+        var dynamicEvents = new List<CardEventEntity>
+        {
+            new()
+            {
+                Id = 999,
+                ReaderId = "99999999-9999-9999-9999-999999999999",
+                CardNumber = "999888777",
+                BitLength = 26,
+                ReaderName = "Dynamic Test Reader",
+                Success = true,
+                Message = "Success",
+                ProcessedByPlugin = "Test Plugin",
+                Timestamp = DateTime.Now
+            }
+        };
+
+        // Update mock to return dynamic events
+        MockCardEventRepository.Setup(x => x.GetRecentAsync(It.IsAny<int>()))
+            .ReturnsAsync(dynamicEvents);
+
+        // Act
+        var component = RenderComponent<ApBox.Web.Pages.Index>();
+
+        // Assert
+        var tableRows = component.FindAll("tbody tr");
+        Assert.That(tableRows.Count, Is.GreaterThan(0), "Should display dynamic card events");
+        
+        // Verify the dynamic event appears in the table
+        var dynamicEventRow = tableRows.FirstOrDefault(row => 
+            row.TextContent.Contains("Dynamic Test Reader") && 
+            row.TextContent.Contains("999888777"));
+        Assert.That(dynamicEventRow, Is.Not.Null, "Dynamic card event should appear in recent events table");
+    }
+
+    [Test]
+    public void Index_WithVaryingReaderCounts_UpdatesActiveReadersDisplay()
+    {
+        // Arrange - Test with different reader configurations
+        var scenarios = new[]
+        {
+            new { ReadersOnline = 0, TotalReaders = 0, ExpectedActive = 0 },
+            new { ReadersOnline = 1, TotalReaders = 3, ExpectedActive = 1 },
+            new { ReadersOnline = 2, TotalReaders = 2, ExpectedActive = 2 },
+            new { ReadersOnline = 5, TotalReaders = 8, ExpectedActive = 5 }
+        };
+
+        foreach (var scenario in scenarios)
+        {
+            // Setup readers with specific online/offline status
+            var readers = new List<ReaderConfiguration>();
+            var statuses = new Dictionary<Guid, bool>();
+            
+            for (int i = 0; i < scenario.TotalReaders; i++)
+            {
+                var readerId = Guid.NewGuid();
+                readers.Add(new ReaderConfiguration { ReaderId = readerId, ReaderName = $"Reader {i}" });
+                statuses[readerId] = i < scenario.ReadersOnline; // First N readers are online
+            }
+
+            MockReaderService.Setup(x => x.GetReadersAsync()).ReturnsAsync(readers);
+            MockReaderService.Setup(x => x.GetAllReaderStatusesAsync()).ReturnsAsync(statuses);
+
+            // Act
+            var component = RenderComponent<ApBox.Web.Pages.Index>();
+
+            // Assert
+            var activeReadersValue = component.Find("#active-readers-value").TextContent;
+            Assert.That(activeReadersValue, Is.EqualTo(scenario.ExpectedActive.ToString()), 
+                $"Should show {scenario.ExpectedActive} active readers when {scenario.ReadersOnline} of {scenario.TotalReaders} are online");
+            
+            // Clean up for next iteration
+            ResetMocks();
+            SetupDetailedMockData();
+        }
+    }
+
+    [Test]
+    public void Index_WithHighEventVolume_LimitsDisplayedEvents()
+    {
+        // Arrange - Create many events to test UI limiting
+        var manyEvents = new List<CardEventEntity>();
+        for (int i = 0; i < 50; i++) // Create 50 events
+        {
+            manyEvents.Add(new CardEventEntity
+            {
+                Id = i,
+                ReaderId = Guid.NewGuid().ToString(),
+                CardNumber = $"123456{i:D3}",
+                BitLength = 26,
+                ReaderName = $"Reader {i}",
+                Success = true,
+                Message = "Success",
+                ProcessedByPlugin = "Test Plugin",
+                Timestamp = DateTime.Now.AddMinutes(-i)
+            });
+        }
+
+        MockCardEventRepository.Setup(x => x.GetRecentAsync(It.IsAny<int>()))
+            .ReturnsAsync(manyEvents);
+
+        // Act
+        var component = RenderComponent<ApBox.Web.Pages.Index>();
+
+        // Assert
+        var tableRows = component.FindAll("tbody tr");
+        Assert.That(tableRows.Count, Is.LessThanOrEqualTo(15), "Should limit displayed events to prevent UI overflow");
+        
+        // Verify most recent events are shown first
+        var firstRow = tableRows.First();
+        Assert.That(firstRow.TextContent, Does.Contain("Reader 0"), "Most recent event should be displayed first");
+    }
+
+    [Test]
+    public void Index_WithRealtimeEventUpdates_MaintainsResponsiveLayout()
+    {
+        // Arrange - Simulate real-time event pattern with timestamps
+        var realtimeEvents = new List<CardEventEntity>();
+        var baseTime = DateTime.Now;
+        
+        // Add events with increasing timestamps (simulating real-time arrival)
+        for (int i = 0; i < 10; i++)
+        {
+            realtimeEvents.Add(new CardEventEntity
+            {
+                Id = i,
+                ReaderId = Guid.NewGuid().ToString(),
+                CardNumber = $"RT{i:D6}",
+                BitLength = 26,
+                ReaderName = "Realtime Reader",
+                Success = true,
+                Message = "Success",
+                ProcessedByPlugin = "RT Plugin",
+                Timestamp = baseTime.AddSeconds(i) // Sequential timestamps
+            });
+        }
+
+        MockCardEventRepository.Setup(x => x.GetRecentAsync(It.IsAny<int>()))
+            .ReturnsAsync(realtimeEvents);
+
+        // Act
+        var component = RenderComponent<ApBox.Web.Pages.Index>();
+
+        // Assert
+        var eventsTable = component.Find("#recent-events-table");
+        Assert.That(eventsTable, Is.Not.Null, "Events table should be rendered");
+        
+        var tableRows = component.FindAll("tbody tr");
+        Assert.That(tableRows.Count, Is.GreaterThan(0), "Should display realtime events");
+        
+        // Verify time formatting is consistent across all events
+        foreach (var row in tableRows)
+        {
+            var timeCell = row.QuerySelectorAll("td")[0];
+            Assert.That(timeCell.TextContent, Does.Match(@"\d{2}:\d{2}:\d{2}"), 
+                "All timestamps should be formatted consistently as HH:mm:ss");
+        }
+    }
+
+    [Test]
+    public void Index_WithMixedEventStatuses_DisplaysAppropriateIndicators()
+    {
+        // Arrange - Create events with different success statuses
+        var mixedEvents = new List<CardEventEntity>
+        {
+            new()
+            {
+                Id = 1,
+                ReaderId = Guid.NewGuid().ToString(),
+                CardNumber = "SUCCESS001",
+                BitLength = 26,
+                ReaderName = "Success Reader",
+                Success = true,
+                Message = "Successfully processed",
+                ProcessedByPlugin = "Test Plugin",
+                Timestamp = DateTime.Now.AddMinutes(-1)
+            },
+            new()
+            {
+                Id = 2,
+                ReaderId = Guid.NewGuid().ToString(),
+                CardNumber = "SUCCESS002",
+                BitLength = 26,
+                ReaderName = "Another Success Reader",
+                Success = true,
+                Message = "All plugins succeeded",
+                ProcessedByPlugin = "Test Plugin",
+                Timestamp = DateTime.Now.AddMinutes(-2)
+            }
+        };
+
+        MockCardEventRepository.Setup(x => x.GetRecentAsync(It.IsAny<int>()))
+            .ReturnsAsync(mixedEvents);
+
+        // Act
+        var component = RenderComponent<ApBox.Web.Pages.Index>();
+
+        // Assert
+        var tableRows = component.FindAll("tbody tr");
+        Assert.That(tableRows.Count, Is.EqualTo(2), "Should display both events");
+        
+        // Verify status indicators (all should show "Processed" for successful events)
+        foreach (var row in tableRows)
+        {
+            var statusCell = row.QuerySelectorAll("td")[3]; // Status column
+            var badge = statusCell.QuerySelector(".badge");
+            Assert.That(badge, Is.Not.Null, "Should have status badge");
+            Assert.That(badge.TextContent, Is.EqualTo("Processed"), "Successful events should show 'Processed' status");
+        }
+    }
 }

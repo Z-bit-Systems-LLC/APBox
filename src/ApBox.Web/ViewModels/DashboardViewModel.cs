@@ -7,8 +7,6 @@ using ApBox.Core.Models;
 using ApBox.Plugins;
 using ApBox.Web.Hubs;
 using ApBox.Web.Services;
-using Microsoft.AspNetCore.SignalR.Client;
-using Microsoft.AspNetCore.Components;
 
 namespace ApBox.Web.ViewModels;
 
