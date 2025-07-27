@@ -64,12 +64,26 @@ CREATE TABLE system_logs (
     exception TEXT
 );
 
+-- Reader-Plugin mapping table
+CREATE TABLE reader_plugin_mappings (
+    reader_id TEXT NOT NULL,
+    plugin_id TEXT NOT NULL,
+    execution_order INTEGER NOT NULL DEFAULT 1,
+    is_enabled INTEGER NOT NULL DEFAULT 1,
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    PRIMARY KEY (reader_id, plugin_id),
+    FOREIGN KEY (reader_id) REFERENCES reader_configurations(reader_id) ON DELETE CASCADE
+);
+
 -- Create indexes for better performance
 CREATE INDEX idx_card_events_reader_id ON card_events(reader_id);
 CREATE INDEX idx_card_events_timestamp ON card_events(timestamp);
 CREATE INDEX idx_feedback_configurations_type ON feedback_configurations(configuration_type);
 CREATE INDEX idx_system_logs_timestamp ON system_logs(timestamp);
 CREATE INDEX idx_system_logs_level ON system_logs(level);
+CREATE INDEX idx_reader_plugin_mappings_reader ON reader_plugin_mappings(reader_id);
+CREATE INDEX idx_reader_plugin_mappings_plugin ON reader_plugin_mappings(plugin_id);
 
 -- Insert default feedback configurations
 INSERT INTO feedback_configurations 

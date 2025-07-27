@@ -1,0 +1,260 @@
+using NUnit.Framework;
+using Moq;
+using Microsoft.Extensions.Logging;
+using ApBox.Core.Services;
+using ApBox.Core.Models;
+using ApBox.Plugins;
+
+namespace ApBox.Core.Tests.Services;
+
+[TestFixture]
+public class SelectiveCardProcessingServiceTests
+{
+    private Mock<IPluginLoader> _mockPluginLoader;
+    private Mock<IReaderPluginMappingService> _mockMappingService;
+    private Mock<IFeedbackConfigurationService> _mockFeedbackService;
+    private Mock<ILogger<SelectiveCardProcessingService>> _mockLogger;
+    private ICardProcessingService _service;
+
+    [SetUp]
+    public void Setup()
+    {
+        _mockPluginLoader = new Mock<IPluginLoader>();
+        _mockMappingService = new Mock<IReaderPluginMappingService>();
+        _mockFeedbackService = new Mock<IFeedbackConfigurationService>();
+        _mockLogger = new Mock<ILogger<SelectiveCardProcessingService>>();
+        
+        _service = new SelectiveCardProcessingService(
+            _mockPluginLoader.Object, 
+            _mockMappingService.Object,
+            _mockFeedbackService.Object,
+            _mockLogger.Object);
+    }
+
+    [Test]
+    public async Task ProcessCardReadAsync_OnlyRunsAssignedPlugins()
+    {
+        // Arrange
+        var readerId = Guid.NewGuid();
+        var cardRead = new CardReadEvent
+        {
+            ReaderId = readerId,
+            CardNumber = "1234567890",
+            ReaderName = "Test Reader"
+        };
+
+        var plugin1 = new Mock<IApBoxPlugin>();
+        plugin1.Setup(x => x.Id).Returns(Guid.NewGuid());
+        plugin1.Setup(x => x.Name).Returns("Plugin1");
+        plugin1.Setup(x => x.ProcessCardReadAsync(It.IsAny<CardReadEvent>())).ReturnsAsync(true);
+
+        var plugin2 = new Mock<IApBoxPlugin>();
+        plugin2.Setup(x => x.Id).Returns(Guid.NewGuid());
+        plugin2.Setup(x => x.Name).Returns("Plugin2");
+        plugin2.Setup(x => x.ProcessCardReadAsync(It.IsAny<CardReadEvent>())).ReturnsAsync(true);
+
+        var plugin3 = new Mock<IApBoxPlugin>();
+        plugin3.Setup(x => x.Id).Returns(Guid.NewGuid());
+        plugin3.Setup(x => x.Name).Returns("Plugin3");
+        plugin3.Setup(x => x.ProcessCardReadAsync(It.IsAny<CardReadEvent>())).ReturnsAsync(true);
+
+        // All three plugins are loaded
+        _mockPluginLoader.Setup(x => x.LoadPluginsAsync())
+            .ReturnsAsync(new List<IApBoxPlugin> { plugin1.Object, plugin2.Object, plugin3.Object });
+
+        // But only Plugin1 and Plugin3 are assigned to this reader
+        _mockMappingService.Setup(x => x.GetPluginsForReaderAsync(readerId))
+            .ReturnsAsync(new List<string> { plugin1.Object.Id.ToString(), plugin3.Object.Id.ToString() });
+
+        // Act
+        var result = await _service.ProcessCardReadAsync(cardRead);
+
+        // Assert
+        Assert.That(result.Success, Is.True);
+        plugin1.Verify(x => x.ProcessCardReadAsync(cardRead), Times.Once);
+        plugin2.Verify(x => x.ProcessCardReadAsync(cardRead), Times.Never); // Not assigned
+        plugin3.Verify(x => x.ProcessCardReadAsync(cardRead), Times.Once);
+    }
+
+    [Test]
+    public async Task ProcessCardReadAsync_NoPluginsAssigned_ReturnsSuccess()
+    {
+        // Arrange
+        var readerId = Guid.NewGuid();
+        var cardRead = new CardReadEvent
+        {
+            ReaderId = readerId,
+            CardNumber = "1234567890",
+            ReaderName = "Test Reader"
+        };
+
+        var plugin1 = new Mock<IApBoxPlugin>();
+        plugin1.Setup(x => x.Id).Returns(Guid.NewGuid());
+        plugin1.Setup(x => x.Name).Returns("Plugin1");
+
+        _mockPluginLoader.Setup(x => x.LoadPluginsAsync())
+            .ReturnsAsync(new List<IApBoxPlugin> { plugin1.Object });
+
+        // No plugins assigned to this reader
+        _mockMappingService.Setup(x => x.GetPluginsForReaderAsync(readerId))
+            .ReturnsAsync(new List<string>());
+
+        // Act
+        var result = await _service.ProcessCardReadAsync(cardRead);
+
+        // Assert
+        Assert.That(result.Success, Is.True);
+        Assert.That(result.Message, Does.Contain("No plugins assigned"));
+        plugin1.Verify(x => x.ProcessCardReadAsync(It.IsAny<CardReadEvent>()), Times.Never);
+    }
+
+    [Test]
+    public async Task ProcessCardReadAsync_OnePluginFails_ReturnsFailure()
+    {
+        // Arrange
+        var readerId = Guid.NewGuid();
+        var cardRead = new CardReadEvent
+        {
+            ReaderId = readerId,
+            CardNumber = "1234567890",
+            ReaderName = "Test Reader"
+        };
+
+        var plugin1 = new Mock<IApBoxPlugin>();
+        plugin1.Setup(x => x.Id).Returns(Guid.NewGuid());
+        plugin1.Setup(x => x.Name).Returns("Plugin1");
+        plugin1.Setup(x => x.ProcessCardReadAsync(It.IsAny<CardReadEvent>())).ReturnsAsync(true);
+
+        var plugin2 = new Mock<IApBoxPlugin>();
+        plugin2.Setup(x => x.Id).Returns(Guid.NewGuid());
+        plugin2.Setup(x => x.Name).Returns("Plugin2");
+        plugin2.Setup(x => x.ProcessCardReadAsync(It.IsAny<CardReadEvent>())).ReturnsAsync(false); // This one fails
+
+        _mockPluginLoader.Setup(x => x.LoadPluginsAsync())
+            .ReturnsAsync(new List<IApBoxPlugin> { plugin1.Object, plugin2.Object });
+
+        _mockMappingService.Setup(x => x.GetPluginsForReaderAsync(readerId))
+            .ReturnsAsync(new List<string> { plugin1.Object.Id.ToString(), plugin2.Object.Id.ToString() });
+
+        // Act
+        var result = await _service.ProcessCardReadAsync(cardRead);
+
+        // Assert
+        Assert.That(result.Success, Is.False);
+        Assert.That(result.ProcessedByPlugin, Does.Contain("Plugin2"));
+    }
+
+    [Test]
+    public async Task ProcessCardReadAsync_PluginThrowsException_HandlesGracefully()
+    {
+        // Arrange
+        var readerId = Guid.NewGuid();
+        var cardRead = new CardReadEvent
+        {
+            ReaderId = readerId,
+            CardNumber = "1234567890",
+            ReaderName = "Test Reader"
+        };
+
+        var plugin1 = new Mock<IApBoxPlugin>();
+        plugin1.Setup(x => x.Id).Returns(Guid.NewGuid());
+        plugin1.Setup(x => x.Name).Returns("Plugin1");
+        plugin1.Setup(x => x.ProcessCardReadAsync(It.IsAny<CardReadEvent>()))
+            .ThrowsAsync(new Exception("Plugin error"));
+
+        _mockPluginLoader.Setup(x => x.LoadPluginsAsync())
+            .ReturnsAsync(new List<IApBoxPlugin> { plugin1.Object });
+
+        _mockMappingService.Setup(x => x.GetPluginsForReaderAsync(readerId))
+            .ReturnsAsync(new List<string> { plugin1.Object.Id.ToString() });
+
+        // Act
+        var result = await _service.ProcessCardReadAsync(cardRead);
+
+        // Assert
+        Assert.That(result.Success, Is.False);
+        Assert.That(result.ProcessedByPlugin, Does.Contain("Plugin error"));
+    }
+
+    [Test]
+    public async Task ProcessCardReadAsync_RespectExecutionOrder()
+    {
+        // Arrange
+        var readerId = Guid.NewGuid();
+        var cardRead = new CardReadEvent
+        {
+            ReaderId = readerId,
+            CardNumber = "1234567890",
+            ReaderName = "Test Reader"
+        };
+
+        var executionOrder = new List<string>();
+
+        var plugin1 = new Mock<IApBoxPlugin>();
+        plugin1.Setup(x => x.Id).Returns(new Guid("11111111-1111-1111-1111-111111111111"));
+        plugin1.Setup(x => x.Name).Returns("Plugin1");
+        plugin1.Setup(x => x.ProcessCardReadAsync(It.IsAny<CardReadEvent>()))
+            .ReturnsAsync(true)
+            .Callback(() => executionOrder.Add("Plugin1"));
+
+        var plugin2 = new Mock<IApBoxPlugin>();
+        plugin2.Setup(x => x.Id).Returns(new Guid("22222222-2222-2222-2222-222222222222"));
+        plugin2.Setup(x => x.Name).Returns("Plugin2");
+        plugin2.Setup(x => x.ProcessCardReadAsync(It.IsAny<CardReadEvent>()))
+            .ReturnsAsync(true)
+            .Callback(() => executionOrder.Add("Plugin2"));
+
+        var plugin3 = new Mock<IApBoxPlugin>();
+        plugin3.Setup(x => x.Id).Returns(new Guid("33333333-3333-3333-3333-333333333333"));
+        plugin3.Setup(x => x.Name).Returns("Plugin3");
+        plugin3.Setup(x => x.ProcessCardReadAsync(It.IsAny<CardReadEvent>()))
+            .ReturnsAsync(true)
+            .Callback(() => executionOrder.Add("Plugin3"));
+
+        _mockPluginLoader.Setup(x => x.LoadPluginsAsync())
+            .ReturnsAsync(new List<IApBoxPlugin> { plugin1.Object, plugin2.Object, plugin3.Object });
+
+        // Return plugins in specific order (2, 3, 1)
+        _mockMappingService.Setup(x => x.GetPluginsForReaderAsync(readerId))
+            .ReturnsAsync(new List<string> 
+            { 
+                plugin2.Object.Id.ToString(), 
+                plugin3.Object.Id.ToString(), 
+                plugin1.Object.Id.ToString() 
+            });
+
+        // Act
+        var result = await _service.ProcessCardReadAsync(cardRead);
+
+        // Assert
+        Assert.That(result.Success, Is.True);
+        Assert.That(executionOrder[0], Is.EqualTo("Plugin2"));
+        Assert.That(executionOrder[1], Is.EqualTo("Plugin3"));
+        Assert.That(executionOrder[2], Is.EqualTo("Plugin1"));
+    }
+
+    [Test]
+    public async Task GetFeedbackAsync_ReturnsFeedbackBasedOnResult()
+    {
+        // Arrange
+        var readerId = Guid.NewGuid();
+        var successResult = new CardReadResult { Success = true };
+        var failureResult = new CardReadResult { Success = false };
+
+        var successFeedback = new ReaderFeedback { Type = ReaderFeedbackType.Success };
+        var failureFeedback = new ReaderFeedback { Type = ReaderFeedbackType.Failure };
+
+        _mockFeedbackService.Setup(x => x.GetReaderFeedbackAsync(readerId, true))
+            .ReturnsAsync(successFeedback);
+        _mockFeedbackService.Setup(x => x.GetReaderFeedbackAsync(readerId, false))
+            .ReturnsAsync(failureFeedback);
+
+        // Act
+        var resultSuccess = await _service.GetFeedbackAsync(readerId, successResult);
+        var resultFailure = await _service.GetFeedbackAsync(readerId, failureResult);
+
+        // Assert
+        Assert.That(resultSuccess.Type, Is.EqualTo(ReaderFeedbackType.Success));
+        Assert.That(resultFailure.Type, Is.EqualTo(ReaderFeedbackType.Failure));
+    }
+}

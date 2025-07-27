@@ -34,6 +34,7 @@ public class ApBoxTestContext : Bunit.TestContext
     public Mock<ICardEventPersistenceService> MockCardEventPersistenceService { get; private set; }
     public Mock<ICardProcessingOrchestrator> MockCardProcessingOrchestrator { get; private set; }
     public Mock<IHubConnectionWrapper> MockHubConnectionWrapper { get; private set; }
+    public Mock<IReaderPluginMappingService> MockReaderPluginMappingService { get; private set; }
 
     public ApBoxTestContext()
     {
@@ -50,6 +51,7 @@ public class ApBoxTestContext : Bunit.TestContext
         MockCardEventPersistenceService = new Mock<ICardEventPersistenceService>();
         MockCardProcessingOrchestrator = new Mock<ICardProcessingOrchestrator>();
         MockHubConnectionWrapper = new Mock<IHubConnectionWrapper>();
+        MockReaderPluginMappingService = new Mock<IReaderPluginMappingService>();
         
         // Setup hub connection wrapper to return disconnected state by default
         MockHubConnectionWrapper.Setup(x => x.State).Returns(HubConnectionState.Disconnected);
@@ -77,6 +79,7 @@ public class ApBoxTestContext : Bunit.TestContext
         Services.AddSingleton(MockCardEventPersistenceService.Object);
         Services.AddSingleton(MockCardProcessingOrchestrator.Object);
         Services.AddScoped<IHubConnectionWrapper>(_ => MockHubConnectionWrapper.Object);
+        Services.AddSingleton(MockReaderPluginMappingService.Object);
         
         // Register DashboardViewModel with its dependencies
         Services.AddScoped<DashboardViewModel>();
@@ -104,6 +107,7 @@ public class ApBoxTestContext : Bunit.TestContext
         MockLogService.Reset();
         MockConfigurationExportService.Reset();
         MockSystemRestartService.Reset();
+        MockReaderPluginMappingService.Reset();
     }
 
     public void SetupDefaultMocks()

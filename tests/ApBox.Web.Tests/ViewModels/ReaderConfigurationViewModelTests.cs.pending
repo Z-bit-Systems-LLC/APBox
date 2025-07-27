@@ -1,0 +1,368 @@
+using NUnit.Framework;
+using Moq;
+using Microsoft.Extensions.Logging;
+using ApBox.Core.Services;
+using ApBox.Core.Models;
+using ApBox.Web.ViewModels;
+using ApBox.Web.Services;
+using ApBox.Plugins;
+using System.Collections.ObjectModel;
+
+namespace ApBox.Web.Tests.ViewModels;
+
+[TestFixture]
+public class ReaderConfigurationViewModelTests
+{
+    private Mock<IReaderConfigurationService> _mockReaderConfigService;
+    private Mock<IReaderService> _mockReaderService;
+    private Mock<IReaderPluginMappingService> _mockMappingService;
+    private Mock<IPluginLoader> _mockPluginLoader;
+    private Mock<IHubConnectionWrapper> _mockHubConnection;
+    private Mock<ILogger<ReaderConfigurationViewModel>> _mockLogger;
+    private ReaderConfigurationViewModel _viewModel;
+
+    [SetUp]
+    public void Setup()
+    {
+        _mockReaderConfigService = new Mock<IReaderConfigurationService>();
+        _mockReaderService = new Mock<IReaderService>();
+        _mockMappingService = new Mock<IReaderPluginMappingService>();
+        _mockPluginLoader = new Mock<IPluginLoader>();
+        _mockHubConnection = new Mock<IHubConnectionWrapper>();
+        _mockLogger = new Mock<ILogger<ReaderConfigurationViewModel>>();
+
+        _viewModel = new ReaderConfigurationViewModel(
+            _mockReaderConfigService.Object,
+            _mockReaderService.Object,
+            _mockMappingService.Object,
+            _mockPluginLoader.Object,
+            _mockHubConnection.Object,
+            _mockLogger.Object);
+    }
+
+    [Test]
+    public async Task InitializeAsync_LoadsAllData()
+    {
+        // Arrange
+        var readers = new List<ReaderConfiguration>
+        {
+            new() { ReaderId = Guid.NewGuid(), ReaderName = "Reader 1" },
+            new() { ReaderId = Guid.NewGuid(), ReaderName = "Reader 2" }
+        };
+
+        var plugins = new List<IApBoxPlugin>
+        {
+            CreateMockPlugin("Plugin1"),
+            CreateMockPlugin("Plugin2")
+        };
+
+        _mockReaderConfigService.Setup(x => x.GetAllReadersAsync()).ReturnsAsync(readers);
+        _mockReaderService.Setup(x => x.GetAllReaderStatusesAsync()).ReturnsAsync(new Dictionary<Guid, bool>());
+        _mockPluginLoader.Setup(x => x.LoadPluginsAsync()).ReturnsAsync(plugins);
+
+        // Act
+        await _viewModel.InitializeCommand.ExecuteAsync(null);
+
+        // Assert
+        Assert.That(_viewModel.Readers.Count, Is.EqualTo(2));
+        Assert.That(_viewModel.AvailablePlugins.Count, Is.EqualTo(2));
+        Assert.That(_viewModel.IsLoading, Is.False);
+        Assert.That(_viewModel.ErrorMessage, Is.Null);
+    }
+
+    [Test]
+    public async Task InitializeAsync_HandlesErrors()
+    {
+        // Arrange
+        _mockReaderConfigService.Setup(x => x.GetAllReadersAsync())
+            .ThrowsAsync(new Exception("Database error"));
+
+        // Act
+        await _viewModel.InitializeCommand.ExecuteAsync(null);
+
+        // Assert
+        Assert.That(_viewModel.IsLoading, Is.False);
+        Assert.That(_viewModel.ErrorMessage, Does.Contain("Failed to initialize"));
+    }
+
+    [Test]
+    public async Task AddReaderCommand_OpensModalWithEmptyForm()
+    {
+        // Act
+        await _viewModel.AddReaderCommand.ExecuteAsync(null);
+
+        // Assert
+        Assert.That(_viewModel.IsModalVisible, Is.True);
+        Assert.That(_viewModel.IsEditMode, Is.False);
+        Assert.That(_viewModel.EditingReaderId, Is.Null);
+        Assert.That(_viewModel.ReaderForm.ReaderName, Is.Empty);
+        Assert.That(_viewModel.SelectedPluginIds.Count, Is.EqualTo(0));
+    }
+
+    [Test]
+    public async Task EditReaderCommand_LoadsReaderDataAndPlugins()
+    {
+        // Arrange
+        var readerId = Guid.NewGuid();
+        var reader = new ReaderConfiguration
+        {
+            ReaderId = readerId,
+            ReaderName = "Test Reader",
+            Address = 1,
+            SerialPort = "COM1"
+        };
+
+        var assignedPlugins = new List<string> { "Plugin1", "Plugin2" };
+
+        _mockReaderConfigService.Setup(x => x.GetReaderAsync(readerId)).ReturnsAsync(reader);
+        _mockMappingService.Setup(x => x.GetPluginsForReaderAsync(readerId)).ReturnsAsync(assignedPlugins);
+
+        // Act
+        await _viewModel.EditReaderCommand.ExecuteAsync(readerId);
+
+        // Assert
+        Assert.That(_viewModel.IsModalVisible, Is.True);
+        Assert.That(_viewModel.IsEditMode, Is.True);
+        Assert.That(_viewModel.EditingReaderId, Is.EqualTo(readerId));
+        Assert.That(_viewModel.ReaderForm.ReaderName, Is.EqualTo("Test Reader"));
+        Assert.That(_viewModel.SelectedPluginIds.Count, Is.EqualTo(2));
+        Assert.That(_viewModel.SelectedPluginIds.Contains("Plugin1"), Is.True);
+        Assert.That(_viewModel.SelectedPluginIds.Contains("Plugin2"), Is.True);
+    }
+
+    [Test]
+    public async Task SaveReaderCommand_CreatesNewReader()
+    {
+        // Arrange
+        _viewModel.IsEditMode = false;
+        _viewModel.ReaderForm.ReaderName = "New Reader";
+        _viewModel.ReaderForm.Address = 1;
+        _viewModel.SelectedPluginIds.Add("Plugin1");
+        _viewModel.SelectedPluginIds.Add("Plugin2");
+
+        _mockReaderConfigService.Setup(x => x.SaveReaderAsync(It.IsAny<ReaderConfiguration>()))
+            .Returns(Task.CompletedTask);
+        _mockMappingService.Setup(x => x.SetPluginsForReaderAsync(It.IsAny<Guid>(), It.IsAny<IEnumerable<string>>()))
+            .Returns(Task.CompletedTask);
+
+        // Act
+        await _viewModel.SaveReaderCommand.ExecuteAsync(null);
+
+        // Assert
+        _mockReaderConfigService.Verify(x => x.SaveReaderAsync(It.Is<ReaderConfiguration>(
+            r => r.ReaderName == "New Reader" && r.Address == 1)), Times.Once);
+        _mockMappingService.Verify(x => x.SetPluginsForReaderAsync(
+            It.IsAny<Guid>(), 
+            It.Is<IEnumerable<string>>(p => p.Count() == 2)), Times.Once);
+        Assert.That(_viewModel.IsModalVisible, Is.False);
+    }
+
+    [Test]
+    public async Task SaveReaderCommand_UpdatesExistingReader()
+    {
+        // Arrange
+        var readerId = Guid.NewGuid();
+        _viewModel.IsEditMode = true;
+        _viewModel.EditingReaderId = readerId;
+        _viewModel.ReaderForm.ReaderName = "Updated Reader";
+        _viewModel.SelectedPluginIds.Add("Plugin3");
+
+        _mockReaderConfigService.Setup(x => x.SaveReaderAsync(It.IsAny<ReaderConfiguration>()))
+            .Returns(Task.CompletedTask);
+        _mockMappingService.Setup(x => x.SetPluginsForReaderAsync(It.IsAny<Guid>(), It.IsAny<IEnumerable<string>>()))
+            .Returns(Task.CompletedTask);
+
+        // Act
+        await _viewModel.SaveReaderCommand.ExecuteAsync(null);
+
+        // Assert
+        _mockReaderConfigService.Verify(x => x.SaveReaderAsync(It.Is<ReaderConfiguration>(
+            r => r.ReaderId == readerId && r.ReaderName == "Updated Reader")), Times.Once);
+        _mockMappingService.Verify(x => x.SetPluginsForReaderAsync(
+            readerId, 
+            It.Is<IEnumerable<string>>(p => p.Count() == 1 && p.Contains("Plugin3"))), Times.Once);
+    }
+
+    [Test]
+    public async Task DeleteReaderCommand_CallsDeleteService()
+    {
+        // Arrange
+        var readerId = Guid.NewGuid();
+        _viewModel.ReaderToDelete = new ReaderConfiguration { ReaderId = readerId, ReaderName = "Test" };
+
+        _mockReaderConfigService.Setup(x => x.DeleteReaderAsync(readerId))
+            .Returns(Task.CompletedTask);
+
+        // Act
+        await _viewModel.ConfirmDeleteCommand.ExecuteAsync(null);
+
+        // Assert
+        _mockReaderConfigService.Verify(x => x.DeleteReaderAsync(readerId), Times.Once);
+        Assert.That(_viewModel.IsDeleteModalVisible, Is.False);
+        Assert.That(_viewModel.ReaderToDelete, Is.Null);
+    }
+
+    [Test]
+    public void TogglePluginSelection_AddsAndRemovesPlugins()
+    {
+        // Arrange
+        var pluginId = "Plugin1";
+
+        // Act - Add plugin
+        _viewModel.TogglePluginSelectionCommand.Execute(pluginId);
+
+        // Assert
+        Assert.That(_viewModel.SelectedPluginIds.Contains(pluginId), Is.True);
+
+        // Act - Remove plugin
+        _viewModel.TogglePluginSelectionCommand.Execute(pluginId);
+
+        // Assert
+        Assert.That(_viewModel.SelectedPluginIds.Contains(pluginId), Is.False);
+    }
+
+    [Test]
+    public void MovePluginUp_ChangesOrder()
+    {
+        // Arrange
+        _viewModel.SelectedPluginIds.Add("Plugin1");
+        _viewModel.SelectedPluginIds.Add("Plugin2");
+        _viewModel.SelectedPluginIds.Add("Plugin3");
+
+        // Act
+        _viewModel.MovePluginUpCommand.Execute("Plugin2");
+
+        // Assert
+        Assert.That(_viewModel.SelectedPluginIds[0], Is.EqualTo("Plugin2"));
+        Assert.That(_viewModel.SelectedPluginIds[1], Is.EqualTo("Plugin1"));
+        Assert.That(_viewModel.SelectedPluginIds[2], Is.EqualTo("Plugin3"));
+    }
+
+    [Test]
+    public void MovePluginDown_ChangesOrder()
+    {
+        // Arrange
+        _viewModel.SelectedPluginIds.Add("Plugin1");
+        _viewModel.SelectedPluginIds.Add("Plugin2");
+        _viewModel.SelectedPluginIds.Add("Plugin3");
+
+        // Act
+        _viewModel.MovePluginDownCommand.Execute("Plugin2");
+
+        // Assert
+        Assert.That(_viewModel.SelectedPluginIds[0], Is.EqualTo("Plugin1"));
+        Assert.That(_viewModel.SelectedPluginIds[1], Is.EqualTo("Plugin3"));
+        Assert.That(_viewModel.SelectedPluginIds[2], Is.EqualTo("Plugin2"));
+    }
+
+    [Test]
+    public async Task SignalR_ReaderStatusUpdate_UpdatesViewModel()
+    {
+        // Arrange
+        var readerId = Guid.NewGuid();
+        var reader = new ReaderConfiguration { ReaderId = readerId, ReaderName = "Test" };
+        _viewModel.Readers.Add(reader);
+
+        var statusUpdate = new ReaderStatusNotification
+        {
+            ReaderId = readerId,
+            IsOnline = true
+        };
+
+        // Simulate SignalR callback
+        var callback = GetSignalRCallback<ReaderStatusNotification>("ReaderStatusChanged");
+
+        // Act
+        await callback(statusUpdate);
+
+        // Assert
+        Assert.That(_viewModel.ReaderStatuses[readerId], Is.True);
+    }
+
+    [Test]
+    public void Validation_ReaderName_Required()
+    {
+        // Arrange
+        _viewModel.ReaderForm.ReaderName = "";
+
+        // Act
+        var isValid = _viewModel.ValidateForm();
+
+        // Assert
+        Assert.That(isValid, Is.False);
+        Assert.That(_viewModel.ValidationErrors.ContainsKey("ReaderName"), Is.True);
+    }
+
+    [Test]
+    public void Validation_ReaderName_MinLength()
+    {
+        // Arrange
+        _viewModel.ReaderForm.ReaderName = "A";
+
+        // Act
+        var isValid = _viewModel.ValidateForm();
+
+        // Assert
+        Assert.That(isValid, Is.False);
+        Assert.That(_viewModel.ValidationErrors["ReaderName"], Does.Contain("at least 2 characters"));
+    }
+
+    [Test]
+    public void CopyPluginsCommand_CopiesFromOneReaderToAnother()
+    {
+        // Arrange
+        var sourceId = Guid.NewGuid();
+        var targetId = Guid.NewGuid();
+        _viewModel.SourceReaderId = sourceId;
+        _viewModel.TargetReaderId = targetId;
+
+        _mockMappingService.Setup(x => x.CopyMappingsAsync(sourceId, targetId))
+            .Returns(Task.CompletedTask);
+
+        // Act
+        _viewModel.CopyPluginsCommand.ExecuteAsync(null).Wait();
+
+        // Assert
+        _mockMappingService.Verify(x => x.CopyMappingsAsync(sourceId, targetId), Times.Once);
+    }
+
+    [Test]
+    public async Task RefreshCommand_ReloadsAllData()
+    {
+        // Arrange
+        var readers = new List<ReaderConfiguration>
+        {
+            new() { ReaderId = Guid.NewGuid(), ReaderName = "Reader 1" }
+        };
+
+        _mockReaderConfigService.Setup(x => x.GetAllReadersAsync()).ReturnsAsync(readers);
+        _mockReaderService.Setup(x => x.GetAllReaderStatusesAsync()).ReturnsAsync(new Dictionary<Guid, bool>());
+
+        // Act
+        await _viewModel.RefreshCommand.ExecuteAsync(null);
+
+        // Assert
+        _mockReaderConfigService.Verify(x => x.GetAllReadersAsync(), Times.Once);
+        _mockReaderService.Verify(x => x.GetAllReaderStatusesAsync(), Times.Once);
+        Assert.That(_viewModel.Readers.Count, Is.EqualTo(1));
+    }
+
+    private IApBoxPlugin CreateMockPlugin(string id)
+    {
+        var mock = new Mock<IApBoxPlugin>();
+        mock.Setup(x => x.Id).Returns(new Guid(id.PadRight(32, '0')));
+        mock.Setup(x => x.Name).Returns(id);
+        mock.Setup(x => x.Version).Returns("1.0.0");
+        mock.Setup(x => x.Description).Returns($"Test plugin {id}");
+        return mock.Object;
+    }
+
+    private Func<T, Task> GetSignalRCallback<T>(string methodName)
+    {
+        // Get the callback that was registered with the hub connection
+        var invocation = _mockHubConnection.Invocations
+            .FirstOrDefault(i => i.Method.Name == "On" && i.Arguments[0].ToString() == methodName);
+        
+        return invocation?.Arguments[1] as Func<T, Task> ?? throw new InvalidOperationException($"No callback found for {methodName}");
+    }
+}
