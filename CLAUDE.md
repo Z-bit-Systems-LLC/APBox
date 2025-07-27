@@ -216,3 +216,31 @@ The detailed implementation plan is in `apbox_project_plan.md` (excluded from gi
   - Consider making services singleton if they don't need DbContext state
 - **Avoid tight coupling** - Services should only depend on what they actually need
 - **Use events and callbacks** instead of passing service providers for cross-cutting concerns
+
+## Database Design Patterns
+
+- **SQLite stores GUIDs as strings** - Entity models should use `string` for ID fields, not `Guid`
+- **Use Dapper for data access** - Project uses Dapper with raw SQL, not Entity Framework
+- **Migration pattern**: SQL files in `Data/Migrations` folder, executed by `MigrationRunner`
+- **Repository testing**: Use in-memory SQLite with shared connection string:
+  ```csharp
+  _testConnectionString = $"Data Source=file:memdb{Guid.NewGuid():N}?mode=memory&cache=shared";
+  ```
+- **Foreign key constraints**: SQLite enforces these, so ensure parent records exist in tests
+- **Snake_case naming**: Database columns use snake_case, mapped to PascalCase in entities
+
+## Plugin Selection Architecture
+
+- **Reader-Plugin Mapping**: Many-to-many relationship stored in `reader_plugin_mappings` table
+- **Execution Order**: Plugins can be ordered per reader using `execution_order` field
+- **Selective Execution**: Only plugins assigned to a reader are executed for that reader's events
+- **Entity Design**: Use string ReaderId in entities to match SQLite storage:
+  ```csharp
+  public class ReaderPluginMappingEntity
+  {
+      public string ReaderId { get; set; } = string.Empty;  // Not Guid!
+      public string PluginId { get; set; } = string.Empty;
+      // ...
+  }
+  ```
+- **Test Pattern**: Always ensure reader exists before creating mappings in tests to satisfy FK constraints
