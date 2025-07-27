@@ -1,5 +1,6 @@
 using ApBox.Core.Models;
 using ApBox.Plugins;
+using System.Linq;
 
 namespace ApBox.Core.Services;
 
@@ -13,15 +14,18 @@ public class CardProcessingService : ICardProcessingService
 {
     private readonly IPluginLoader _pluginLoader;
     private readonly IFeedbackConfigurationService _feedbackConfigurationService;
+    private readonly IReaderPluginMappingService _readerPluginMappingService;
     private readonly ILogger<CardProcessingService> _logger;
     
     public CardProcessingService(
         IPluginLoader pluginLoader,
         IFeedbackConfigurationService feedbackConfigurationService,
+        IReaderPluginMappingService readerPluginMappingService,
         ILogger<CardProcessingService> logger)
     {
         _pluginLoader = pluginLoader;
         _feedbackConfigurationService = feedbackConfigurationService;
+        _readerPluginMappingService = readerPluginMappingService;
         _logger = logger;
     }
     
@@ -32,7 +36,16 @@ public class CardProcessingService : ICardProcessingService
         
         try
         {
-            var plugins = await _pluginLoader.LoadPluginsAsync();
+            // Get plugins assigned to this reader
+            var readerPluginIds = await _readerPluginMappingService.GetPluginsForReaderAsync(cardRead.ReaderId);
+            var allPlugins = await _pluginLoader.LoadPluginsAsync();
+            
+            // Filter to only plugins configured for this reader
+            var plugins = allPlugins.Where(p => readerPluginIds.Contains(p.Id.ToString())).ToList();
+            
+            _logger.LogDebug("Reader {ReaderId} has {ConfiguredCount} plugins configured out of {TotalCount} available", 
+                cardRead.ReaderId, plugins.Count, allPlugins.Count());
+            
             var results = new List<(string PluginName, bool Success)>();
             var pluginResults = new List<PluginResult>();
             
