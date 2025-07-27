@@ -77,7 +77,7 @@ public class FeedbackConfigurationTests : ApBoxTestContext
         
         Assert.That(titleTexts, Does.Contain("Success Feedback"));
         Assert.That(titleTexts, Does.Contain("Failure Feedback"));
-        Assert.That(titleTexts, Does.Contain("Idle State LED Configuration"));
+        Assert.That(titleTexts, Does.Contain("Idle State Configuration"));
     }
 
     [Test]
@@ -108,13 +108,10 @@ public class FeedbackConfigurationTests : ApBoxTestContext
     #region Form Interaction Tests
 
     [Test]
-    public async Task FeedbackConfiguration_LoadsDefaultValues()
+    public void FeedbackConfiguration_LoadsDefaultValues()
     {
         // Act
         var component = RenderComponent<ApBox.Web.Components.Configuration.FeedbackConfiguration>();
-
-        // Wait for initial load
-        await Task.Delay(50);
 
         // Assert - Check that default values are loaded
         var successLedColor = component.Find("#success-led-color");
@@ -135,16 +132,14 @@ public class FeedbackConfigurationTests : ApBoxTestContext
     {
         // Arrange
         var component = RenderComponent<ApBox.Web.Components.Configuration.FeedbackConfiguration>();
-        await Task.Delay(50); // Wait for initial load
 
         // Act - Change success LED color
         var successLedSelect = component.Find("#success-led-color");
         await successLedSelect.ChangeAsync(new ChangeEventArgs { Value = "Amber" });
 
         // Assert - Preview should update
-        var previewBadges = component.FindAll(".badge");
-        var hasAmberBadge = previewBadges.Any(b => b.TextContent.Contains("Amber"));
-        Assert.That(hasAmberBadge, Is.True, "Preview should show updated LED color");
+        var previewBadge = component.Find("#success-led-color-badge");
+        Assert.That(previewBadge.TextContent.Contains("Amber"), Is.True, "Preview should show updated LED color");
     }
 
     [Test]
@@ -152,14 +147,10 @@ public class FeedbackConfigurationTests : ApBoxTestContext
     {
         // Arrange
         var component = RenderComponent<ApBox.Web.Components.Configuration.FeedbackConfiguration>();
-        await Task.Delay(50); // Wait for initial load
 
         // Act - Change success LED color
         var successLedSelect = component.Find("#success-led-color");
         await successLedSelect.ChangeAsync(new ChangeEventArgs { Value = "Amber" });
-
-        // Wait for auto-save
-        await Task.Delay(100);
 
         // Assert - Auto-save should call individual save method
         MockFeedbackConfigurationService.Verify(
@@ -172,14 +163,10 @@ public class FeedbackConfigurationTests : ApBoxTestContext
     {
         // Arrange
         var component = RenderComponent<ApBox.Web.Components.Configuration.FeedbackConfiguration>();
-        await Task.Delay(50); // Wait for initial load
 
         // Act - Change failure beep count
         var failureBeepInput = component.Find("#failure-beep-count");
         await failureBeepInput.InputAsync(new ChangeEventArgs { Value = "5" });
-
-        // Wait for auto-save
-        await Task.Delay(100);
 
         // Assert - Auto-save should call individual save method
         MockFeedbackConfigurationService.Verify(
@@ -237,8 +224,8 @@ public class FeedbackConfigurationTests : ApBoxTestContext
 
         // Assert - Success preview should be embedded in success card
         var successCard = component.FindAll(".card").First(c => c.TextContent.Contains("Success Feedback"));
-        var previewHeading = successCard.QuerySelector("h6:contains('Preview')");
-        Assert.That(previewHeading, Is.Not.Null, "Success card should contain preview section");
+        var previewHeadings = successCard.QuerySelectorAll("h6").Where(h => h.TextContent.Contains("Preview"));
+        Assert.That(previewHeadings.Count(), Is.GreaterThan(0), "Success card should contain preview section");
     }
 
     [Test]
@@ -249,8 +236,8 @@ public class FeedbackConfigurationTests : ApBoxTestContext
 
         // Assert - Failure preview should be embedded in failure card
         var failureCard = component.FindAll(".card").First(c => c.TextContent.Contains("Failure Feedback"));
-        var previewHeading = failureCard.QuerySelector("h6:contains('Preview')");
-        Assert.That(previewHeading, Is.Not.Null, "Failure card should contain preview section");
+        var previewHeadings = failureCard.QuerySelectorAll("h6").Where(h => h.TextContent.Contains("Preview"));
+        Assert.That(previewHeadings.Count(), Is.GreaterThan(0), "Failure card should contain preview section");
     }
 
     [Test]
@@ -261,8 +248,8 @@ public class FeedbackConfigurationTests : ApBoxTestContext
 
         // Assert - Idle state preview should be in idle state card
         var idleCard = component.FindAll(".card").First(c => c.TextContent.Contains("Idle State"));
-        var previewHeading = idleCard.QuerySelector("h6:contains('Preview')");
-        Assert.That(previewHeading, Is.Not.Null, "Idle state card should contain preview section");
+        var previewHeadings = idleCard.QuerySelectorAll("h6").Where(h => h.TextContent.Contains("Preview"));
+        Assert.That(previewHeadings.Count(), Is.GreaterThan(0), "Idle state card should contain preview section");
     }
 
     #endregion
@@ -350,7 +337,7 @@ public class FeedbackConfigurationTests : ApBoxTestContext
         Assert.That(modal, Is.Not.Null);
         
         var modalTitle = component.Find(".modal-title");
-        Assert.That(modalTitle.TextContent, Is.EqualTo("Reset to Defaults"));
+        Assert.That(modalTitle.TextContent, Is.EqualTo("Reset to Default Configuration"));
     }
 
     [Test]

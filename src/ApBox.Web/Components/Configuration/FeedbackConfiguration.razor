@@ -78,7 +78,7 @@
                             <CardBody>
                                 <Heading Size="HeadingSize.Is6">Preview</Heading>
                                 <Div Flex="Flex.JustifyContent.Start.AlignItems.Center" Margin="Margin.Is2.FromBottom">
-                                    <Badge Color="@GetFeedbackBadgeColor(ViewModel.SuccessLedColor)" Margin="Margin.Is2.FromEnd">
+                                    <Badge Color="@GetFeedbackBadgeColor(ViewModel.SuccessLedColor)" Margin="Margin.Is2.FromEnd" ElementId="success-led-color-badge">
                                         @ViewModel.SuccessLedColor
                                     </Badge>
                                     <Badge Color="Color.Info" Margin="Margin.Is2.FromEnd">@ViewModel.SuccessLedDurationSeconds sec</Badge>
@@ -182,23 +182,26 @@
                                 </Field>
                             </Column>
                         </Row>
+                        
+                        <!-- Idle State Preview -->
+                        <Card Background="Background.Light" Margin="Margin.Is3.FromTop">
+                            <CardBody>
+                                <Heading Size="HeadingSize.Is6">Preview</Heading>
+                                <Div Flex="Flex.JustifyContent.Start.AlignItems.Center" Margin="Margin.Is2.FromBottom">
+                                    <Badge Color="@GetFeedbackBadgeColor(ViewModel.IdlePermanentLedColor)" Margin="Margin.Is2.FromEnd">
+                                        Permanent: @ViewModel.IdlePermanentLedColor
+                                    </Badge>
+                                    <Badge Color="@GetFeedbackBadgeColor(ViewModel.IdleHeartbeatFlashColor)">
+                                        Flash: @ViewModel.IdleHeartbeatFlashColor
+                                    </Badge>
+                                </Div>
+                            </CardBody>
+                        </Card>
                     </CardBody>
                 </Card>
             </Column>
         </Row>
 
-        <Row Margin="Margin.Is3.FromTop">
-            <Column TextAlignment="TextAlignment.End">
-                <Div Display="Display.Flex" JustifyContent="JustifyContent.Between" AlignItems="AlignItems.Center">
-                    <Div>
-                        <Switch @bind-Checked="ViewModel.AutoSaveEnabled" ElementId="auto-save-switch">
-                            <Icon Name="IconName.Save" Margin="Margin.Is2.FromEnd" />
-                            Auto-save enabled
-                        </Switch>
-                    </Div>
-                </Div>
-            </Column>
-        </Row>
     }
 </Container>
 
@@ -225,8 +228,8 @@
             <Text TextColor="TextColor.Muted" Margin="Margin.Is2.FromTop">This action will overwrite your current configuration.</Text>
         </ModalBody>
         <ModalFooter>
-            <Button Color="Color.Secondary" Clicked="() => ViewModel.CancelResetCommand.Execute(null)">Cancel</Button>
-            <Button Color="Color.Warning" Clicked="() => ViewModel.ResetToDefaultsCommand.Execute(null)" Loading="ViewModel.IsResetting">
+            <Button Color="Color.Secondary" Clicked="() => ViewModel.CancelResetCommand.Execute(null)" ElementId="reset-cancel-btn">Cancel</Button>
+            <Button Color="Color.Warning" Clicked="() => ViewModel.ResetToDefaultsCommand.Execute(null)" Loading="ViewModel.IsResetting" ElementId="reset-confirm-btn">
                 <Icon Name="IconName.Undo" Margin="Margin.Is2.FromEnd" />
                 Reset to Defaults
             </Button>

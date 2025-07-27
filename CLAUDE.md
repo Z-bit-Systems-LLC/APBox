@@ -244,3 +244,7 @@ The detailed implementation plan is in `apbox_project_plan.md` (excluded from gi
   }
   ```
 - **Test Pattern**: Always ensure reader exists before creating mappings in tests to satisfy FK constraints
+
+## Development Memories
+
+- Don't commit until entire project builds and all tests pass

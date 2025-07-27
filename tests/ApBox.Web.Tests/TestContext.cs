@@ -35,6 +35,7 @@ public class ApBoxTestContext : Bunit.TestContext
     public Mock<ICardProcessingOrchestrator> MockCardProcessingOrchestrator { get; private set; }
     public Mock<IHubConnectionWrapper> MockHubConnectionWrapper { get; private set; }
     public Mock<IReaderPluginMappingService> MockReaderPluginMappingService { get; private set; }
+    public Mock<ISerialPortService> MockSerialPortService { get; private set; }
 
     public ApBoxTestContext()
     {
@@ -52,9 +53,22 @@ public class ApBoxTestContext : Bunit.TestContext
         MockCardProcessingOrchestrator = new Mock<ICardProcessingOrchestrator>();
         MockHubConnectionWrapper = new Mock<IHubConnectionWrapper>();
         MockReaderPluginMappingService = new Mock<IReaderPluginMappingService>();
+        MockSerialPortService = new Mock<ISerialPortService>();
         
         // Setup hub connection wrapper to return disconnected state by default
         MockHubConnectionWrapper.Setup(x => x.State).Returns(HubConnectionState.Disconnected);
+        MockHubConnectionWrapper.Setup(x => x.StartAsync(It.IsAny<CancellationToken>())).Returns(Task.CompletedTask);
+        MockHubConnectionWrapper.Setup(x => x.StopAsync(It.IsAny<CancellationToken>())).Returns(Task.CompletedTask);
+        MockHubConnectionWrapper.Setup(x => x.DisposeAsync()).Returns(ValueTask.CompletedTask);
+        
+        // Setup event handler registration to return disposable
+        MockHubConnectionWrapper.Setup(x => x.On<It.IsAnyType>(It.IsAny<string>(), It.IsAny<Func<It.IsAnyType, Task>>()))
+            .Returns(Mock.Of<IDisposable>());
+        MockHubConnectionWrapper.Setup(x => x.On<It.IsAnyType, It.IsAnyType>(It.IsAny<string>(), It.IsAny<Func<It.IsAnyType, It.IsAnyType, Task>>()))
+            .Returns(Mock.Of<IDisposable>());
+        
+        // Setup serial port service
+        MockSerialPortService.Setup(x => x.GetAvailablePortNames()).Returns(new[] { "COM1", "COM2", "COM3" });
 
         // Configure Blazorise for testing
         Services
@@ -80,9 +94,12 @@ public class ApBoxTestContext : Bunit.TestContext
         Services.AddSingleton(MockCardProcessingOrchestrator.Object);
         Services.AddScoped<IHubConnectionWrapper>(_ => MockHubConnectionWrapper.Object);
         Services.AddSingleton(MockReaderPluginMappingService.Object);
+        Services.AddSingleton(MockSerialPortService.Object);
         
-        // Register DashboardViewModel with its dependencies
+        // Register ViewModels
         Services.AddScoped<DashboardViewModel>();
+        Services.AddScoped<ReadersConfigurationViewModel>();
+        Services.AddScoped<FeedbackConfigurationViewModel>();
 
         // Add other required services
         Services.AddLogging();
@@ -108,6 +125,20 @@ public class ApBoxTestContext : Bunit.TestContext
         MockConfigurationExportService.Reset();
         MockSystemRestartService.Reset();
         MockReaderPluginMappingService.Reset();
+        MockSerialPortService.Reset();
+        MockHubConnectionWrapper.Reset();
+        
+        // Re-setup default behaviors after reset
+        MockHubConnectionWrapper.Setup(x => x.State).Returns(HubConnectionState.Disconnected);
+        MockHubConnectionWrapper.Setup(x => x.StartAsync(It.IsAny<CancellationToken>())).Returns(Task.CompletedTask);
+        MockHubConnectionWrapper.Setup(x => x.StopAsync(It.IsAny<CancellationToken>())).Returns(Task.CompletedTask);
+        MockHubConnectionWrapper.Setup(x => x.DisposeAsync()).Returns(ValueTask.CompletedTask);
+        MockHubConnectionWrapper.Setup(x => x.On<It.IsAnyType>(It.IsAny<string>(), It.IsAny<Func<It.IsAnyType, Task>>()))
+            .Returns(Mock.Of<IDisposable>());
+        MockHubConnectionWrapper.Setup(x => x.On<It.IsAnyType, It.IsAnyType>(It.IsAny<string>(), It.IsAny<Func<It.IsAnyType, It.IsAnyType, Task>>()))
+            .Returns(Mock.Of<IDisposable>());
+            
+        MockSerialPortService.Setup(x => x.GetAvailablePortNames()).Returns(new[] { "COM1", "COM2", "COM3" });
     }
 
     public void SetupDefaultMocks()

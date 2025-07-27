@@ -69,6 +69,7 @@ public partial class ReadersConfigurationViewModel : ObservableValidator, IAsync
     // Form data
     [ObservableProperty]
     [Required(ErrorMessage = "Reader name is required")]
+    [StringLength(100, MinimumLength = 2, ErrorMessage = "Reader name must be between 2 and 100 characters")]
     private string _readerName = string.Empty;
 
     [ObservableProperty]
@@ -172,6 +173,14 @@ public partial class ReadersConfigurationViewModel : ObservableValidator, IAsync
             IsSaving = true;
             ErrorMessage = null;
 
+            // Validate all properties before saving
+            ValidateAllProperties();
+            if (HasErrors)
+            {
+                ErrorMessage = "Please fix validation errors before saving.";
+                return;
+            }
+
             var reader = new ReaderConfiguration
             {
                 ReaderId = EditingReader?.ReaderId ?? Guid.NewGuid(),
@@ -189,22 +198,16 @@ public partial class ReadersConfigurationViewModel : ObservableValidator, IAsync
             // Save reader (handles both add and update)
             await _readerConfigurationService.SaveReaderAsync(reader);
             
+            // Refresh data from service to ensure consistency
+            var readers = await _readerConfigurationService.GetAllReadersAsync();
+            Readers = new ObservableCollection<ReaderConfiguration>(readers);
+            
             if (EditingReader == null)
             {
-                // Add to collection for new reader
-                Readers.Add(reader);
                 SuccessMessage = "Reader added successfully";
             }
             else
             {
-                
-                // Update in collection
-                var index = Readers.IndexOf(EditingReader);
-                if (index >= 0)
-                {
-                    Readers[index] = reader;
-                }
-                
                 SuccessMessage = "Reader updated successfully";
             }
 
@@ -240,7 +243,10 @@ public partial class ReadersConfigurationViewModel : ObservableValidator, IAsync
             ErrorMessage = null;
 
             await _readerConfigurationService.DeleteReaderAsync(ReaderToDelete.ReaderId);
-            Readers.Remove(ReaderToDelete);
+            
+            // Refresh data from service to ensure consistency
+            var readers = await _readerConfigurationService.GetAllReadersAsync();
+            Readers = new ObservableCollection<ReaderConfiguration>(readers);
             
             SuccessMessage = "Reader deleted successfully";
             ShowDeleteModal = false;

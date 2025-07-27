@@ -114,9 +114,10 @@ public class ConfigurationPageTests : ApBoxTestContext
         var feedbackTab = component.Find("#feedback-tab");
         feedbackTab.Click();
 
-        // Assert - Updated to match actual component structure
-        var feedbackContent = component.Find("h6:contains('Success Feedback')");
-        Assert.That(feedbackContent, Is.Not.Null);
+        // Assert - Check that feedback configuration is loaded
+        var feedbackTitle = component.Find("#feedback-title");
+        Assert.That(feedbackTitle, Is.Not.Null);
+        Assert.That(feedbackTitle.TextContent, Is.EqualTo("Default Feedback Configuration"));
         
         // Switch to plugins tab
         var pluginsTab = component.Find("#plugins-tab");

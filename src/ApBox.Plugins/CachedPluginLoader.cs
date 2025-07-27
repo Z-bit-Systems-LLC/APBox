@@ -14,7 +14,7 @@ public class CachedPluginLoader : IPluginLoader, IDisposable
     private readonly List<PluginMetadata> _availablePlugins = new();
     private readonly SemaphoreSlim _loadLock = new(1, 1);
     private FileSystemWatcher? _fileWatcher;
-    private bool _pluginsLoaded = false;
+    private bool _pluginsLoaded;
     private DateTime _lastLoadTime = DateTime.MinValue;
     
     public CachedPluginLoader(string pluginDirectory, ILogger<CachedPluginLoader>? logger = null)
@@ -126,7 +126,7 @@ public class CachedPluginLoader : IPluginLoader, IDisposable
             {
                 try
                 {
-                    var plugins = await LoadPluginsFromAssemblyAsync(assemblyFile);
+                    var plugins = (await LoadPluginsFromAssemblyAsync(assemblyFile)).ToArray();
                     loadedPlugins.AddRange(plugins);
                     _logger?.LogInformation("Loaded {PluginCount} plugins from {AssemblyFile}", plugins.Count(), Path.GetFileName(assemblyFile));
                 }
@@ -255,6 +255,6 @@ public class CachedPluginLoader : IPluginLoader, IDisposable
         
         _loadedPlugins.Clear();
         _availablePlugins.Clear();
-        _loadLock?.Dispose();
+        _loadLock.Dispose();
     }
 }

@@ -7,6 +7,7 @@ using ApBox.Core.Models;
 using ApBox.Plugins;
 using ApBox.Web.Hubs;
 using ApBox.Web.Services;
+using Microsoft.AspNetCore.SignalR.Client;
 
 namespace ApBox.Web.ViewModels;
 
@@ -274,7 +275,7 @@ public partial class DashboardViewModel(
     /// <summary>
     /// Disposes resources
     /// </summary>
-    private bool _disposed = false;
+    private bool _disposed;
 
     public async ValueTask DisposeAsync()
     {

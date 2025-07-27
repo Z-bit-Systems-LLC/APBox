@@ -1,6 +1,4 @@
-@using ApBox.Core.Services
 @using ApBox.Core.Models
-@using System.ComponentModel.DataAnnotations
 @using ApBox.Web.ViewModels
 @using ApBox.Web.Helpers
 
@@ -247,7 +245,7 @@
         </ModalBody>
         <ModalFooter>
             <Button Color="Color.Secondary" Clicked="() => ViewModel.CloseReaderModalCommand.Execute(null)">Cancel</Button>
-            <Button Color="Color.Primary" Clicked="SaveReader" Loading="ViewModel.IsSaving">
+            <Button Color="Color.Primary" Clicked="SaveReader" Loading="ViewModel.IsSaving" ElementId="save-reader-button">
                 <Icon Name="IconName.Save" Margin="Margin.Is2.FromEnd" />
                 @(ViewModel.EditingReader != null ? "Update" : "Add") Reader
             </Button>
@@ -268,7 +266,7 @@
         </ModalBody>
         <ModalFooter>
             <Button Color="Color.Secondary" Clicked="() => ViewModel.CancelDeleteCommand.Execute(null)">Cancel</Button>
-            <Button Color="Color.Danger" Clicked="() => ViewModel.DeleteReaderCommand.Execute(null)" Loading="ViewModel.IsDeleting">
+            <Button Color="Color.Danger" Clicked="() => ViewModel.DeleteReaderCommand.Execute(null)" Loading="ViewModel.IsDeleting" ElementId="confirm-delete-button">
                 <Icon Name="IconName.Delete" Margin="Margin.Is2.FromEnd" />
                 Delete
             </Button>
@@ -292,7 +290,7 @@
         await ViewModel.InitializeCommand.ExecuteAsync(null);
         
         // Watch for success messages
-        ViewModel.PropertyChanged += async (sender, args) =>
+        ViewModel.PropertyChanged += async (_, args) =>
         {
             if (args.PropertyName == nameof(ViewModel.SuccessMessage) && !string.IsNullOrEmpty(ViewModel.SuccessMessage))
             {

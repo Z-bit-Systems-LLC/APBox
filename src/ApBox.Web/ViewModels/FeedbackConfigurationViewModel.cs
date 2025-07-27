@@ -32,8 +32,6 @@ public partial class FeedbackConfigurationViewModel : ObservableObject, IAsyncDi
     [ObservableProperty]
     private bool _isResetting;
 
-    [ObservableProperty]
-    private bool _autoSaveEnabled = true;
 
     [ObservableProperty]
     private string? _errorMessage;
@@ -89,7 +87,6 @@ public partial class FeedbackConfigurationViewModel : ObservableObject, IAsyncDi
         {
             IsLoading = true;
             ErrorMessage = null;
-            AutoSaveEnabled = false; // Disable auto-save during loading
 
             await LoadConfiguration();
         }
@@ -101,7 +98,6 @@ public partial class FeedbackConfigurationViewModel : ObservableObject, IAsyncDi
         finally
         {
             IsLoading = false;
-            AutoSaveEnabled = true;
         }
     }
 
@@ -172,10 +168,7 @@ public partial class FeedbackConfigurationViewModel : ObservableObject, IAsyncDi
     [RelayCommand]
     private async Task SaveConfigurationAsync()
     {
-        if (AutoSaveEnabled)
-        {
-            await SaveConfiguration();
-        }
+        await SaveConfiguration();
     }
 
     private async Task SaveConfiguration()
@@ -241,17 +234,78 @@ public partial class FeedbackConfigurationViewModel : ObservableObject, IAsyncDi
         base.OnPropertyChanged(e);
 
         // Auto-save when form properties change
-        if (AutoSaveEnabled && IsFormProperty(e.PropertyName))
+        if (IsFormProperty(e.PropertyName))
         {
-            _ = SaveConfigurationAsync();
+            _ = AutoSavePropertyAsync(e.PropertyName);
+        }
+    }
+
+    private async Task AutoSavePropertyAsync(string? propertyName)
+    {
+        if (string.IsNullOrEmpty(propertyName) || IsLoading)
+            return;
+
+        try
+        {
+            if (IsSuccessProperty(propertyName))
+            {
+                var successFeedback = new ReaderFeedback
+                {
+                    Type = ReaderFeedbackType.Success,
+                    LedColor = SuccessLedColor,
+                    LedDuration = SuccessLedDurationSeconds,
+                    BeepCount = SuccessBeepCount,
+                    DisplayMessage = string.IsNullOrWhiteSpace(SuccessDisplayMessage) ? null : SuccessDisplayMessage
+                };
+                await _feedbackConfigurationService.SaveSuccessFeedbackAsync(successFeedback);
+            }
+            else if (IsFailureProperty(propertyName))
+            {
+                var failureFeedback = new ReaderFeedback
+                {
+                    Type = ReaderFeedbackType.Failure,
+                    LedColor = FailureLedColor,
+                    LedDuration = FailureLedDurationSeconds,
+                    BeepCount = FailureBeepCount,
+                    DisplayMessage = string.IsNullOrWhiteSpace(FailureDisplayMessage) ? null : FailureDisplayMessage
+                };
+                await _feedbackConfigurationService.SaveFailureFeedbackAsync(failureFeedback);
+            }
+            else if (IsIdleProperty(propertyName))
+            {
+                var idleState = new IdleStateFeedback
+                {
+                    PermanentLedColor = IdlePermanentLedColor,
+                    HeartbeatFlashColor = IdleHeartbeatFlashColor
+                };
+                await _feedbackConfigurationService.SaveIdleStateAsync(idleState);
+            }
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error auto-saving feedback configuration for property {PropertyName}", propertyName);
+            ErrorMessage = $"Error saving {propertyName}: {ex.Message}";
         }
     }
 
     private bool IsFormProperty(string? propertyName)
     {
-        return propertyName?.StartsWith("Success") == true ||
-               propertyName?.StartsWith("Failure") == true ||
-               propertyName?.StartsWith("Idle") == true;
+        return IsSuccessProperty(propertyName) || IsFailureProperty(propertyName) || IsIdleProperty(propertyName);
+    }
+
+    private bool IsSuccessProperty(string? propertyName)
+    {
+        return propertyName?.StartsWith("Success") == true;
+    }
+
+    private bool IsFailureProperty(string? propertyName)
+    {
+        return propertyName?.StartsWith("Failure") == true;
+    }
+
+    private bool IsIdleProperty(string? propertyName)
+    {
+        return propertyName?.StartsWith("Idle") == true;
     }
 
     public ValueTask DisposeAsync()

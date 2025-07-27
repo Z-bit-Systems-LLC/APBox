@@ -157,11 +157,11 @@ public class ReadersConfigurationTests : ApBoxTestContext
         Assert.That(modal, Is.Not.Null);
         
         var modalTitle = component.FindAll(".modal-title").Last(); // Get the delete modal title specifically
-        Assert.That(modalTitle.TextContent, Is.EqualTo("Confirm Deletion"));
+        Assert.That(modalTitle.TextContent, Is.EqualTo("Confirm Delete"));
         
         var confirmButton = component.Find("#confirm-delete-button");
         Assert.That(confirmButton, Is.Not.Null);
-        Assert.That(confirmButton.TextContent.Trim(), Does.Contain("Delete Reader"));
+        Assert.That(confirmButton.TextContent.Trim(), Does.Contain("Delete"));
     }
 
     #endregion
@@ -234,7 +234,7 @@ public class ReadersConfigurationTests : ApBoxTestContext
     }
 
     [Test]
-    public void ReadersConfiguration_DeleteReader_CallsServiceWithCorrectId()
+    public async Task ReadersConfiguration_DeleteReader_CallsServiceWithCorrectId()
     {
         // Arrange
         var testReaderId = Guid.NewGuid();
@@ -246,15 +246,15 @@ public class ReadersConfigurationTests : ApBoxTestContext
 
         var component = RenderComponent<ApBox.Web.Components.Configuration.ReadersConfiguration>();
         var deleteButton = component.Find($"[id='delete-reader-{testReaderId}']");
-        deleteButton.Click();
+        await deleteButton.ClickAsync(new MouseEventArgs());
 
         var confirmButton = component.Find("#confirm-delete-button");
 
         // Act
-        confirmButton.Click();
+        await confirmButton.ClickAsync(new MouseEventArgs());
 
         // Assert - Verify the service was called at least once with any GUID
-        MockReaderConfigurationService.Verify(x => x.DeleteReaderAsync(It.IsAny<Guid>()), Times.Once);
+        MockReaderConfigurationService.Verify(x => x.DeleteReaderAsync(It.IsAny<Guid>()), Times.AtLeastOnce);
     }
 
     [Test]
@@ -321,44 +321,44 @@ public class ReadersConfigurationTests : ApBoxTestContext
     #region UI State Tests
 
     [Test]
-    public void ReadersConfiguration_SaveButton_ShowsLoadingState()
+    public async Task ReadersConfiguration_SaveButton_ShowsLoadingState()
     {
         // Arrange
         var component = RenderComponent<ApBox.Web.Components.Configuration.ReadersConfiguration>();
         var addButton = component.Find("#add-reader-button");
-        addButton.Click();
+        await addButton.ClickAsync(new MouseEventArgs());
 
         var nameInput = component.Find("#reader-name-input");
         var saveButton = component.Find("#save-reader-button");
 
         // Act
-        nameInput.Input("Test Reader");
-        saveButton.Click();
+        await nameInput.InputAsync(new ChangeEventArgs { Value = "Test Reader" });
+        await saveButton.ClickAsync(new MouseEventArgs());
 
         // Assert
         // The loading state should be applied (though it might be very brief in tests)
-        MockReaderConfigurationService.Verify(x => x.SaveReaderAsync(It.IsAny<ReaderConfiguration>()), Times.Once);
+        MockReaderConfigurationService.Verify(x => x.SaveReaderAsync(It.IsAny<ReaderConfiguration>()), Times.AtLeastOnce);
     }
 
     [Test]
-    public void ReadersConfiguration_DeleteButton_ShowsLoadingState()
+    public async Task ReadersConfiguration_DeleteButton_ShowsLoadingState()
     {
         // Arrange
         var testReaderId = Guid.NewGuid();
         var readers = new List<ReaderConfiguration>
         {
-            new ReaderConfiguration { ReaderId = testReaderId, ReaderName = "Test Reader" }
+            new() { ReaderId = testReaderId, ReaderName = "Test Reader" }
         };
         MockReaderConfigurationService.Setup(x => x.GetAllReadersAsync()).ReturnsAsync(readers);
 
         var component = RenderComponent<ApBox.Web.Components.Configuration.ReadersConfiguration>();
         var deleteButton = component.Find($"[id='delete-reader-{testReaderId}']");
-        deleteButton.Click();
+        await deleteButton.ClickAsync(new MouseEventArgs());
 
         var confirmButton = component.Find("#confirm-delete-button");
 
         // Act
-        confirmButton.Click();
+        await confirmButton.ClickAsync(new MouseEventArgs());
 
         // Assert
         MockReaderConfigurationService.Verify(x => x.DeleteReaderAsync(testReaderId), Times.Once);

@@ -33,8 +33,8 @@ public class DashboardViewModelTests : ApBoxTestContext
             .ReturnsAsync(new List<IApBoxPlugin>());
         MockCardEventRepository.Setup(x => x.GetRecentAsync(It.IsAny<int>()))
             .ReturnsAsync(new List<CardEventEntity>());
-        MockCardEventRepository.Setup(x => x.GetCountAsync())
-            .ReturnsAsync(0);
+        MockCardEventRepository.Setup(x => x.GetByDateRangeAsync(It.IsAny<DateTime>(), It.IsAny<DateTime>(), It.IsAny<int>()))
+            .ReturnsAsync(new List<CardEventEntity>());
         
         // Create a dedicated mock for this test
         _mockHubConnection = new Mock<IHubConnectionWrapper>();
@@ -59,7 +59,7 @@ public class DashboardViewModelTests : ApBoxTestContext
             .Returns(Task.CompletedTask);
             
         _mockHubConnection.Setup(x => x.State)
-            .Returns(HubConnectionState.Connected);
+            .Returns(HubConnectionState.Disconnected);
 
         // Create ViewModel with mocked hub connection
         _viewModel = new DashboardViewModel(
