@@ -34,10 +34,12 @@ public static class ServiceCollectionExtensions
         services.AddSingleton<ICardEventRepository, CardEventRepository>();
         services.AddSingleton<IPluginConfigurationRepository, PluginConfigurationRepository>();
         services.AddSingleton<IFeedbackConfigurationRepository, FeedbackConfigurationRepository>();
+        services.AddSingleton<IReaderPluginMappingRepository, ReaderPluginMappingRepository>();
         
         // Register database-backed services
         services.AddSingleton<IReaderConfigurationService, ReaderConfigurationService>();
         services.AddSingleton<IFeedbackConfigurationService, FeedbackConfigurationService>();
+        services.AddSingleton<IReaderPluginMappingService, ReaderPluginMappingService>();
         
         // Register OSDP services
         services.AddSingleton<IOsdpSecurityService, OsdpSecurityService>();
