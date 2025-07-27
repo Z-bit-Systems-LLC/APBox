@@ -180,10 +180,18 @@ public partial class DashboardViewModel(
                 return;
             }
 
-            _hubConnection.On<CardEventNotification>("CardEventProcessed", OnCardEventProcessed);
-            _hubConnection.On<ReaderStatusNotification>("ReaderStatusChanged", OnReaderStatusChanged);
+            // Check if connection is in a valid state
+            if (_hubConnection.State == HubConnectionState.Disconnected)
+            {
+                _hubConnection.On<CardEventNotification>("CardEventProcessed", OnCardEventProcessed);
+                _hubConnection.On<ReaderStatusNotification>("ReaderStatusChanged", OnReaderStatusChanged);
 
-            await _hubConnection.StartAsync();
+                await _hubConnection.StartAsync();
+            }
+        }
+        catch (ObjectDisposedException)
+        {
+            // Connection was disposed, ignore
         }
         catch (Exception ex)
         {
@@ -266,11 +274,28 @@ public partial class DashboardViewModel(
     /// <summary>
     /// Disposes resources
     /// </summary>
+    private bool _disposed = false;
+
     public async ValueTask DisposeAsync()
     {
+        if (_disposed) return;
+        _disposed = true;
+
         if (_hubConnection is not null)
         {
-            await _hubConnection.DisposeAsync();
+            try
+            {
+                if (_hubConnection.State != HubConnectionState.Disconnected)
+                {
+                    await _hubConnection.StopAsync();
+                }
+                await _hubConnection.DisposeAsync();
+            }
+            catch (Exception ex)
+            {
+                // Log but don't throw during disposal
+                Console.WriteLine($"Error disposing hub connection: {ex.Message}");
+            }
         }
     }
 }

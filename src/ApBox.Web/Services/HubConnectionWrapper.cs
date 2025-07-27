@@ -9,6 +9,7 @@ namespace ApBox.Web.Services;
 public class HubConnectionWrapper : IHubConnectionWrapper
 {
     private readonly HubConnection _hubConnection;
+    private bool _disposed = false;
     
     public HubConnectionWrapper(NavigationManager navigationManager)
     {
@@ -21,13 +22,16 @@ public class HubConnectionWrapper : IHubConnectionWrapper
     /// <summary>
     /// Gets the current connection state
     /// </summary>
-    public HubConnectionState State => _hubConnection.State;
+    public HubConnectionState State => _disposed ? HubConnectionState.Disconnected : _hubConnection.State;
     
     /// <summary>
     /// Registers a handler that will be invoked when the method with the specified method name is invoked
     /// </summary>
     public IDisposable On<T>(string methodName, Func<T, Task> handler)
     {
+        if (_disposed)
+            return new EmptyDisposable();
+            
         return _hubConnection.On(methodName, handler);
     }
     
@@ -36,6 +40,9 @@ public class HubConnectionWrapper : IHubConnectionWrapper
     /// </summary>
     public IDisposable On<T1, T2>(string methodName, Func<T1, T2, Task> handler)
     {
+        if (_disposed)
+            return new EmptyDisposable();
+            
         return _hubConnection.On(methodName, handler);
     }
     
@@ -44,6 +51,9 @@ public class HubConnectionWrapper : IHubConnectionWrapper
     /// </summary>
     public Task StartAsync(CancellationToken cancellationToken = default)
     {
+        if (_disposed)
+            return Task.CompletedTask;
+            
         return _hubConnection.StartAsync(cancellationToken);
     }
     
@@ -52,6 +62,9 @@ public class HubConnectionWrapper : IHubConnectionWrapper
     /// </summary>
     public Task StopAsync(CancellationToken cancellationToken = default)
     {
+        if (_disposed)
+            return Task.CompletedTask;
+            
         return _hubConnection.StopAsync(cancellationToken);
     }
     
@@ -60,9 +73,18 @@ public class HubConnectionWrapper : IHubConnectionWrapper
     /// </summary>
     public async ValueTask DisposeAsync()
     {
-        if (_hubConnection is not null)
+        if (!_disposed)
         {
-            await _hubConnection.DisposeAsync();
+            _disposed = true;
+            if (_hubConnection is not null)
+            {
+                await _hubConnection.DisposeAsync();
+            }
         }
+    }
+    
+    private class EmptyDisposable : IDisposable
+    {
+        public void Dispose() { }
     }
 }

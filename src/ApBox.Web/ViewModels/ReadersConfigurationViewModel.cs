@@ -20,6 +20,7 @@ public partial class ReadersConfigurationViewModel : ObservableValidator, IAsync
     private readonly ISerialPortService _serialPortService;
     private readonly ILogger<ReadersConfigurationViewModel> _logger;
     private readonly IHubConnectionWrapper? _hubConnection;
+    private bool _disposed = false;
 
     public ReadersConfigurationViewModel(
         IReaderConfigurationService readerConfigurationService,
@@ -288,37 +289,42 @@ public partial class ReadersConfigurationViewModel : ObservableValidator, IAsync
 
         try
         {
-            // Set up event handlers
-            _hubConnection.On<Guid, bool>("ReaderStatusChanged", async (readerId, isOnline) =>
-            {
-                if (InvokeAsync != null)
-                {
-                    await InvokeAsync(async () =>
-                    {
-                        ReaderStatuses[readerId] = isOnline;
-                        StateHasChanged?.Invoke();
-                    });
-                }
-            });
-
-            _hubConnection.On<string>("ReceiveNotification", async (message) =>
-            {
-                if (InvokeAsync != null)
-                {
-                    await InvokeAsync(async () =>
-                    {
-                        _logger.LogInformation("Received notification: {Message}", message);
-                        StateHasChanged?.Invoke();
-                    });
-                }
-            });
-
-            // Connect if not already connected
+            // Check if connection is in a valid state before setting up handlers
             if (_hubConnection.State == HubConnectionState.Disconnected)
             {
+                // Set up event handlers before starting the connection
+                _hubConnection.On<Guid, bool>("ReaderStatusChanged", async (readerId, isOnline) =>
+                {
+                    if (InvokeAsync != null)
+                    {
+                        await InvokeAsync(async () =>
+                        {
+                            ReaderStatuses[readerId] = isOnline;
+                            StateHasChanged?.Invoke();
+                        });
+                    }
+                });
+
+                _hubConnection.On<string>("ReceiveNotification", async (message) =>
+                {
+                    if (InvokeAsync != null)
+                    {
+                        await InvokeAsync(async () =>
+                        {
+                            _logger.LogInformation("Received notification: {Message}", message);
+                            StateHasChanged?.Invoke();
+                        });
+                    }
+                });
+
+                // Start the connection
                 await _hubConnection.StartAsync();
                 _logger.LogInformation("SignalR connection established for readers configuration");
             }
+        }
+        catch (ObjectDisposedException)
+        {
+            _logger.LogWarning("SignalR connection was disposed before initialization could complete");
         }
         catch (Exception ex)
         {
@@ -328,9 +334,26 @@ public partial class ReadersConfigurationViewModel : ObservableValidator, IAsync
 
     public async ValueTask DisposeAsync()
     {
+        if (_disposed) return;
+        _disposed = true;
+
         if (_hubConnection != null)
         {
-            await _hubConnection.DisposeAsync();
+            try
+            {
+                // Stop the connection before disposing
+                if (_hubConnection.State != HubConnectionState.Disconnected)
+                {
+                    await _hubConnection.StopAsync();
+                }
+                
+                // Dispose the connection
+                await _hubConnection.DisposeAsync();
+            }
+            catch (Exception ex)
+            {
+                _logger.LogWarning(ex, "Error stopping SignalR connection during disposal");
+            }
         }
     }
 }
