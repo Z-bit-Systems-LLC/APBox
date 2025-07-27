@@ -1,7 +1,9 @@
 @using ApBox.Core.Services
 @using ApBox.Core.Models
+@using ApBox.Web.ViewModels
 
-@inject IFeedbackConfigurationService FeedbackConfigurationService
+@inject FeedbackConfigurationViewModel ViewModel
+@implements IAsyncDisposable
 
 <Container Fluid>
     <Row Margin="Margin.Is3.FromBottom">
@@ -10,14 +12,14 @@
             <Paragraph TextColor="TextColor.Muted">Configure default feedback patterns for successful and failed card reads</Paragraph>
         </Column>
         <Column ColumnSize="ColumnSize.IsAuto">
-            <Button Color="Color.Secondary" Outline="true" @onclick="ShowResetConfirmation" ElementId="reset-to-defaults-btn">
+            <Button Color="Color.Secondary" Outline="true" Clicked="() => ViewModel.ShowResetConfirmationCommand.Execute(null)" ElementId="reset-to-defaults-btn">
                 <Icon Name="IconName.Undo" Margin="Margin.Is2.FromEnd" />
                 Reset to Defaults
             </Button>
         </Column>
     </Row>
 
-    @if (_loading)
+    @if (ViewModel.IsLoading)
     {
         <Row>
             <Column>
@@ -30,214 +32,201 @@
             </Column>
         </Row>
     }
+    else if (!string.IsNullOrEmpty(ViewModel.ErrorMessage))
+    {
+        <Alert Color="Color.Danger" Visible="true">
+            <Icon Name="IconName.ExclamationTriangle" Margin="Margin.Is2.FromEnd" />
+            @ViewModel.ErrorMessage
+        </Alert>
+    }
     else
     {
+        <Row>
+            <Column ColumnSize="ColumnSize.Is6.OnTablet">
+                <Card>
+                    <CardHeader Background="Background.Success" TextColor="TextColor.White">
+                        <CardTitle Size="6" Margin="Margin.Is0.FromBottom">
+                            <Icon Name="IconName.Check" Margin="Margin.Is2.FromEnd" />Success Feedback
+                        </CardTitle>
+                    </CardHeader>
+                    <CardBody>
+                        <Field>
+                            <FieldLabel>LED Color</FieldLabel>
+                            <Select @bind-SelectedValue="ViewModel.SuccessLedColor" ElementId="success-led-color">
+                                <SelectItem Value="LedColor.Green">Green</SelectItem>
+                                <SelectItem Value="LedColor.Red">Red</SelectItem>
+                                <SelectItem Value="LedColor.Amber">Amber</SelectItem>
+                                <SelectItem Value="LedColor.Blue">Blue</SelectItem>
+                            </Select>
+                        </Field>
+                        <Field>
+                            <FieldLabel>LED Duration (seconds)</FieldLabel>
+                            <NumericEdit @bind-Value="ViewModel.SuccessLedDurationSeconds" Min="1" Max="10" Step="1" ElementId="success-led-duration" />
+                        </Field>
+                        <Field>
+                            <FieldLabel>Beep Count</FieldLabel>
+                            <NumericEdit @bind-Value="ViewModel.SuccessBeepCount" Min="0" Max="10" ElementId="success-beep-count" />
+                        </Field>
+                        <Field>
+                            <FieldLabel>Display Message</FieldLabel>
+                            <TextEdit @bind-Text="ViewModel.SuccessDisplayMessage" MaxLength="16" ElementId="success-display-message" />
+                            <FieldHelp>Maximum 16 characters for OSDP display (optional)</FieldHelp>
+                        </Field>
+                        
+                        <!-- Success Preview -->
+                        <Card Background="Background.Light" Margin="Margin.Is3.FromTop">
+                            <CardBody>
+                                <Heading Size="HeadingSize.Is6">Preview</Heading>
+                                <Div Flex="Flex.JustifyContent.Start.AlignItems.Center" Margin="Margin.Is2.FromBottom">
+                                    <Badge Color="@GetFeedbackBadgeColor(ViewModel.SuccessLedColor)" Margin="Margin.Is2.FromEnd">
+                                        @ViewModel.SuccessLedColor
+                                    </Badge>
+                                    <Badge Color="Color.Info" Margin="Margin.Is2.FromEnd">@ViewModel.SuccessLedDurationSeconds sec</Badge>
+                                    <Badge Color="Color.Secondary">@ViewModel.SuccessBeepCount beeps</Badge>
+                                </Div>
+                                <Div Border="Border.Is1" Padding="Padding.Is2" Background="Background.White">
+                                    <Small TextColor="TextColor.Dark" TextStyle="TextStyle.Monospace">@ViewModel.SuccessDisplayMessage</Small>
+                                </Div>
+                            </CardBody>
+                        </Card>
+                    </CardBody>
+                </Card>
+            </Column>
 
-    <Row>
-        <Column ColumnSize="ColumnSize.Is6.OnTablet">
-            <Card>
-                <CardHeader Background="Background.Success" TextColor="TextColor.White">
-                    <CardTitle Size="6" Margin="Margin.Is0.FromBottom">
-                        <Icon Name="IconName.Check" Margin="Margin.Is2.FromEnd" />Success Feedback
-                    </CardTitle>
-                </CardHeader>
-                <CardBody>
-                    <Field>
-                        <FieldLabel>LED Color</FieldLabel>
-                        <Select @bind-SelectedValue="_successForm.LedColor" @bind-SelectedValue:after="OnSuccessFormChanged" ElementId="success-led-color">
-                            <SelectItem Value="LedColor.Green">Green</SelectItem>
-                            <SelectItem Value="LedColor.Red">Red</SelectItem>
-                            <SelectItem Value="LedColor.Amber">Amber</SelectItem>
-                            <SelectItem Value="LedColor.Blue">Blue</SelectItem>
-                        </Select>
-                    </Field>
-                    <Field>
-                        <FieldLabel>LED Duration (seconds)</FieldLabel>
-                        <NumericEdit @bind-Value="_successForm.LedDurationSeconds" @bind-Value:after="OnSuccessFormChanged" Min="1" Max="10" Step="1" ElementId="success-led-duration" />
-                    </Field>
-                    <Field>
-                        <FieldLabel>Beep Count</FieldLabel>
-                        <NumericEdit @bind-Value="_successForm.BeepCount" @bind-Value:after="OnSuccessFormChanged" Min="0" Max="10" ElementId="success-beep-count" />
-                    </Field>
-                    <Field>
-                        <FieldLabel>Display Message</FieldLabel>
-                        <TextEdit @bind-Text="_successForm.DisplayMessage" @bind-Text:after="OnSuccessFormChanged" MaxLength="16" ElementId="success-display-message" />
-                        <FieldHelp>Maximum 16 characters for OSDP display (optional)</FieldHelp>
-                    </Field>
-                    
-                    <!-- Success Preview -->
-                    <Card Background="Background.Light" Margin="Margin.Is3.FromTop">
-                        <CardBody>
-                            <Heading Size="HeadingSize.Is6">Preview</Heading>
-                            <Div Flex="Flex.JustifyContent.Start.AlignItems.Center" Margin="Margin.Is2.FromBottom">
-                                <Badge Color="@GetFeedbackBadgeColor(_successForm.LedColor)" Margin="Margin.Is2.FromEnd">
-                                    @_successForm.LedColor
-                                </Badge>
-                                <Badge Color="Color.Info" Margin="Margin.Is2.FromEnd">@_successForm.LedDurationSeconds sec</Badge>
-                                <Badge Color="Color.Secondary">@_successForm.BeepCount beeps</Badge>
-                            </Div>
-                            <Div Border="Border.Is1" Padding="Padding.Is2" Background="Background.White">
-                                <Small TextColor="TextColor.Dark" TextStyle="TextStyle.Monospace">@_successForm.DisplayMessage</Small>
-                            </Div>
-                        </CardBody>
-                    </Card>
-                </CardBody>
-            </Card>
-        </Column>
+            <Column ColumnSize="ColumnSize.Is6.OnTablet">
+                <Card>
+                    <CardHeader Background="Background.Danger" TextColor="TextColor.White">
+                        <CardTitle Size="6" Margin="Margin.Is0.FromBottom">
+                            <Icon Name="IconName.Times" Margin="Margin.Is2.FromEnd" />Failure Feedback
+                        </CardTitle>
+                    </CardHeader>
+                    <CardBody>
+                        <Field>
+                            <FieldLabel>LED Color</FieldLabel>
+                            <Select @bind-SelectedValue="ViewModel.FailureLedColor" ElementId="failure-led-color">
+                                <SelectItem Value="LedColor.Green">Green</SelectItem>
+                                <SelectItem Value="LedColor.Red">Red</SelectItem>
+                                <SelectItem Value="LedColor.Amber">Amber</SelectItem>
+                                <SelectItem Value="LedColor.Blue">Blue</SelectItem>
+                            </Select>
+                        </Field>
+                        <Field>
+                            <FieldLabel>LED Duration (seconds)</FieldLabel>
+                            <NumericEdit @bind-Value="ViewModel.FailureLedDurationSeconds" Min="1" Max="10" Step="1" ElementId="failure-led-duration" />
+                        </Field>
+                        <Field>
+                            <FieldLabel>Beep Count</FieldLabel>
+                            <NumericEdit @bind-Value="ViewModel.FailureBeepCount" Min="0" Max="10" ElementId="failure-beep-count" />
+                        </Field>
+                        <Field>
+                            <FieldLabel>Display Message</FieldLabel>
+                            <TextEdit @bind-Text="ViewModel.FailureDisplayMessage" MaxLength="16" ElementId="failure-display-message" />
+                            <FieldHelp>Maximum 16 characters for OSDP display (optional)</FieldHelp>
+                        </Field>
+                        
+                        <!-- Failure Preview -->
+                        <Card Background="Background.Light" Margin="Margin.Is3.FromTop">
+                            <CardBody>
+                                <Heading Size="HeadingSize.Is6">Preview</Heading>
+                                <Div Flex="Flex.JustifyContent.Start.AlignItems.Center" Margin="Margin.Is2.FromBottom">
+                                    <Badge Color="@GetFeedbackBadgeColor(ViewModel.FailureLedColor)" Margin="Margin.Is2.FromEnd">
+                                        @ViewModel.FailureLedColor
+                                    </Badge>
+                                    <Badge Color="Color.Info" Margin="Margin.Is2.FromEnd">@ViewModel.FailureLedDurationSeconds sec</Badge>
+                                    <Badge Color="Color.Secondary">@ViewModel.FailureBeepCount beeps</Badge>
+                                </Div>
+                                <Div Border="Border.Is1" Padding="Padding.Is2" Background="Background.White">
+                                    <Small TextColor="TextColor.Dark" TextStyle="TextStyle.Monospace">@ViewModel.FailureDisplayMessage</Small>
+                                </Div>
+                            </CardBody>
+                        </Card>
+                    </CardBody>
+                </Card>
+            </Column>
+        </Row>
 
-        <Column ColumnSize="ColumnSize.Is6.OnTablet">
-            <Card>
-                <CardHeader Background="Background.Danger" TextColor="TextColor.White">
-                    <CardTitle Size="6" Margin="Margin.Is0.FromBottom">
-                        <Icon Name="IconName.Times" Margin="Margin.Is2.FromEnd" />Failure Feedback
-                    </CardTitle>
-                </CardHeader>
-                <CardBody>
-                    <Field>
-                        <FieldLabel>LED Color</FieldLabel>
-                        <Select @bind-SelectedValue="_failureForm.LedColor" @bind-SelectedValue:after="OnFailureFormChanged" ElementId="failure-led-color">
-                            <SelectItem Value="LedColor.Green">Green</SelectItem>
-                            <SelectItem Value="LedColor.Red">Red</SelectItem>
-                            <SelectItem Value="LedColor.Amber">Amber</SelectItem>
-                            <SelectItem Value="LedColor.Blue">Blue</SelectItem>
-                        </Select>
-                    </Field>
-                    <Field>
-                        <FieldLabel>LED Duration (seconds)</FieldLabel>
-                        <NumericEdit @bind-Value="_failureForm.LedDurationSeconds" @bind-Value:after="OnFailureFormChanged" Min="1" Max="10" Step="1" ElementId="failure-led-duration" />
-                    </Field>
-                    <Field>
-                        <FieldLabel>Beep Count</FieldLabel>
-                        <NumericEdit @bind-Value="_failureForm.BeepCount" @bind-Value:after="OnFailureFormChanged" Min="0" Max="10" ElementId="failure-beep-count" />
-                    </Field>
-                    <Field>
-                        <FieldLabel>Display Message</FieldLabel>
-                        <TextEdit @bind-Text="_failureForm.DisplayMessage" @bind-Text:after="OnFailureFormChanged" MaxLength="16" ElementId="failure-display-message" />
-                        <FieldHelp>Maximum 16 characters for OSDP display (optional)</FieldHelp>
-                    </Field>
-                    
-                    <!-- Failure Preview -->
-                    <Card Background="Background.Light" Margin="Margin.Is3.FromTop">
-                        <CardBody>
-                            <Heading Size="HeadingSize.Is6">Preview</Heading>
-                            <Div Flex="Flex.JustifyContent.Start.AlignItems.Center" Margin="Margin.Is2.FromBottom">
-                                <Badge Color="@GetFeedbackBadgeColor(_failureForm.LedColor)" Margin="Margin.Is2.FromEnd">
-                                    @_failureForm.LedColor
-                                </Badge>
-                                <Badge Color="Color.Info" Margin="Margin.Is2.FromEnd">@_failureForm.LedDurationSeconds sec</Badge>
-                                <Badge Color="Color.Secondary">@_failureForm.BeepCount beeps</Badge>
-                            </Div>
-                            <Div Border="Border.Is1" Padding="Padding.Is2" Background="Background.White">
-                                <Small TextColor="TextColor.Dark" TextStyle="TextStyle.Monospace">@_failureForm.DisplayMessage</Small>
-                            </Div>
-                        </CardBody>
-                    </Card>
-                </CardBody>
-            </Card>
-        </Column>
-    </Row>
+        <Row Margin="Margin.Is4.FromTop">
+            <Column>
+                <Card>
+                    <CardHeader Background="Background.Info" TextColor="TextColor.White">
+                        <CardTitle Size="6" Margin="Margin.Is0.FromBottom">
+                            <Icon Name="IconName.Clock" Margin="Margin.Is2.FromEnd" />Idle State Configuration
+                        </CardTitle>
+                    </CardHeader>
+                    <CardBody>
+                        <Row>
+                            <Column ColumnSize="ColumnSize.Is6.OnTablet">
+                                <Field>
+                                    <FieldLabel>Permanent LED Color</FieldLabel>
+                                    <Select @bind-SelectedValue="ViewModel.IdlePermanentLedColor" ElementId="idle-permanent-led-color">
+                                        <SelectItem Value="LedColor.Off">Off (No LED)</SelectItem>
+                                        <SelectItem Value="LedColor.Green">Green</SelectItem>
+                                        <SelectItem Value="LedColor.Red">Red</SelectItem>
+                                        <SelectItem Value="LedColor.Amber">Amber</SelectItem>
+                                        <SelectItem Value="LedColor.Blue">Blue</SelectItem>
+                                    </Select>
+                                    <FieldHelp>LED color shown when reader is idle</FieldHelp>
+                                </Field>
+                            </Column>
+                            <Column ColumnSize="ColumnSize.Is6.OnTablet">
+                                <Field>
+                                    <FieldLabel>Heartbeat Flash Color</FieldLabel>
+                                    <Select @bind-SelectedValue="ViewModel.IdleHeartbeatFlashColor" ElementId="idle-heartbeat-flash-color">
+                                        <SelectItem Value="LedColor.Off">Off (No Flash)</SelectItem>
+                                        <SelectItem Value="LedColor.Green">Green</SelectItem>
+                                        <SelectItem Value="LedColor.Red">Red</SelectItem>
+                                        <SelectItem Value="LedColor.Amber">Amber</SelectItem>
+                                        <SelectItem Value="LedColor.Blue">Blue</SelectItem>
+                                    </Select>
+                                    <FieldHelp>Brief flash color to indicate reader is active</FieldHelp>
+                                </Field>
+                            </Column>
+                        </Row>
+                    </CardBody>
+                </Card>
+            </Column>
+        </Row>
 
-    <!-- Global Idle State Configuration -->
-    <Row Margin="Margin.Is4.FromTop">
-        <Column>
-            <Card>
-                <CardHeader>
-                    <CardTitle Size="6" Margin="Margin.Is0.FromBottom">
-                        <Icon Name="IconName.Moon" Margin="Margin.Is2.FromEnd" />Idle State LED Configuration
-                    </CardTitle>
-                </CardHeader>
-                <CardBody>
-                    <Paragraph TextColor="TextColor.Muted" Margin="Margin.Is3.FromBottom">
-                        Configure LED behavior when no card read activity is occurring
-                    </Paragraph>
-                    <Row>
-                        <Column ColumnSize="ColumnSize.Is6.OnTablet">
-                            <Field>
-                                <FieldLabel>Permanent LED Color</FieldLabel>
-                                <Select @bind-SelectedValue="_idleForm.PermanentLedColor" @bind-SelectedValue:after="OnIdleFormChanged" ElementId="idle-permanent-led-color">
-                                    <SelectItem Value="LedColor.Green">Green</SelectItem>
-                                    <SelectItem Value="LedColor.Red">Red</SelectItem>
-                                    <SelectItem Value="LedColor.Amber">Amber</SelectItem>
-                                    <SelectItem Value="LedColor.Blue">Blue</SelectItem>
-                                    <SelectItem Value="@((LedColor?)null)">Off</SelectItem>
-                                </Select>
-                                <FieldHelp>LED color that stays on when reader is idle</FieldHelp>
-                            </Field>
-                            <Field>
-                                <FieldLabel>Heartbeat Flash Color</FieldLabel>
-                                <Select @bind-SelectedValue="_idleForm.HeartbeatFlashColor" @bind-SelectedValue:after="OnIdleFormChanged" ElementId="idle-heartbeat-flash-color">
-                                    <SelectItem Value="LedColor.Green">Green</SelectItem>
-                                    <SelectItem Value="LedColor.Red">Red</SelectItem>
-                                    <SelectItem Value="LedColor.Amber">Amber</SelectItem>
-                                    <SelectItem Value="LedColor.Blue">Blue</SelectItem>
-                                    <SelectItem Value="@((LedColor?)null)">Off</SelectItem>
-                                </Select>
-                                <FieldHelp>LED color that flashes every 5 seconds during idle</FieldHelp>
-                            </Field>
-                        </Column>
-                        <Column ColumnSize="ColumnSize.Is6.OnTablet">
-                            <Card Background="Background.Light">
-                                <CardBody>
-                                    <Heading Size="HeadingSize.Is6">Idle State Preview</Heading>
-                                    <Div Flex="Flex.JustifyContent.Start.AlignItems.Center" Margin="Margin.Is2.FromBottom">
-                                        <Badge Color="@GetFeedbackBadgeColor(_idleForm.PermanentLedColor)" Margin="Margin.Is2.FromEnd">
-                                            Permanent: @(_idleForm.PermanentLedColor?.ToString() ?? "Off")
-                                        </Badge>
-                                        <Badge Color="@GetFeedbackBadgeColor(_idleForm.HeartbeatFlashColor)" Margin="Margin.Is2.FromEnd">
-                                            Heartbeat: @(_idleForm.HeartbeatFlashColor?.ToString() ?? "Off")
-                                        </Badge>
-                                        <Badge Color="Color.Dark">Every 5 sec</Badge>
-                                    </Div>
-                                    <Alert Color="Color.Info" Visible="true">
-                                        <AlertMessage>
-                                            These settings apply when the reader is idle (no card activity).
-                                        </AlertMessage>
-                                    </Alert>
-                                </CardBody>
-                            </Card>
-                        </Column>
-                    </Row>
-                </CardBody>
-            </Card>
-        </Column>
-    </Row>
-
-
-    
-    } <!-- End loading else block -->
+        <Row Margin="Margin.Is3.FromTop">
+            <Column TextAlignment="TextAlignment.End">
+                <Div Display="Display.Flex" JustifyContent="JustifyContent.Between" AlignItems="AlignItems.Center">
+                    <Div>
+                        <Switch @bind-Checked="ViewModel.AutoSaveEnabled" ElementId="auto-save-switch">
+                            <Icon Name="IconName.Save" Margin="Margin.Is2.FromEnd" />
+                            Auto-save enabled
+                        </Switch>
+                    </Div>
+                </Div>
+            </Column>
+        </Row>
+    }
 </Container>
 
-<!-- Reset to Defaults Confirmation Modal -->
-<Modal @ref="_resetConfirmationModal" ElementId="reset-confirmation-modal">
-    <ModalContent Size="ModalSize.Default">
+<!-- Success/Error Messages -->
+@if (!string.IsNullOrEmpty(ViewModel.SuccessMessage))
+{
+    <Snackbar @ref="_successSnackbar" Color="SnackbarColor.Success" Visible="true">
+        <SnackbarBody>
+            <Icon Name="IconName.Check" Margin="Margin.Is2.FromEnd" />
+            @ViewModel.SuccessMessage
+        </SnackbarBody>
+    </Snackbar>
+}
+
+<!-- Reset Confirmation Modal -->
+<Modal @bind-Visible="ViewModel.ShowResetModal" ElementId="reset-confirmation-modal">
+    <ModalContent Centered>
         <ModalHeader>
-            <ModalTitle>Reset to Defaults</ModalTitle>
+            <ModalTitle>Reset to Default Configuration</ModalTitle>
             <CloseButton />
         </ModalHeader>
         <ModalBody>
-            <Alert Color="Color.Warning" Visible="true">
-                <AlertMessage>
-                    <Icon Name="IconName.ExclamationTriangle" Margin="Margin.Is2.FromEnd" />
-                    <strong>Are you sure?</strong>
-                </AlertMessage>
-                <AlertDescription>
-                    This will reset all feedback configurations to their default values. Any custom settings will be lost.
-                </AlertDescription>
-            </Alert>
-            <Paragraph>
-                <strong>Default values that will be restored:</strong>
-            </Paragraph>
-            <ul>
-                <li><strong>Success Feedback:</strong> Green LED for 1 second, 1 beep, "ACCESS GRANTED"</li>
-                <li><strong>Failure Feedback:</strong> Red LED for 2 seconds, 3 beeps, "ACCESS DENIED"</li>
-                <li><strong>Idle State:</strong> Blue permanent LED, Green heartbeat flash</li>
-            </ul>
+            <Text>Are you sure you want to reset all feedback settings to their default values?</Text>
+            <Text TextColor="TextColor.Muted" Margin="Margin.Is2.FromTop">This action will overwrite your current configuration.</Text>
         </ModalBody>
         <ModalFooter>
-            <Button Color="Color.Secondary" @onclick="HideResetConfirmation" ElementId="reset-cancel-btn">
-                Cancel
-            </Button>
-            <Button Color="Color.Warning" @onclick="ResetToDefaults" Loading="_resetting" ElementId="reset-confirm-btn">
+            <Button Color="Color.Secondary" Clicked="() => ViewModel.CancelResetCommand.Execute(null)">Cancel</Button>
+            <Button Color="Color.Warning" Clicked="() => ViewModel.ResetToDefaultsCommand.Execute(null)" Loading="ViewModel.IsResetting">
                 <Icon Name="IconName.Undo" Margin="Margin.Is2.FromEnd" />
                 Reset to Defaults
             </Button>
@@ -245,311 +234,54 @@
     </ModalContent>
 </Modal>
 
-<Snackbar @ref="_snackbar">
-    <SnackbarBody>
-        @_snackbarMessage
-    </SnackbarBody>
-</Snackbar>
-
 @code {
     [Parameter] public EventCallback<string> OnShowMessage { get; set; }
     
-    private bool _loading = true;
-    private bool _autoSaveEnabled = true;
-    private bool _resetting;
-    
-    // Modal and Snackbar references
-    private Modal? _resetConfirmationModal;
-    private Snackbar? _snackbar;
-    private string? _snackbarMessage;
-    
-    // Form models - initialized with defaults
-    private FeedbackFormModel _successForm = new()
-    {
-        LedColor = LedColor.Green,
-        BeepCount = 1,
-        LedDurationSeconds = 1,
-        DisplayMessage = "ACCESS GRANTED"
-    };
-    
-    private FeedbackFormModel _failureForm = new()
-    {
-        LedColor = LedColor.Red,
-        BeepCount = 3,
-        LedDurationSeconds = 2,
-        DisplayMessage = "ACCESS DENIED"
-    };
-    
-    private IdleStateFormModel _idleForm = new()
-    {
-        PermanentLedColor = LedColor.Blue,
-        HeartbeatFlashColor = LedColor.Green
-    };
+    private Snackbar? _successSnackbar;
 
     protected override async Task OnInitializedAsync()
     {
-        await LoadConfiguration();
-    }
-
-    private async Task LoadConfiguration()
-    {
-        try
+        // Set up component callbacks for the ViewModel
+        ViewModel.StateHasChanged = StateHasChanged;
+        ViewModel.InvokeAsync = InvokeAsync;
+        
+        // Initialize the ViewModel
+        await ViewModel.InitializeAsync();
+        
+        // Watch for success messages
+        ViewModel.PropertyChanged += async (sender, args) =>
         {
-            _loading = true;
-            _autoSaveEnabled = false; // Disable auto-save during loading
-            StateHasChanged();
-
-            var configuration = await FeedbackConfigurationService.GetDefaultConfigurationAsync();
-            
-            // Map success feedback to form
-            _successForm = new FeedbackFormModel
+            if (args.PropertyName == nameof(ViewModel.SuccessMessage) && !string.IsNullOrEmpty(ViewModel.SuccessMessage))
             {
-                LedColor = configuration.SuccessFeedback.LedColor ?? LedColor.Green,
-                BeepCount = configuration.SuccessFeedback.BeepCount,
-                LedDurationSeconds = configuration.SuccessFeedback.LedDuration ,
-                DisplayMessage = configuration.SuccessFeedback.DisplayMessage ?? "ACCESS GRANTED"
-            };
-
-            // Map failure feedback to form
-            _failureForm = new FeedbackFormModel
-            {
-                LedColor = configuration.FailureFeedback.LedColor ?? LedColor.Red,
-                BeepCount = configuration.FailureFeedback.BeepCount,
-                LedDurationSeconds = configuration.FailureFeedback.LedDuration,
-                DisplayMessage = configuration.FailureFeedback.DisplayMessage ?? "ACCESS DENIED"
-            };
-
-            // Map idle state to form
-            _idleForm = new IdleStateFormModel
-            {
-                PermanentLedColor = configuration.IdleState.PermanentLedColor,
-                HeartbeatFlashColor = configuration.IdleState.HeartbeatFlashColor
-            };
-        }
-        catch (Exception ex)
-        {
-            await ShowSnackbar($"Error loading configuration: {ex.Message}", SnackbarColor.Danger);
-        }
-        finally
-        {
-            _loading = false;
-            _autoSaveEnabled = true; // Re-enable auto-save after loading
-            StateHasChanged();
-        }
-    }
-
-    private async Task OnSuccessFormChanged()
-    {
-        if (_autoSaveEnabled && !_loading)
-        {
-            await AutoSaveSuccessFeedback();
-        }
-    }
-
-    private async Task OnFailureFormChanged()
-    {
-        if (_autoSaveEnabled && !_loading)
-        {
-            await AutoSaveFailureFeedback();
-        }
-    }
-
-    private async Task OnIdleFormChanged()
-    {
-        if (_autoSaveEnabled && !_loading)
-        {
-            await AutoSaveIdleState();
-        }
-    }
-
-    private async Task AutoSaveSuccessFeedback()
-    {
-        try
-        {
-            var feedback = _successForm.ToReaderFeedback(ReaderFeedbackType.Success);
-            await FeedbackConfigurationService.SaveSuccessFeedbackAsync(feedback);
-        }
-        catch (Exception ex)
-        {
-            await ShowSnackbar($"Error auto-saving success feedback: {ex.Message}", SnackbarColor.Warning);
-        }
-    }
-
-    private async Task AutoSaveFailureFeedback()
-    {
-        try
-        {
-            var feedback = _failureForm.ToReaderFeedback(ReaderFeedbackType.Failure);
-            await FeedbackConfigurationService.SaveFailureFeedbackAsync(feedback);
-        }
-        catch (Exception ex)
-        {
-            await ShowSnackbar($"Error auto-saving failure feedback: {ex.Message}", SnackbarColor.Warning);
-        }
-    }
-
-    private async Task AutoSaveIdleState()
-    {
-        try
-        {
-            var idleState = new IdleStateFeedback
-            {
-                PermanentLedColor = _idleForm.PermanentLedColor,
-                HeartbeatFlashColor = _idleForm.HeartbeatFlashColor
-            };
-            await FeedbackConfigurationService.SaveIdleStateAsync(idleState);
-        }
-        catch (Exception ex)
-        {
-            await ShowSnackbar($"Error auto-saving idle state: {ex.Message}", SnackbarColor.Warning);
-        }
-    }
-
-    private async Task ShowSnackbar(string message, SnackbarColor color)
-    {
-        if (_snackbar != null)
-        {
-            _snackbar.Color = color;
-            _snackbarMessage = message;
-            await _snackbar.Show();
-        }
-    }
-
-    private Color GetFeedbackBadgeColor(LedColor? color)
-    {
-        return color switch
-        {
-            LedColor.Red => Color.Danger,
-            LedColor.Green => Color.Success,
-            LedColor.Amber => Color.Warning,
-            LedColor.Blue => Color.Primary,
-            _ => Color.Dark
+                await ShowSuccessMessage();
+            }
         };
     }
 
-    private async Task ShowResetConfirmation()
+    private async Task ShowSuccessMessage()
     {
-        if (_resetConfirmationModal != null)
-        {
-            await _resetConfirmationModal.Show();
-        }
+        StateHasChanged();
+        
+        // Auto-hide after 3 seconds
+        await Task.Delay(3000);
+        ViewModel.SuccessMessage = null;
+        StateHasChanged();
     }
 
-    private async Task HideResetConfirmation()
+    private Color GetFeedbackBadgeColor(LedColor ledColor)
     {
-        if (_resetConfirmationModal != null)
+        return ledColor switch
         {
-            await _resetConfirmationModal.Hide();
-        }
+            LedColor.Green => Color.Success,
+            LedColor.Red => Color.Danger,
+            LedColor.Amber => Color.Warning,
+            LedColor.Blue => Color.Info,
+            _ => Color.Secondary
+        };
     }
 
-    private async Task ResetToDefaults()
+    public async ValueTask DisposeAsync()
     {
-        try
-        {
-            _resetting = true;
-            StateHasChanged();
-
-            // Create default configuration
-            var defaultConfig = new ApBox.Core.Models.FeedbackConfiguration
-            {
-                SuccessFeedback = new ReaderFeedback
-                {
-                    Type = ReaderFeedbackType.Success,
-                    LedColor = LedColor.Green,
-                    LedDuration = 1,
-                    BeepCount = 1,
-                    DisplayMessage = "ACCESS GRANTED"
-                },
-                FailureFeedback = new ReaderFeedback
-                {
-                    Type = ReaderFeedbackType.Failure,
-                    LedColor = LedColor.Red,
-                    LedDuration = 2,
-                    BeepCount = 3,
-                    DisplayMessage = "ACCESS DENIED"
-                },
-                IdleState = new IdleStateFeedback
-                {
-                    PermanentLedColor = LedColor.Blue,
-                    HeartbeatFlashColor = LedColor.Green
-                }
-            };
-
-            // Save default configuration to database
-            _autoSaveEnabled = false; // Disable auto-save during reset
-            await FeedbackConfigurationService.SaveDefaultConfigurationAsync(defaultConfig);
-
-            // Update form models with default values
-            _successForm = new FeedbackFormModel
-            {
-                LedColor = LedColor.Green,
-                BeepCount = 1,
-                LedDurationSeconds = 1,
-                DisplayMessage = "ACCESS GRANTED"
-            };
-
-            _failureForm = new FeedbackFormModel
-            {
-                LedColor = LedColor.Red,
-                BeepCount = 3,
-                LedDurationSeconds = 2,
-                DisplayMessage = "ACCESS DENIED"
-            };
-
-            _idleForm = new IdleStateFormModel
-            {
-                PermanentLedColor = LedColor.Blue,
-                HeartbeatFlashColor = LedColor.Green
-            };
-
-            _autoSaveEnabled = true; // Re-enable auto-save
-            StateHasChanged();
-
-            // Hide modal and show success message
-            await HideResetConfirmation();
-            await ShowSnackbar("Configuration reset to defaults successfully", SnackbarColor.Success);
-        }
-        catch (Exception ex)
-        {
-            await ShowSnackbar($"Error resetting to defaults: {ex.Message}", SnackbarColor.Danger);
-        }
-        finally
-        {
-            _resetting = false;
-            StateHasChanged();
-        }
-    }
-
-    // Form model for feedback data binding
-    public class FeedbackFormModel
-    {
-        public LedColor LedColor { get; set; }
-        
-        public int BeepCount { get; set; }
-        
-        public int LedDurationSeconds { get; set; }
-        
-        public string DisplayMessage { get; set; } = string.Empty;
-
-        public ReaderFeedback ToReaderFeedback(ReaderFeedbackType type)
-        {
-            return new ReaderFeedback
-            {
-                Type = type,
-                LedColor = LedColor,
-                BeepCount = BeepCount,
-                LedDuration = LedDurationSeconds, // Keep in seconds
-                DisplayMessage = DisplayMessage
-            };
-        }
-    }
-
-    // Form model for idle state LED configuration
-    public class IdleStateFormModel
-    {
-        public LedColor? PermanentLedColor { get; set; }
-        
-        public LedColor? HeartbeatFlashColor { get; set; }
+        await ViewModel.DisposeAsync();
     }
 }
