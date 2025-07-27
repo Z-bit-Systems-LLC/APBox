@@ -42,6 +42,7 @@ public static class ServiceCollectionExtensions
         
         // Register ViewModels
         services.AddScoped<DashboardViewModel>();
+        services.AddScoped<ReadersConfigurationViewModel>();
         
         // Register system management services
         services.AddScoped<IConfigurationExportService, ConfigurationExportService>();

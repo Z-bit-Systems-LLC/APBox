@@ -1,13 +1,10 @@
 @using ApBox.Core.Services
 @using ApBox.Core.Models
 @using System.ComponentModel.DataAnnotations
-@using ApBox.Web.Hubs
+@using ApBox.Web.ViewModels
 @using ApBox.Web.Helpers
-@using Microsoft.AspNetCore.SignalR.Client
 
-@inject IReaderConfigurationService ReaderConfigurationService
-@inject IReaderService ReaderService
-@inject NavigationManager Navigation
+@inject ReadersConfigurationViewModel ViewModel
 @implements IAsyncDisposable
 
 <Container Fluid>
@@ -17,10 +14,10 @@
                 <Column ColumnSize="ColumnSize.IsAuto">
                     <Heading Size="HeadingSize.Is3" ElementId="readers-title">Reader Configuration</Heading>
                 </Column>
-                @if (_readers.Any())
+                @if (ViewModel.Readers.Any())
                 {
                     <Column ColumnSize="ColumnSize.IsAuto">
-                        <Button Color="Color.Primary" Clicked="ShowAddReaderModal" ElementId="add-reader-button">
+                        <Button Color="Color.Primary" Clicked="() => ViewModel.ShowAddReaderCommand.Execute(null)" ElementId="add-reader-button">
                             <Icon Name="IconName.Add" Margin="Margin.Is2.FromEnd" />
                             Add Reader
                         </Button>
@@ -29,11 +26,33 @@
             </Row>
         </Column>
     </Row>
-    
-    @if (_readers.Any())
+
+    @if (ViewModel.IsLoading)
+    {
+        <Row ElementId="loading-spinner">
+            <Column>
+                <Div Display="Display.Flex" JustifyContent="JustifyContent.Center" Margin="Margin.Is5.FromTop">
+                    <Div ElementId="spinner-element"><Spinner Type="SpinnerType.Border" Color="Color.Primary" /></Div>
+                    <Text Margin="Margin.Is2.FromStart">Loading readers...</Text>
+                </Div>
+            </Column>
+        </Row>
+    }
+    else if (!string.IsNullOrEmpty(ViewModel.ErrorMessage))
+    {
+        <Alert Color="Color.Danger" Visible="true">
+            <Icon Name="IconName.ExclamationTriangle" Margin="Margin.Is2.FromEnd" />
+            @ViewModel.ErrorMessage
+            <Button Color="Color.Secondary" Size="Size.Small" Margin="Margin.Is2.FromStart" Clicked="() => ViewModel.RefreshCommand.Execute(null)">
+                <Icon Name="IconName.Redo" />
+                Retry
+            </Button>
+        </Alert>
+    }
+    else if (ViewModel.Readers.Any())
     {
         <Row>
-            @foreach (var reader in _readers)
+            @foreach (var reader in ViewModel.Readers)
             {
                 <Column ColumnSize="ColumnSize.Is6.OnTablet.Is4.OnDesktop" Margin="Margin.Is4.FromBottom">
                     <Card Height="Height.Is100">
@@ -44,10 +63,10 @@
                                 </Column>
                                 <Column ColumnSize="ColumnSize.IsAuto">
                                     <Buttons Size="Size.Small">
-                                        <Button Color="Color.Primary" Outline Clicked="() => EditReader(reader)" ElementId="@($"edit-reader-{reader.ReaderId}")">
+                                        <Button Color="Color.Primary" Outline Clicked="() => ViewModel.EditReaderCommand.Execute(reader)" ElementId="@($"edit-reader-{reader.ReaderId}")">
                                             <Icon Name="IconName.Edit" />
                                         </Button>
-                                        <Button Color="Color.Danger" Outline Clicked="() => DeleteReader(reader)" ElementId="@($"delete-reader-{reader.ReaderId}")">
+                                        <Button Color="Color.Danger" Outline Clicked="() => ViewModel.ConfirmDeleteReaderCommand.Execute(reader)" ElementId="@($"delete-reader-{reader.ReaderId}")">
                                             <Icon Name="IconName.Delete" />
                                         </Button>
                                     </Buttons>
@@ -64,7 +83,7 @@
                                     <Text TextColor="TextColor.Muted" TextSize="TextSize.Small">Status:</Text>
                                     <Paragraph Margin="Margin.Is0">
                                         @{
-                                            var (statusText, statusColor, statusIcon) = ReaderStatusHelper.GetReaderStatusDisplay(reader, _readerStatuses);
+                                            var (statusText, statusColor, statusIcon) = ReaderStatusHelper.GetReaderStatusDisplay(reader, ViewModel.ReaderStatuses);
                                         }
                                         <Badge Color="@statusColor">
                                             @if (statusIcon != null)
@@ -103,7 +122,7 @@
                 <Icon Name="IconName.Tv" IconSize="IconSize.x5" TextColor="TextColor.Muted" Margin="Margin.Is3.FromBottom" />
                 <Heading Size="HeadingSize.Is4" Margin="Margin.Is3.FromTop">No Readers Configured</Heading>
                 <Paragraph TextColor="TextColor.Muted" Margin="Margin.Is3.FromBottom">Add your first reader to get started</Paragraph>
-                <Button Color="Color.Primary" Size="Size.Large" Clicked="ShowAddReaderModal" ElementId="add-first-reader-button">
+                <Button Color="Color.Primary" Size="Size.Large" Clicked="() => ViewModel.ShowAddReaderCommand.Execute(null)" ElementId="add-first-reader-button">
                     <Icon Name="IconName.Add" Margin="Margin.Is2.FromEnd" />
                     Add Reader
                 </Button>
@@ -112,15 +131,26 @@
     }
 </Container>
 
+<!-- Success/Error Messages -->
+@if (!string.IsNullOrEmpty(ViewModel.SuccessMessage))
+{
+    <Snackbar @ref="_successSnackbar" Color="SnackbarColor.Success" Visible="true">
+        <SnackbarBody>
+            <Icon Name="IconName.Check" Margin="Margin.Is2.FromEnd" />
+            @ViewModel.SuccessMessage
+        </SnackbarBody>
+    </Snackbar>
+}
+
 <!-- Add/Edit Reader Modal -->
-<Modal @ref="_readerModal" ElementId="reader-modal">
+<Modal @bind-Visible="ViewModel.ShowReaderModal" ElementId="reader-modal">
     <ModalContent Size="ModalSize.Large">
         <ModalHeader>
-            <ModalTitle>@(_editingReader != null ? "Edit Reader" : "Add Reader")</ModalTitle>
+            <ModalTitle>@(ViewModel.EditingReader != null ? "Edit Reader" : "Add Reader")</ModalTitle>
             <CloseButton />
         </ModalHeader>
         <ModalBody>
-            <Validations @ref="_validations" Model="_readerForm" ValidateOnLoad="false">
+            <Validations @ref="_validations" Model="ViewModel" ValidateOnLoad="false">
                 <!-- Basic Settings -->
                 <Heading Size="HeadingSize.Is5" Margin="Margin.Is3.FromBottom">Basic Settings</Heading>
                 <Row>
@@ -128,7 +158,7 @@
                         <Validation>
                             <Field>
                                 <FieldLabel>Reader Name</FieldLabel>
-                                <TextEdit @bind-Text="_readerForm.ReaderName" Placeholder="e.g., Main Entrance" ElementId="reader-name-input">
+                                <TextEdit @bind-Text="ViewModel.ReaderName" Placeholder="e.g., Main Entrance" ElementId="reader-name-input">
                                     <Feedback>
                                         <ValidationError />
                                     </Feedback>
@@ -140,7 +170,7 @@
                     <Column ColumnSize="ColumnSize.Is4">
                         <Field>
                             <FieldLabel>OSDP Address</FieldLabel>
-                            <NumericEdit TValue="byte" @bind-Value="_readerForm.Address" Min="0" Max="127" ElementId="reader-address-input">
+                            <NumericEdit TValue="byte" @bind-Value="ViewModel.Address" Min="0" Max="127" ElementId="reader-address-input">
                                 <Feedback>
                                     <ValidationError />
                                 </Feedback>
@@ -156,9 +186,9 @@
                     <Column ColumnSize="ColumnSize.Is8">
                         <Field>
                             <FieldLabel>Serial Port</FieldLabel>
-                            <Select @bind-SelectedValue="_readerForm.SerialPort" ElementId="serial-port-select">
+                            <Select @bind-SelectedValue="ViewModel.SerialPort" ElementId="serial-port-select">
                                 <SelectItem Value="@((string?)null)">Select a serial port...</SelectItem>
-                                @foreach (var port in _availablePorts)
+                                @foreach (var port in ViewModel.AvailablePorts)
                                 {
                                     <SelectItem Value="@port">@port</SelectItem>
                                 }
@@ -169,7 +199,7 @@
                     <Column ColumnSize="ColumnSize.Is4">
                         <Field>
                             <FieldLabel>Baud Rate</FieldLabel>
-                            <Select @bind-SelectedValue="_readerForm.BaudRate" ElementId="baud-rate-select">
+                            <Select @bind-SelectedValue="ViewModel.BaudRate" ElementId="baud-rate-select">
                                 <SelectItem Value="9600">9600</SelectItem>
                                 <SelectItem Value="19200">19200</SelectItem>
                                 <SelectItem Value="38400">38400</SelectItem>
@@ -187,360 +217,112 @@
                     <Column ColumnSize="ColumnSize.Is6">
                         <Field>
                             <FieldLabel>Security Mode</FieldLabel>
-                            <Select @bind-SelectedValue="_readerForm.SecurityMode" ElementId="security-mode-select">
+                            <Select @bind-SelectedValue="ViewModel.SecurityMode" ElementId="security-mode-select">
                                 <SelectItem Value="OsdpSecurityMode.ClearText">🔓 Clear Text (No Security)</SelectItem>
                                 <SelectItem Value="OsdpSecurityMode.Install">🔧 Install Secure Channel</SelectItem>
                             </Select>
                             <FieldHelp>
-                                @if (_readerForm.SecurityMode == OsdpSecurityMode.ClearText)
+                                @if (ViewModel.SecurityMode == OsdpSecurityMode.ClearText)
                                 {
                                     <Text>No encryption will be used</Text>
                                 }
-                                else if (_readerForm.SecurityMode == OsdpSecurityMode.Install)
+                                else if (ViewModel.SecurityMode == OsdpSecurityMode.Install)
                                 {
-                                    <Text>Will install a random key using the default OSDP key</Text>
+                                    <Text>Install mode will establish secure channel with default key</Text>
                                 }
                             </FieldHelp>
                         </Field>
                     </Column>
                     <Column ColumnSize="ColumnSize.Is6">
-                        <!-- Poll interval removed - using default OSDP bus timing -->
-                    </Column>
-                </Row>
-
-                <!-- Status -->
-                <Row Margin="Margin.Is3.FromTop">
-                    <Column>
                         <Field>
-                            <Check @bind-Checked="_readerForm.IsEnabled" ElementId="reader-enabled-check">Enabled</Check>
-                            <FieldHelp>Enable communication with this reader</FieldHelp>
+                            <FieldLabel>Reader Enabled</FieldLabel>
+                            <Switch @bind-Checked="ViewModel.IsEnabled" ElementId="reader-enabled-switch">
+                                @(ViewModel.IsEnabled ? "Enabled" : "Disabled")
+                            </Switch>
+                            <FieldHelp>Enable or disable this reader</FieldHelp>
                         </Field>
                     </Column>
                 </Row>
             </Validations>
         </ModalBody>
         <ModalFooter>
-            <Button Color="Color.Secondary" Clicked="CloseReaderModal">Cancel</Button>
-            <Button Color="Color.Primary" Clicked="SaveReader" Loading="_saving" ElementId="save-reader-button">
-                Save Reader
+            <Button Color="Color.Secondary" Clicked="() => ViewModel.CloseReaderModalCommand.Execute(null)">Cancel</Button>
+            <Button Color="Color.Primary" Clicked="SaveReader" Loading="ViewModel.IsSaving">
+                <Icon Name="IconName.Save" Margin="Margin.Is2.FromEnd" />
+                @(ViewModel.EditingReader != null ? "Update" : "Add") Reader
             </Button>
         </ModalFooter>
     </ModalContent>
 </Modal>
 
 <!-- Delete Confirmation Modal -->
-<Modal @ref="_deleteModal" ElementId="delete-modal">
-    <ModalContent>
+<Modal @bind-Visible="ViewModel.ShowDeleteModal" ElementId="delete-modal">
+    <ModalContent Centered>
         <ModalHeader>
-            <ModalTitle>Confirm Deletion</ModalTitle>
+            <ModalTitle>Confirm Delete</ModalTitle>
             <CloseButton />
         </ModalHeader>
         <ModalBody>
-            <Paragraph>Are you sure you want to delete the reader <Strong>@_readerToDelete?.ReaderName</Strong>?</Paragraph>
-            <Paragraph TextColor="TextColor.Muted">This action cannot be undone.</Paragraph>
+            <Text>Are you sure you want to delete the reader <strong>@ViewModel.ReaderToDelete?.ReaderName</strong>?</Text>
+            <Text TextColor="TextColor.Muted" Margin="Margin.Is2.FromTop">This action cannot be undone.</Text>
         </ModalBody>
         <ModalFooter>
-            <Button Color="Color.Secondary" Clicked="CloseDeleteModal">Cancel</Button>
-            <Button Color="Color.Danger" Clicked="ConfirmDeleteReader" Loading="_deleting" ElementId="confirm-delete-button">
-                Delete Reader
+            <Button Color="Color.Secondary" Clicked="() => ViewModel.CancelDeleteCommand.Execute(null)">Cancel</Button>
+            <Button Color="Color.Danger" Clicked="() => ViewModel.DeleteReaderCommand.Execute(null)" Loading="ViewModel.IsDeleting">
+                <Icon Name="IconName.Delete" Margin="Margin.Is2.FromEnd" />
+                Delete
             </Button>
         </ModalFooter>
     </ModalContent>
 </Modal>
 
-<Snackbar @ref="_snackbar">
-    <SnackbarBody>
-        @_snackBarMessage
-    </SnackbarBody>
-</Snackbar>
-
 @code {
     [Parameter] public EventCallback<string> OnShowMessage { get; set; }
     
-    private List<ReaderConfiguration> _readers = new();
-    private Dictionary<Guid, bool> _readerStatuses = new();
-    private List<string> _availablePorts = new();
-    private HubConnection? _hubConnection;
-    
-    // Modal references
-    private Modal? _readerModal;
-    private Modal? _deleteModal;
-    private bool _saving;
-    private bool _deleting;
-    
-    Snackbar? _snackbar;
-    string? _snackBarMessage;
-    
-    // Validation reference
     private Validations? _validations;
-    
-    // Form data
-    private ReaderFormModel _readerForm = new();
-    private ReaderConfiguration? _editingReader;
-    private ReaderConfiguration? _readerToDelete;
+    private Snackbar? _successSnackbar;
 
     protected override async Task OnInitializedAsync()
     {
-        await LoadData();
-        await InitializeSignalR();
-    }
-
-    private async Task LoadData()
-    {
-        try
+        // Set up component callbacks for the ViewModel
+        ViewModel.StateHasChanged = StateHasChanged;
+        ViewModel.InvokeAsync = InvokeAsync;
+        
+        // Initialize the ViewModel
+        await ViewModel.InitializeCommand.ExecuteAsync(null);
+        
+        // Watch for success messages
+        ViewModel.PropertyChanged += async (sender, args) =>
         {
-            _readers = (await ReaderConfigurationService.GetAllReadersAsync()).ToList();
-            
-            // Load reader statuses using the IReaderService
-            _readerStatuses = await ReaderService.GetAllReaderStatusesAsync() ?? new Dictionary<Guid, bool>();
-        }
-        catch (Exception ex)
-        {
-            await ShowSnackbar($"Error loading readers: {ex.Message}", SnackbarColor.Danger);
-        }
-    }
-
-    private async Task InitializeSignalR()
-    {
-        try
-        {
-            _hubConnection = new HubConnectionBuilder()
-                .WithUrl(Navigation.ToAbsoluteUri("/cardevents"))
-                .Build();
-
-            // Handle reader status notifications
-            _hubConnection.On<ReaderStatusNotification>("ReaderStatusChanged", async (notification) =>
+            if (args.PropertyName == nameof(ViewModel.SuccessMessage) && !string.IsNullOrEmpty(ViewModel.SuccessMessage))
             {
-                await InvokeAsync(() =>
-                {
-                    _readerStatuses[notification.ReaderId] = notification.IsOnline;
-                    StateHasChanged();
-                });
-            });
-
-            await _hubConnection.StartAsync();
-        }
-        catch (Exception ex)
-        {
-            Console.WriteLine($"Error initializing SignalR: {ex.Message}");
-        }
+                await ShowSuccessMessage();
+            }
+        };
     }
 
-    private async Task ShowAddReaderModal()
-    {
-        _editingReader = null;
-        _readerForm = new ReaderFormModel();
-        await RefreshSerialPorts();
-        await _readerModal!.Show();
-        
-        // Clear previous validation state
-        if (_validations != null)
-        {
-            await _validations.ClearAll();
-        }
-    }
-
-    private async Task EditReader(ReaderConfiguration reader)
-    {
-        _editingReader = reader;
-        _readerForm = ReaderFormModel.FromReaderConfiguration(reader);
-        await RefreshSerialPorts();
-        await _readerModal!.Show();
-        
-        // Clear previous validation state
-        if (_validations != null)
-        {
-            await _validations.ClearAll();
-        }
-    }
-
-    private async Task DeleteReader(ReaderConfiguration reader)
-    {
-        _readerToDelete = reader;
-        await _deleteModal!.Show();
-    }
-    
-    private async Task CloseReaderModal()
-    {
-        _editingReader = null;
-        _readerForm = new ReaderFormModel();
-        await _readerModal!.Hide();
-    }
-    
-    private async Task CloseDeleteModal()
-    {
-        _readerToDelete = null;
-        await _deleteModal!.Hide();
-    }
-    
     private async Task SaveReader()
     {
-        // Validate the form using Blazorise validation
         if (_validations != null && !await _validations.ValidateAll())
         {
-            await ShowSnackbar("Please correct the validation errors", SnackbarColor.Danger);
             return;
         }
-        
-        _saving = true;
+
+        await ViewModel.SaveReaderCommand.ExecuteAsync(null);
+    }
+
+    private async Task ShowSuccessMessage()
+    {
         StateHasChanged();
         
-        try
-        {
-            var readerConfig = _readerForm.ToReaderConfiguration();
-            
-            // Auto-generate GUID for new readers
-            readerConfig.ReaderId = _editingReader?.ReaderId ?? Guid.NewGuid();
-            
-            // Save reader (handles both create and update)
-            await ReaderConfigurationService.SaveReaderAsync(readerConfig);
-            
-            if (_editingReader != null)
-            {
-                await ShowSnackbar($"Reader '{readerConfig.ReaderName}' updated successfully", SnackbarColor.Success);
-            }
-            else
-            {
-                await ShowSnackbar($"Reader '{readerConfig.ReaderName}' created successfully", SnackbarColor.Success);
-            }
-            
-            await CloseReaderModal();
-            await LoadData();
-        }
-        catch (Exception ex)
-        {
-            await ShowSnackbar($"Error saving reader: {ex.Message}", SnackbarColor.Danger);
-        }
-        finally
-        {
-            _saving = false;
-            StateHasChanged();
-        }
-    }
-    
-    private async Task ConfirmDeleteReader()
-    {
-        if (_readerToDelete == null) return;
-        
-        _deleting = true;
+        // Auto-hide after 3 seconds
+        await Task.Delay(3000);
+        ViewModel.SuccessMessage = null;
         StateHasChanged();
-        
-        try
-        {
-            await ReaderConfigurationService.DeleteReaderAsync(_readerToDelete.ReaderId);
-            await ShowSnackbar($"Reader '{_readerToDelete.ReaderName}' deleted successfully", SnackbarColor.Success);
-            
-            await CloseDeleteModal();
-            await LoadData();
-        }
-        catch (Exception ex)
-        {
-            await ShowSnackbar($"Error deleting reader: {ex.Message}", SnackbarColor.Danger);
-        }
-        finally
-        {
-            _deleting = false;
-            StateHasChanged();
-        }
     }
-
-    private async Task ShowSnackbar(string message, SnackbarColor color)
-    {
-        if (_snackbar != null)
-        {
-            _snackbar.Color = color;
-            _snackBarMessage = message;
-            await _snackbar.Show();
-        }
-    }
-
-    private async Task RefreshSerialPorts()
-    {
-        try
-        {
-            // Get available serial ports
-            _availablePorts = System.IO.Ports.SerialPort.GetPortNames().ToList();
-            
-            // Add common Linux/Docker ports if running on non-Windows
-            if (!OperatingSystem.IsWindows())
-            {
-                var linuxPorts = new[] { "/dev/ttyUSB0", "/dev/ttyUSB1", "/dev/ttyS0", "/dev/ttyS1", "/dev/ttyAMA0" };
-                foreach (var port in linuxPorts)
-                {
-                    if (Directory.Exists(Path.GetDirectoryName(port)) && !_availablePorts.Contains(port))
-                    {
-                        _availablePorts.Add(port);
-                    }
-                }
-            }
-            
-            _availablePorts = _availablePorts.OrderBy(p => p).ToList();
-        }
-        catch (Exception ex)
-        {
-            await ShowSnackbar($"Error detecting serial ports: {ex.Message}", SnackbarColor.Warning);
-            _availablePorts = new List<string>();
-        }
-    }
-
-    // Form model for reader data binding
-    public class ReaderFormModel
-    {
-        [Required(ErrorMessage = "Reader name is required")]
-        [StringLength(100, MinimumLength = 2, ErrorMessage = "Reader name must be between 2 and 100 characters")]
-        [Display(Name = "Reader Name")]
-        public string ReaderName { get; set; } = string.Empty;
-
-        [Display(Name = "OSDP Address")]
-        public byte Address { get; set; }
-
-        [Display(Name = "Serial Port")]
-        public string? SerialPort { get; set; }
-
-        [Display(Name = "Baud Rate")]
-        public int BaudRate { get; set; } = 9600;
-
-        [Display(Name = "Security Mode")]
-        public OsdpSecurityMode SecurityMode { get; set; } = OsdpSecurityMode.ClearText;
-
-
-        [Display(Name = "Enabled")]
-        public bool IsEnabled { get; set; } = true;
-
-        public static ReaderFormModel FromReaderConfiguration(ReaderConfiguration reader)
-        {
-            return new ReaderFormModel
-            {
-                ReaderName = reader.ReaderName,
-                Address = reader.Address,
-                SerialPort = reader.SerialPort,
-                BaudRate = reader.BaudRate,
-                SecurityMode = reader.SecurityMode,
-                IsEnabled = reader.IsEnabled
-            };
-        }
-
-        public ReaderConfiguration ToReaderConfiguration()
-        {
-            return new ReaderConfiguration
-            {
-                ReaderId = Guid.Empty, // Will be set in SaveReader method
-                ReaderName = ReaderName,
-                Address = Address,
-                SerialPort = SerialPort,
-                BaudRate = BaudRate,
-                SecurityMode = SecurityMode,
-                IsEnabled = IsEnabled
-            };
-        }
-    }
-
 
     public async ValueTask DisposeAsync()
     {
-        if (_hubConnection is not null)
-        {
-            await _hubConnection.DisposeAsync();
-        }
+        await ViewModel.DisposeAsync();
     }
 }

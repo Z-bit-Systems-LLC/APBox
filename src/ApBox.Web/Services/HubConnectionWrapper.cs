@@ -32,6 +32,14 @@ public class HubConnectionWrapper : IHubConnectionWrapper
     }
     
     /// <summary>
+    /// Registers a handler that will be invoked when the method with the specified method name is invoked with two parameters
+    /// </summary>
+    public IDisposable On<T1, T2>(string methodName, Func<T1, T2, Task> handler)
+    {
+        return _hubConnection.On(methodName, handler);
+    }
+    
+    /// <summary>
     /// Starts the connection
     /// </summary>
     public Task StartAsync(CancellationToken cancellationToken = default)

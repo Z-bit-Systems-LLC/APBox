@@ -18,6 +18,11 @@ public interface IHubConnectionWrapper : IAsyncDisposable
     IDisposable On<T>(string methodName, Func<T, Task> handler);
     
     /// <summary>
+    /// Registers a handler that will be invoked when the method with the specified method name is invoked with two parameters
+    /// </summary>
+    IDisposable On<T1, T2>(string methodName, Func<T1, T2, Task> handler);
+    
+    /// <summary>
     /// Starts the connection
     /// </summary>
     Task StartAsync(CancellationToken cancellationToken = default);
