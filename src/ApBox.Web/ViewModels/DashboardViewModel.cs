@@ -185,12 +185,13 @@ public partial class DashboardViewModel(
                 return;
             }
 
-            // Check if connection is in a valid state
+            // Always register handlers regardless of connection state
+            _hubConnection.On<CardEventNotification>("CardEventProcessed", OnCardEventProcessed);
+            _hubConnection.On<ReaderStatusNotification>("ReaderStatusChanged", OnReaderStatusChanged);
+
+            // Only start connection if it's disconnected
             if (_hubConnection.State == HubConnectionState.Disconnected)
             {
-                _hubConnection.On<CardEventNotification>("CardEventProcessed", OnCardEventProcessed);
-                _hubConnection.On<ReaderStatusNotification>("ReaderStatusChanged", OnReaderStatusChanged);
-
                 await _hubConnection.StartAsync();
             }
         }
@@ -286,21 +287,8 @@ public partial class DashboardViewModel(
         if (_disposed) return;
         _disposed = true;
 
-        if (_hubConnection is not null)
-        {
-            try
-            {
-                if (_hubConnection.State != HubConnectionState.Disconnected)
-                {
-                    await _hubConnection.StopAsync();
-                }
-                await _hubConnection.DisposeAsync();
-            }
-            catch (Exception ex)
-            {
-                // Log but don't throw during disposal
-                Console.WriteLine($"Error disposing hub connection: {ex.Message}");
-            }
-        }
+        // Don't dispose the hub connection - let it be reused by other ViewModels
+        // The connection will be disposed when the application shuts down
+        await Task.CompletedTask;
     }
 }

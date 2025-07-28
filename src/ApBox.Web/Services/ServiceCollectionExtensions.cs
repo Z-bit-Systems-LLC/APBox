@@ -3,6 +3,7 @@ using ApBox.Core.OSDP;
 using ApBox.Core.Services;
 using ApBox.Core.Data;
 using ApBox.Web.ViewModels;
+using Microsoft.AspNetCore.SignalR.Client;
 
 namespace ApBox.Web.Services;
 

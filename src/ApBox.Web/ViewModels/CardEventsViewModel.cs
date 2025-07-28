@@ -203,11 +203,12 @@ public partial class CardEventsViewModel(
                 return;
             }
 
-            // Check if connection is in a valid state
+            // Register event handlers (may register multiple times but that's OK)
+            _hubConnection.On<CardEventNotification>("CardEventProcessed", OnCardEventProcessed);
+
+            // Ensure connection is started if not already
             if (_hubConnection.State == HubConnectionState.Disconnected)
             {
-                _hubConnection.On<CardEventNotification>("CardEventProcessed", OnCardEventProcessed);
-
                 await _hubConnection.StartAsync();
             }
         }
@@ -276,21 +277,8 @@ public partial class CardEventsViewModel(
         if (_disposed) return;
         _disposed = true;
 
-        if (_hubConnection is not null)
-        {
-            try
-            {
-                if (_hubConnection.State != HubConnectionState.Disconnected)
-                {
-                    await _hubConnection.StopAsync();
-                }
-                await _hubConnection.DisposeAsync();
-            }
-            catch (Exception ex)
-            {
-                // Log but don't throw during disposal
-                Console.WriteLine($"Error disposing hub connection: {ex.Message}");
-            }
-        }
+        // Don't dispose the hub connection - let it be reused by other ViewModels
+        // The connection will be disposed when the application shuts down
+        await Task.CompletedTask;
     }
 }

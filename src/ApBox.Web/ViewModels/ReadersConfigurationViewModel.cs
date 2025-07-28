@@ -393,14 +393,18 @@ public partial class ReadersConfigurationViewModel : ObservableValidator, IAsync
 
         try
         {
-            // Check if connection is in a valid state before setting up handlers
+            // Always setup handlers regardless of connection state
+            SetupSignalRHandlers();
+            
+            // Only start connection if it's disconnected
             if (_hubConnection.State == HubConnectionState.Disconnected)
             {
-                SetupSignalRHandlers();
-                
-                // Start the connection
                 await _hubConnection.StartAsync();
                 _logger.LogInformation("SignalR connection established for readers configuration");
+            }
+            else
+            {
+                _logger.LogInformation("SignalR connection already established, handlers registered for readers configuration");
             }
         }
         catch (ObjectDisposedException)
