@@ -1,15 +1,11 @@
 @using ApBox.Core.Services
 @using ApBox.Core.Models
 @using ApBox.Plugins
+@using ApBox.Web.ViewModels
 @using Microsoft.Extensions.Logging
 
-@inject IJSRuntime JSRuntime
-@inject IReaderConfigurationService ReaderConfigurationService
-@inject IPluginLoader PluginLoader
-@inject IConfigurationExportService ConfigurationExportService
-@inject ISystemRestartService SystemRestartService
-@inject ILogService LogService
-@inject IConfiguration Configuration
+@inject SystemConfigurationViewModel ViewModel
+@implements IAsyncDisposable
 
 <Container Fluid>
     <Row Margin="Margin.Is3.FromBottom">
@@ -35,7 +31,7 @@
                             <Text Weight="TextWeight.Bold">Application</Text>
                         </Column>
                         <Column ColumnSize="ColumnSize.Is9.OnTablet">
-                            <Text>ApBox Gateway v@_systemInfo.ApBoxVersion</Text>
+                            <Text>ApBox Gateway v@ViewModel.SystemInfo.ApBoxVersion</Text>
                         </Column>
                     </Row>
 
@@ -44,7 +40,7 @@
                             <Text Weight="TextWeight.Bold">Framework</Text>
                         </Column>
                         <Column ColumnSize="ColumnSize.Is9.OnTablet">
-                            <Text>@_systemInfo.Framework</Text>
+                            <Text>@ViewModel.SystemInfo.Framework</Text>
                         </Column>
                     </Row>
 
@@ -53,7 +49,7 @@
                             <Text Weight="TextWeight.Bold">Platform</Text>
                         </Column>
                         <Column ColumnSize="ColumnSize.Is9.OnTablet">
-                            <Text>@_systemInfo.Platform</Text>
+                            <Text>@ViewModel.SystemInfo.Platform</Text>
                         </Column>
                     </Row>
 
@@ -62,7 +58,7 @@
                             <Text Weight="TextWeight.Bold">Machine Name</Text>
                         </Column>
                         <Column ColumnSize="ColumnSize.Is9.OnTablet">
-                            <Text>@_systemInfo.MachineName</Text>
+                            <Text>@ViewModel.SystemInfo.MachineName</Text>
                         </Column>
                     </Row>
 
@@ -71,7 +67,7 @@
                             <Text Weight="TextWeight.Bold">Processor Count</Text>
                         </Column>
                         <Column ColumnSize="ColumnSize.Is9.OnTablet">
-                            <Text>@_systemInfo.ProcessorCount</Text>
+                            <Text>@ViewModel.SystemInfo.ProcessorCount</Text>
                         </Column>
                     </Row>
 
@@ -80,7 +76,7 @@
                             <Text Weight="TextWeight.Bold">Active Readers</Text>
                         </Column>
                         <Column ColumnSize="ColumnSize.Is9.OnTablet">
-                            <Text ElementId="reader-count">@_readerCount</Text>
+                            <Text ElementId="reader-count">@ViewModel.ReaderCount</Text>
                         </Column>
                     </Row>
 
@@ -89,7 +85,7 @@
                             <Text Weight="TextWeight.Bold">Loaded Plugins</Text>
                         </Column>
                         <Column ColumnSize="ColumnSize.Is9.OnTablet">
-                            <Text ElementId="plugin-count">@_pluginCount</Text>
+                            <Text ElementId="plugin-count">@ViewModel.PluginCount</Text>
                         </Column>
                     </Row>
 
@@ -98,7 +94,7 @@
                             <Text Weight="TextWeight.Bold">Plugin Directory</Text>
                         </Column>
                         <Column ColumnSize="ColumnSize.Is9.OnTablet">
-                            <Code>@_pluginDirectory</Code>
+                            <Code>@ViewModel.PluginDirectory</Code>
                         </Column>
                     </Row>
 
@@ -119,7 +115,7 @@
                             <Text Weight="TextWeight.Bold">Uptime</Text>
                         </Column>
                         <Column ColumnSize="ColumnSize.Is9.OnTablet">
-                            <Text ElementId="system-uptime">@GetSystemUptime()</Text>
+                            <Text ElementId="system-uptime">@ViewModel.GetSystemUptime()</Text>
                         </Column>
                     </Row>
 
@@ -150,17 +146,17 @@
                 </CardHeader>
                 <CardBody>
                     <Div Display="Display.Flex" Flex="Flex.Column" Gap="Gap.Is2">
-                        <Button Color="Color.Primary" Outline="true" @onclick="RefreshSystemInfo" Loading="_refreshing" ElementId="refresh-system-btn">
+                        <Button Color="Color.Primary" Outline="true" Clicked="() => ViewModel.RefreshSystemInfoCommand.Execute(null)" Loading="ViewModel.Refreshing" ElementId="refresh-system-btn">
                             <Icon Name="IconName.Sync" Margin="Margin.Is2.FromEnd" />
                             Refresh System Info
                         </Button>
                         
-                        <Button Color="Color.Info" Outline="true" @onclick="ExportConfiguration" Loading="_exporting" ElementId="export-config-btn">
+                        <Button Color="Color.Info" Outline="true" Clicked="() => ViewModel.ExportConfigurationCommand.Execute(null)" Loading="ViewModel.Exporting" ElementId="export-config-btn">
                             <Icon Name="IconName.Download" Margin="Margin.Is2.FromEnd" />
                             Export Config
                         </Button>
                         
-                        <Button Color="Color.Warning" Outline="true" @onclick="ShowImportModal" Loading="_importing" ElementId="import-config-btn">
+                        <Button Color="Color.Warning" Outline="true" @onclick="ShowImportModal" Loading="ViewModel.Importing" ElementId="import-config-btn">
                             <Icon Name="IconName.FileUpload" Margin="Margin.Is2.FromEnd" />
                             Import Config
                         </Button>
@@ -184,11 +180,11 @@
                 <CardBody TextAlignment="TextAlignment.Center">
                     <Row>
                         <Column ColumnSize="ColumnSize.Is6" Border="Border.OnEnd">
-                            <Heading Size="HeadingSize.Is4" TextColor="TextColor.Primary" Margin="Margin.Is1.FromBottom">@_readerCount</Heading>
+                            <Heading Size="HeadingSize.Is4" TextColor="TextColor.Primary" Margin="Margin.Is1.FromBottom">@ViewModel.ReaderCount</Heading>
                             <Small TextColor="TextColor.Muted">Readers</Small>
                         </Column>
                         <Column ColumnSize="ColumnSize.Is6">
-                            <Heading Size="HeadingSize.Is4" TextColor="TextColor.Success" Margin="Margin.Is1.FromBottom">@_pluginCount</Heading>
+                            <Heading Size="HeadingSize.Is4" TextColor="TextColor.Success" Margin="Margin.Is1.FromBottom">@ViewModel.PluginCount</Heading>
                             <Small TextColor="TextColor.Muted">Plugins</Small>
                         </Column>
                     </Row>
@@ -205,7 +201,7 @@
                     <CardTitle Size="6" Margin="Margin.Is0.FromBottom">
                         <Icon Name="IconName.List" Margin="Margin.Is2.FromEnd" />
                         System Logs
-                        @if (_refreshingLogs)
+                        @if (ViewModel.RefreshingLogs)
                         {
                             <Icon Name="IconName.Sync" Class="fa-spin" Margin="Margin.Is2.FromStart" />
                         }
@@ -215,7 +211,7 @@
                     <!-- Log Filter Controls -->
                     <Row Margin="Margin.Is3.FromBottom">
                         <Column ColumnSize="ColumnSize.Is4">
-                            <Select TValue="LogLevel" @bind-SelectedValue="_selectedLogLevel" @bind-SelectedValue:after="FilterLogs">
+                            <Select TValue="LogLevel" @bind-SelectedValue="ViewModel.SelectedLogLevel" @bind-SelectedValue:after="ViewModel.OnLogLevelChanged">
                                 <SelectItem TValue="LogLevel" Value="LogLevel.Trace">All Levels</SelectItem>
                                 <SelectItem TValue="LogLevel" Value="LogLevel.Debug">Debug+</SelectItem>
                                 <SelectItem TValue="LogLevel" Value="LogLevel.Information">Info+</SelectItem>
@@ -224,16 +220,16 @@
                             </Select>
                         </Column>
                         <Column ColumnSize="ColumnSize.Is4">
-                            <TextEdit @bind-Text="_searchTerm" @bind-Text:after="FilterLogs" Placeholder="Search logs..." />
+                            <TextEdit @bind-Text="ViewModel.SearchTerm" @bind-Text:after="ViewModel.OnSearchTermChanged" Placeholder="Search logs..." />
                         </Column>
                         <Column ColumnSize="ColumnSize.Is2">
-                            <Button Color="Color.Info" Outline="true" Size="Size.Small" @onclick="ManualRefreshLogs" Loading="_refreshingLogs" ElementId="refresh-logs-btn">
+                            <Button Color="Color.Info" Outline="true" Size="Size.Small" Clicked="() => ViewModel.RefreshLogsCommand.Execute(null)" Loading="ViewModel.RefreshingLogs" ElementId="refresh-logs-btn">
                                 <Icon Name="IconName.Sync" Margin="Margin.Is1.FromEnd" />
                                 Refresh
                             </Button>
                         </Column>
                         <Column ColumnSize="ColumnSize.Is2">
-                            <Button Color="Color.Secondary" Outline="true" Size="Size.Small" @onclick="ExportLogs" Loading="_exportingLogs" ElementId="download-logs-btn">
+                            <Button Color="Color.Secondary" Outline="true" Size="Size.Small" Clicked="() => ViewModel.ExportLogsCommand.Execute(null)" Loading="ViewModel.ExportingLogs" ElementId="download-logs-btn">
                                 <Icon Name="IconName.Download" Margin="Margin.Is1.FromEnd" />
                                 Export
                             </Button>
@@ -241,24 +237,24 @@
                     </Row>
 
                     <!-- Pagination Controls -->
-                    @if (_totalLogCount > _pageSize)
+                    @if (ViewModel.TotalLogCount > ViewModel.PageSize)
                     {
                         <Row Margin="Margin.Is2.FromBottom">
                             <Column>
                                 <Div Display="Display.Flex" JustifyContent="JustifyContent.Between" AlignItems="AlignItems.Center">
                                     <Small TextColor="TextColor.Muted">
-                                        Showing @((_currentPage - 1) * _pageSize + 1) to @(Math.Min(_currentPage * _pageSize, _totalLogCount)) of @_totalLogCount logs
+                                        Showing @((ViewModel.CurrentPage - 1) * ViewModel.PageSize + 1) to @(Math.Min(ViewModel.CurrentPage * ViewModel.PageSize, ViewModel.TotalLogCount)) of @ViewModel.TotalLogCount logs
                                     </Small>
                                     <Div>
                                         <Button Color="Color.Secondary" Outline="true" Size="Size.Small" 
-                                                @onclick="PreviousPage" 
-                                                Disabled="@(_currentPage <= 1)"
+                                                Clicked="() => ViewModel.PreviousPageCommand.Execute(null)" 
+                                                Disabled="@(ViewModel.CurrentPage <= 1)"
                                                 Margin="Margin.Is1.FromEnd">
                                             <Icon Name="IconName.ChevronLeft" />
                                         </Button>
                                         <Button Color="Color.Secondary" Outline="true" Size="Size.Small" 
-                                                @onclick="NextPage" 
-                                                Disabled="@(_currentPage >= Math.Ceiling((double)_totalLogCount / _pageSize))">
+                                                Clicked="() => ViewModel.NextPageCommand.Execute(null)" 
+                                                Disabled="@(ViewModel.CurrentPage >= Math.Ceiling((double)ViewModel.TotalLogCount / ViewModel.PageSize))">
                                             <Icon Name="IconName.ChevronRight" />
                                         </Button>
                                     </Div>
@@ -269,16 +265,16 @@
 
                     <!-- Log Entries -->
                     <Div Overflow="Overflow.Auto" Border="Border.Rounded" Height="Height.Max100.Is25">
-                        @if (_filteredLogs?.Any() == true)
+                        @if (ViewModel.FilteredLogs?.Any() == true)
                         {
-                            @foreach (var log in _filteredLogs)
+                            @foreach (var log in ViewModel.FilteredLogs)
                             {
                                 <Div Padding="Padding.Is1.FromBottom" Margin="Margin.Is2.FromBottom" Border="Border.OnBottom">
                                     <Div Display="Display.Flex" JustifyContent="JustifyContent.Between" Margin="Margin.Is1.FromBottom">
                                         <Small TextColor="TextColor.Muted">@log.Timestamp.ToString("yyyy-MM-dd HH:mm:ss")</Small>
-                                        <Badge Color="@GetLogLevelColor(log.Level)" Pill="true" Margin="Margin.Is1.FromStart">@log.LevelDisplay</Badge>
+                                        <Badge Color="@ViewModel.GetLogLevelColor(log.Level)" Pill="true" Margin="Margin.Is1.FromStart">@log.LevelDisplay</Badge>
                                     </Div>
-                                    <Text TextColor="@GetLogLevelTextColor(log.Level)" TextWeight="TextWeight.Normal">[@log.Source] @log.Message</Text>
+                                    <Text TextColor="@ViewModel.GetLogLevelTextColor(log.Level)" TextWeight="TextWeight.Normal">[@log.Source] @log.Message</Text>
                                     @if (!string.IsNullOrEmpty(log.Exception))
                                     {
                                         <Div Margin="Margin.Is2.FromTop" Padding="Padding.Is2" Background="Background.Light" Border="Border.Rounded">
@@ -324,7 +320,7 @@
             <Button Color="Color.Secondary" @onclick="CloseRestartModal" ElementId="restart-cancel-btn">
                 Cancel
             </Button>
-            <Button Color="Color.Danger" @onclick="ConfirmRestart" Loading="_restarting" ElementId="restart-confirm-btn">
+            <Button Color="Color.Danger" Clicked="() => ViewModel.ConfirmRestartCommand.Execute(null)" Loading="ViewModel.Restarting" ElementId="restart-confirm-btn">
                 <Icon Name="IconName.Stop" Margin="Margin.Is2.FromEnd" />
                 Restart System
             </Button>
@@ -340,7 +336,7 @@
             <CloseButton />
         </ModalHeader>
         <ModalBody>
-            @if (_selectedFile == null)
+            @if (ViewModel.SelectedFile == null)
             {
                 <Alert Color="Color.Info" Visible="true">
                     <AlertMessage>
@@ -388,7 +384,7 @@
                                 <Text Weight="TextWeight.Bold">Selected File:</Text>
                             </Column>
                             <Column ColumnSize="ColumnSize.Is9">
-                                <Text>@_selectedFile.Name</Text>
+                                <Text>@ViewModel.SelectedFile.Name</Text>
                             </Column>
                         </Row>
                         <Row>
@@ -396,7 +392,7 @@
                                 <Text Weight="TextWeight.Bold">File Size:</Text>
                             </Column>
                             <Column ColumnSize="ColumnSize.Is9">
-                                <Text>@FormatFileSize(_selectedFile.Size)</Text>
+                                <Text>@ViewModel.FormatFileSize(ViewModel.SelectedFile.Size)</Text>
                             </Column>
                         </Row>
                         <Row>
@@ -404,7 +400,7 @@
                                 <Text Weight="TextWeight.Bold">File Type:</Text>
                             </Column>
                             <Column ColumnSize="ColumnSize.Is9">
-                                <Text>@_selectedFile.Type</Text>
+                                <Text>@ViewModel.SelectedFile.Type</Text>
                             </Column>
                         </Row>
                     </CardBody>
@@ -419,7 +415,7 @@
             }
         </ModalBody>
         <ModalFooter>
-            @if (_selectedFile == null)
+            @if (ViewModel.SelectedFile == null)
             {
                 <Button Color="Color.Secondary" @onclick="CloseImportModal" ElementId="import-cancel-btn">
                     Cancel
@@ -431,7 +427,7 @@
                     <Icon Name="IconName.ArrowLeft" Margin="Margin.Is2.FromEnd" />
                     Back
                 </Button>
-                <Button Color="Color.Warning" @onclick="ConfirmImport" Loading="_importing" ElementId="import-confirm-btn">
+                <Button Color="Color.Warning" Clicked="() => ViewModel.ConfirmImportCommand.Execute(null)" Loading="ViewModel.Importing" ElementId="import-confirm-btn">
                     <Icon Name="IconName.FileUpload" Margin="Margin.Is2.FromEnd" />
                     Import Configuration
                 </Button>
@@ -443,151 +439,21 @@
 @code {
     [Parameter] public EventCallback<string> OnShowMessage { get; set; }
     
-    public void Dispose()
-    {
-        _uptimeTimer?.Dispose();
-        _logRefreshTimer?.Dispose();
-    }
-    
-    private int _readerCount;
-    private int _pluginCount;
-    private SystemInfo _systemInfo = new();
-    private string _pluginDirectory = "plugins/";
-    private bool _refreshing;
-    private bool _exporting;
-    private bool _importing;
-    private bool _restarting;
-    private bool _exportingLogs;
-    private bool _refreshingLogs;
-    private Timer? _uptimeTimer;
-    private Timer? _logRefreshTimer;
-    
     // Modal references
     private Modal? _restartModal;
     private Modal? _importModal;
     private FilePicker? _filePicker;
-    private IFileEntry? _selectedFile;
-    
-    // Log viewer state
-    private IEnumerable<LogEntry>? _recentLogs;
-    private IEnumerable<LogEntry>? _filteredLogs;
-    private LogLevel _selectedLogLevel = LogLevel.Information;
-    private string _searchTerm = string.Empty;
-    private int _currentPage = 1;
-    private int _pageSize = 50;
-    private int _totalLogCount = 0;
 
     protected override async Task OnInitializedAsync()
     {
-        await LoadSystemInfo();
-        await LoadPluginInfo(); // Load plugins only once on initialization
-        await LoadRecentLogs();
+        // Set up component callbacks for the ViewModel
+        ViewModel.StateHasChanged = StateHasChanged;
+        ViewModel.InvokeAsync = InvokeAsync;
+        ViewModel.OnShowMessage = async (message) => await OnShowMessage.InvokeAsync(message);
         
-        // Start uptime timer to update every 5 seconds
-        _uptimeTimer = new Timer(_ => InvokeAsync(StateHasChanged), null, TimeSpan.Zero, TimeSpan.FromSeconds(5));
-        
-        // Start log refresh timer to update every 2 seconds
-        _logRefreshTimer = new Timer(_ => InvokeAsync(LoadRecentLogs), null, TimeSpan.Zero, TimeSpan.FromSeconds(2));
+        // Initialize the ViewModel
+        await ViewModel.InitializeAsync();
     }
-
-    private async Task LoadSystemInfo()
-    {
-        try
-        {
-            var readers = await ReaderConfigurationService.GetAllReadersAsync();
-            _readerCount = readers.Count();
-            
-            // Get plugin directory from configuration
-            _pluginDirectory = Configuration.GetValue<string>("PluginSettings:Directory") ?? "plugins/";
-            
-            // Initialize system info with current values
-            _systemInfo = new SystemInfo();
-        }
-        catch (Exception ex)
-        {
-            await OnShowMessage.InvokeAsync($"Error loading system info: {ex.Message}|danger");
-        }
-    }
-    
-    private async Task LoadPluginInfo()
-    {
-        try
-        {
-            var plugins = await PluginLoader.LoadPluginsAsync();
-            _pluginCount = plugins.Count();
-        }
-        catch (Exception ex)
-        {
-            await OnShowMessage.InvokeAsync($"Error loading plugin info: {ex.Message}|danger");
-        }
-    }
-    
-    private async Task ReloadPluginInfo()
-    {
-        try
-        {
-            var plugins = await PluginLoader.ReloadPluginsAsync();
-            _pluginCount = plugins.Count();
-        }
-        catch (Exception ex)
-        {
-            await OnShowMessage.InvokeAsync($"Error reloading plugin info: {ex.Message}|danger");
-        }
-    }
-
-    private async Task RefreshSystemInfo()
-    {
-        _refreshing = true;
-        StateHasChanged();
-        
-        try
-        {
-            await LoadSystemInfo();
-            await ReloadPluginInfo(); // Force reload plugins only when manually refreshed
-            await OnShowMessage.InvokeAsync("System information refreshed|success");
-        }
-        catch (Exception ex)
-        {
-            await OnShowMessage.InvokeAsync($"Error refreshing system info: {ex.Message}|danger");
-        }
-        finally
-        {
-            _refreshing = false;
-            StateHasChanged();
-        }
-    }
-
-    private async Task ExportConfiguration()
-    {
-        _exporting = true;
-        StateHasChanged();
-        
-        try
-        {
-            var exportData = await ConfigurationExportService.ExportConfigurationAsync();
-            var json = System.Text.Json.JsonSerializer.Serialize(exportData, new System.Text.Json.JsonSerializerOptions
-            {
-                WriteIndented = true,
-                PropertyNamingPolicy = System.Text.Json.JsonNamingPolicy.CamelCase
-            });
-            
-            var fileName = $"apbox-config-{DateTime.UtcNow:yyyyMMdd-HHmmss}.json";
-            var bytes = System.Text.Encoding.UTF8.GetBytes(json);
-            
-            await JSRuntime.InvokeVoidAsync("downloadFile", fileName, "application/json", bytes);
-            await OnShowMessage.InvokeAsync("Configuration exported successfully|success");
-        }
-        catch (Exception ex)
-        {
-            await OnShowMessage.InvokeAsync($"Error exporting configuration: {ex.Message}|danger");
-        }
-        finally
-        {
-            _exporting = false;
-            StateHasChanged();
-        }
-    }
-
 
     private async Task ShowRestartModal()
     {
@@ -619,7 +485,7 @@
         {
             await _importModal.Hide();
         }
-        _selectedFile = null;
+        ViewModel.SelectedFile = null;
         if (_filePicker != null)
         {
             await _filePicker.Clear();
@@ -628,7 +494,7 @@
 
     private async Task ClearSelectedFile()
     {
-        _selectedFile = null;
+        ViewModel.ClearSelectedFile();
         if (_filePicker != null)
         {
             await _filePicker.Clear();
@@ -636,241 +502,18 @@
         StateHasChanged();
     }
 
-    private async Task ConfirmImport()
-    {
-        if (_selectedFile == null)
-            return;
-
-        _importing = true;
-        StateHasChanged();
-        
-        try
-        {
-            await using var stream = _selectedFile.OpenReadStream(maxAllowedSize: 1024 * 1024); // 1MB limit
-            using var reader = new StreamReader(stream);
-            await reader.ReadToEndAsync();
-            
-            // Here you would call your configuration import service
-            // For now, we'll show a success message
-            await OnShowMessage.InvokeAsync($"Configuration file '{_selectedFile.Name}' imported successfully. Import functionality will be implemented.|info");
-            
-            // Reset and close modal
-            await CloseImportModal();
-        }
-        catch (Exception ex)
-        {
-            await OnShowMessage.InvokeAsync($"Error importing configuration: {ex.Message}|danger");
-        }
-        finally
-        {
-            _importing = false;
-            StateHasChanged();
-        }
-    }
-
-    private async Task ConfirmRestart()
-    {
-        _restarting = true;
-        StateHasChanged();
-        
-        try
-        {
-            var canRestart = await SystemRestartService.CanRestartAsync();
-            if (!canRestart)
-            {
-                await OnShowMessage.InvokeAsync("System cannot be restarted at this time|warning");
-                return;
-            }
-            
-            await OnShowMessage.InvokeAsync("Preparing system for restart...|info");
-            await SystemRestartService.PrepareRestartAsync();
-            
-            await OnShowMessage.InvokeAsync("Restarting system...|warning");
-            await SystemRestartService.RestartApplicationAsync();
-        }
-        catch (Exception ex)
-        {
-            await OnShowMessage.InvokeAsync($"Error restarting system: {ex.Message}|danger");
-        }
-        finally
-        {
-            _restarting = false;
-            await CloseRestartModal();
-        }
-    }
-
-    private string GetSystemUptime()
-    {
-        try
-        {
-            var process = System.Diagnostics.Process.GetCurrentProcess();
-            var uptime = DateTime.UtcNow - process.StartTime.ToUniversalTime();
-            
-            if (uptime.Days > 0)
-                return $"{uptime.Days}d {uptime.Hours}h {uptime.Minutes}m";
-            else if (uptime.Hours > 0)
-                return $"{uptime.Hours}h {uptime.Minutes}m";
-            else
-                return $"{uptime.Minutes}m {uptime.Seconds}s";
-        }
-        catch
-        {
-            return "Unknown";
-        }
-    }
-    
-    private async Task LoadRecentLogs()
-    {
-        try
-        {
-            _recentLogs = await LogService.GetRecentLogsAsync();
-            await FilterLogs();
-        }
-        catch (Exception ex)
-        {
-            await OnShowMessage.InvokeAsync($"Error loading logs: {ex.Message}|danger");
-        }
-    }
-    
-    private async Task ManualRefreshLogs()
-    {
-        _refreshingLogs = true;
-        StateHasChanged();
-        
-        try
-        {
-            await LoadRecentLogs();
-        }
-        finally
-        {
-            _refreshingLogs = false;
-            StateHasChanged();
-        }
-    }
-    
-    private Task FilterLogs()
-    {
-        if (_recentLogs == null)
-        {
-            _filteredLogs = Enumerable.Empty<LogEntry>();
-            _totalLogCount = 0;
-            StateHasChanged();
-            return Task.CompletedTask;
-        }
-        
-        var filtered = _recentLogs.Where(l => l.Level >= _selectedLogLevel);
-        
-        if (!string.IsNullOrWhiteSpace(_searchTerm))
-        {
-            filtered = filtered.Where(l => 
-                l.Message.Contains(_searchTerm, StringComparison.OrdinalIgnoreCase) ||
-                l.Source.Contains(_searchTerm, StringComparison.OrdinalIgnoreCase) ||
-                (l.Exception?.Contains(_searchTerm, StringComparison.OrdinalIgnoreCase) ?? false));
-        }
-        
-        var orderedFiltered = filtered.OrderByDescending(l => l.Timestamp);
-        _totalLogCount = orderedFiltered.Count();
-        
-        // Apply pagination
-        _filteredLogs = orderedFiltered
-            .Skip((_currentPage - 1) * _pageSize)
-            .Take(_pageSize);
-        
-        StateHasChanged();
-        return Task.CompletedTask;
-    }
-    
-    private async Task ExportLogs()
-    {
-        _exportingLogs = true;
-        StateHasChanged();
-        
-        try
-        {
-            var logData = await LogService.ExportLogsAsync();
-            var fileName = $"apbox-logs-{DateTime.UtcNow:yyyyMMdd-HHmmss}.json";
-            
-            await JSRuntime.InvokeVoidAsync("downloadFile", fileName, "application/json", logData);
-            await OnShowMessage.InvokeAsync("Logs exported successfully|success");
-        }
-        catch (Exception ex)
-        {
-            await OnShowMessage.InvokeAsync($"Error exporting logs: {ex.Message}|danger");
-        }
-        finally
-        {
-            _exportingLogs = false;
-            StateHasChanged();
-        }
-    }
-    
-    private Color GetLogLevelColor(LogLevel level) => level switch
-    {
-        LogLevel.Trace => Color.Light,
-        LogLevel.Debug => Color.Secondary,
-        LogLevel.Information => Color.Info,
-        LogLevel.Warning => Color.Warning,
-        LogLevel.Error => Color.Danger,
-        LogLevel.Critical => Color.Dark,
-        _ => Color.Light
-    };
-    
-    private TextColor GetLogLevelTextColor(LogLevel level) => level switch
-    {
-        LogLevel.Trace => TextColor.Muted,
-        LogLevel.Debug => TextColor.Secondary,
-        LogLevel.Information => TextColor.Info,
-        LogLevel.Warning => TextColor.Warning,
-        LogLevel.Error => TextColor.Danger,
-        LogLevel.Critical => TextColor.Dark,
-        _ => TextColor.Body
-    };
-    
     private async Task OnFileSelected(FileChangedEventArgs e)
     {
         if (e.Files.Length == 0)
             return;
 
         var file = e.Files[0];
-        
-        if (file.Type != "application/json" && !file.Name.EndsWith(".json"))
-        {
-            await OnShowMessage.InvokeAsync("Please select a JSON file|warning");
-            return;
-        }
-
-        _selectedFile = file;
+        await ViewModel.OnFileSelectedAsync(file);
         StateHasChanged();
     }
 
-    private string FormatFileSize(long bytes)
+    public async ValueTask DisposeAsync()
     {
-        if (bytes < 1024)
-            return $"{bytes} B";
-        else if (bytes < 1024 * 1024)
-            return $"{bytes / 1024.0:F1} KB";
-        else if (bytes < 1024 * 1024 * 1024)
-            return $"{bytes / (1024.0 * 1024.0):F1} MB";
-        else
-            return $"{bytes / (1024.0 * 1024.0 * 1024.0):F1} GB";
-    }
-    
-    private void PreviousPage()
-    {
-        if (_currentPage > 1)
-        {
-            _currentPage--;
-            FilterLogs();
-        }
-    }
-    
-    private void NextPage()
-    {
-        var maxPage = (int)Math.Ceiling((double)_totalLogCount / _pageSize);
-        if (_currentPage < maxPage)
-        {
-            _currentPage++;
-            FilterLogs();
-        }
+        await ViewModel.DisposeAsync();
     }
 }

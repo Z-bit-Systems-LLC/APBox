@@ -248,3 +248,4 @@ The detailed implementation plan is in `apbox_project_plan.md` (excluded from gi
 ## Development Memories
 
 - Don't commit until entire project builds and all tests pass
+- **Use async methods for interacting with the UI during tests**

@@ -1,5 +1,8 @@
 @using ApBox.Plugins
-@inject IPluginLoader PluginLoader
+@using ApBox.Web.ViewModels
+
+@inject PluginsConfigurationViewModel ViewModel
+@implements IAsyncDisposable
 
 <Container Fluid>
     <Row Margin="Margin.Is3.FromBottom">
@@ -7,14 +10,28 @@
             <Heading Size="HeadingSize.Is3" ElementId="plugins-title">Loaded Plugins</Heading>
             <Paragraph TextColor="TextColor.Muted">Plugins are automatically loaded from the plugins directory</Paragraph>
         </Column>
+        <Column ColumnSize="ColumnSize.IsAuto">
+            <Button Color="Color.Primary" Outline="true" Clicked="() => ViewModel.RefreshCommand.Execute(null)" Loading="ViewModel.IsLoading" ElementId="refresh-plugins-btn">
+                <Icon Name="IconName.Sync" Margin="Margin.Is2.FromEnd" />
+                Refresh Plugins
+            </Button>
+        </Column>
     </Row>
 
-    @if (_loading)
+    @if (!string.IsNullOrEmpty(ViewModel.ErrorMessage))
+    {
+        <Alert Color="Color.Danger" Visible="true">
+            <Icon Name="IconName.ExclamationTriangle" Margin="Margin.Is2.FromEnd" />
+            @ViewModel.ErrorMessage
+        </Alert>
+    }
+
+    @if (ViewModel.IsLoading)
     {
         <Row>
             <Column>
                 <Alert Color="Color.Info" Visible="true">
-                    <AlertMessage>
+                    <AlertMessage ElementId="loading-alert">
                         <Icon Name="IconName.Sync" Animation="Animation.Spin" Margin="Margin.Is2.FromEnd" />
                         Loading plugins...
                     </AlertMessage>
@@ -22,10 +39,10 @@
             </Column>
         </Row>
     }
-    else if (_loadedPlugins.Any())
+    else if (ViewModel.LoadedPlugins.Any())
     {
         <Row>
-            @foreach (var plugin in _loadedPlugins)
+            @foreach (var plugin in ViewModel.LoadedPlugins)
             {
                 <Column ColumnSize="ColumnSize.Is6.OnTablet.Is4.OnDesktop" Margin="Margin.Is4.FromBottom">
                     <Card Height="Height.Is100">
@@ -72,34 +89,58 @@
     }
 </Container>
 
+<!-- Success/Error Messages -->
+@if (!string.IsNullOrEmpty(ViewModel.SuccessMessage))
+{
+    <Snackbar @ref="_successSnackbar" Color="SnackbarColor.Success" Visible="true">
+        <SnackbarBody>
+            <Icon Name="IconName.Check" Margin="Margin.Is2.FromEnd" />
+            @ViewModel.SuccessMessage
+        </SnackbarBody>
+    </Snackbar>
+}
+
 @code {
     [Parameter] public EventCallback<string> OnShowMessage { get; set; }
     
-    private List<IApBoxPlugin> _loadedPlugins = new();
-    private bool _loading = true;
+    private Snackbar? _successSnackbar;
 
     protected override async Task OnInitializedAsync()
     {
-        await LoadPlugins();
+        // Set up component callbacks for the ViewModel
+        ViewModel.StateHasChanged = StateHasChanged;
+        ViewModel.InvokeAsync = InvokeAsync;
+        
+        // Initialize the ViewModel
+        await ViewModel.InitializeAsync();
+        
+        // Watch for success messages
+        ViewModel.PropertyChanged += async (sender, args) =>
+        {
+            if (args.PropertyName == nameof(ViewModel.SuccessMessage) && !string.IsNullOrEmpty(ViewModel.SuccessMessage))
+            {
+                await ShowSuccessMessage();
+            }
+            
+            if (args.PropertyName == nameof(ViewModel.ErrorMessage) && !string.IsNullOrEmpty(ViewModel.ErrorMessage))
+            {
+                await OnShowMessage.InvokeAsync($"{ViewModel.ErrorMessage}|danger");
+            }
+        };
     }
 
-    private async Task LoadPlugins()
+    private async Task ShowSuccessMessage()
     {
-        try
-        {
-            _loading = true;
-            StateHasChanged();
-            
-            _loadedPlugins = (await PluginLoader.LoadPluginsAsync()).ToList();
-        }
-        catch (Exception ex)
-        {
-            await OnShowMessage.InvokeAsync($"Error loading plugins: {ex.Message}|danger");
-        }
-        finally
-        {
-            _loading = false;
-            StateHasChanged();
-        }
+        StateHasChanged();
+        
+        // Auto-hide after 3 seconds
+        await Task.Delay(3000);
+        ViewModel.SuccessMessage = null;
+        StateHasChanged();
+    }
+
+    public async ValueTask DisposeAsync()
+    {
+        await ViewModel.DisposeAsync();
     }
 }

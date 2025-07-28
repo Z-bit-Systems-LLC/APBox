@@ -100,6 +100,8 @@ public class ApBoxTestContext : Bunit.TestContext
         Services.AddScoped<DashboardViewModel>();
         Services.AddScoped<ReadersConfigurationViewModel>();
         Services.AddScoped<FeedbackConfigurationViewModel>();
+        Services.AddScoped<PluginsConfigurationViewModel>();
+        Services.AddScoped<SystemConfigurationViewModel>();
 
         // Add other required services
         Services.AddLogging();
