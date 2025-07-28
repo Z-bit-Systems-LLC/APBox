@@ -389,13 +389,28 @@ public partial class ReadersConfigurationViewModel : ObservableValidator, IAsync
             if (_hubConnection.State == HubConnectionState.Disconnected)
             {
                 // Set up event handlers before starting the connection
-                _hubConnection.On<Guid, bool>("ReaderStatusChanged", async (readerId, isOnline) =>
+                _hubConnection.On<ReaderStatusNotification>("ReaderStatusChanged", async (notification) =>
                 {
                     if (InvokeAsync != null)
                     {
                         await InvokeAsync(async () =>
                         {
-                            ReaderStatuses[readerId] = isOnline;
+                            _logger.LogDebug("Received reader status change for {ReaderName} ({ReaderId}): {Status}", 
+                                notification.ReaderName, notification.ReaderId, notification.IsOnline ? "Online" : "Offline");
+                            
+                            ReaderStatuses[notification.ReaderId] = notification.IsOnline;
+                            StateHasChanged?.Invoke();
+                        });
+                    }
+                });
+
+                _hubConnection.On<ReaderConfigurationNotification>("ReaderConfigurationChanged", async (notification) =>
+                {
+                    if (InvokeAsync != null)
+                    {
+                        await InvokeAsync(async () =>
+                        {
+                            await HandleReaderConfigurationChangeAsync(notification);
                             StateHasChanged?.Invoke();
                         });
                     }
@@ -425,6 +440,51 @@ public partial class ReadersConfigurationViewModel : ObservableValidator, IAsync
         catch (Exception ex)
         {
             _logger.LogError(ex, "Error initializing SignalR connection");
+        }
+    }
+
+    private async Task HandleReaderConfigurationChangeAsync(ReaderConfigurationNotification notification)
+    {
+        try
+        {
+            switch (notification.ChangeType)
+            {
+                case "Created":
+                    // Reload all readers to get the new one
+                    var allReaders = await _readerConfigurationService.GetAllReadersAsync();
+                    Readers = new ObservableCollection<ReaderConfiguration>(allReaders);
+                    break;
+                
+                case "Updated":
+                    // Find and update the existing reader
+                    var existingReader = Readers.FirstOrDefault(r => r.ReaderId == notification.ReaderId);
+                    if (existingReader != null)
+                    {
+                        var updatedReader = await _readerConfigurationService.GetReaderAsync(notification.ReaderId);
+                        if (updatedReader != null)
+                        {
+                            var index = Readers.IndexOf(existingReader);
+                            Readers[index] = updatedReader;
+                        }
+                    }
+                    break;
+                
+                case "Deleted":
+                    // Remove the reader from the collection
+                    var readerToRemove = Readers.FirstOrDefault(r => r.ReaderId == notification.ReaderId);
+                    if (readerToRemove != null)
+                    {
+                        Readers.Remove(readerToRemove);
+                    }
+                    break;
+            }
+            
+            _logger.LogDebug("Handled reader configuration change: {ChangeType} for reader {ReaderName}", 
+                notification.ChangeType, notification.ReaderName);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error handling reader configuration change for reader {ReaderId}", notification.ReaderId);
         }
     }
 

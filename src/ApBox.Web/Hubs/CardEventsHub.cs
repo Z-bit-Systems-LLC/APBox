@@ -48,6 +48,11 @@ public interface ICardEventsClient
     Task ReaderStatusChanged(ReaderStatusNotification notification);
 
     /// <summary>
+    /// Called when reader configuration changes
+    /// </summary>
+    Task ReaderConfigurationChanged(ReaderConfigurationNotification notification);
+
+    /// <summary>
     /// Called when statistics are updated
     /// </summary>
     Task StatisticsUpdated(StatisticsNotification notification);

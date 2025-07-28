@@ -37,7 +37,13 @@ public static class ServiceCollectionExtensions
         services.AddSingleton<IReaderPluginMappingRepository, ReaderPluginMappingRepository>();
         
         // Register database-backed services
-        services.AddSingleton<IReaderConfigurationService, ReaderConfigurationService>();
+        services.AddSingleton<IReaderConfigurationService>(provider =>
+        {
+            var repository = provider.GetRequiredService<IReaderConfigurationRepository>();
+            var logger = provider.GetRequiredService<ILogger<ReaderConfigurationService>>();
+            var lazyReaderService = new Lazy<IReaderService>(() => provider.GetRequiredService<IReaderService>());
+            return new ReaderConfigurationService(repository, logger, lazyReaderService);
+        });
         services.AddSingleton<IFeedbackConfigurationService, FeedbackConfigurationService>();
         services.AddSingleton<IReaderPluginMappingService, ReaderPluginMappingService>();
         

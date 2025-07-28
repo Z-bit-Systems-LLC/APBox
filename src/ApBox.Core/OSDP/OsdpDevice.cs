@@ -2,7 +2,6 @@ using System.Collections;
 using ApBox.Core.Models;
 using ApBox.Core.Services;
 using ApBox.Plugins;
-using Microsoft.Extensions.DependencyInjection;
 using OSDP.Net;
 using OSDP.Net.Model.CommandData;
 using System.Security.Cryptography;
@@ -178,7 +177,7 @@ public class OsdpDevice(
         }
     }
     
-    private async Task NotifySecurityModeChanged(OsdpSecurityMode newMode)
+    private Task NotifySecurityModeChanged(OsdpSecurityMode newMode)
     {
         try
         {
@@ -206,6 +205,8 @@ public class OsdpDevice(
         {
             logger.LogError(ex, "Error notifying security mode change for device {DeviceName}", Name);
         }
+
+        return Task.CompletedTask;
     }
     
     
@@ -315,7 +316,7 @@ public class OsdpDevice(
                 AdditionalData =
                 {
                     // Add raw data to additional data for debugging/analysis
-                    ["ReaderFormat"] = eventArgs.RawCardData.FormatCode.ToString() ?? "Unknown",
+                    ["ReaderFormat"] = eventArgs.RawCardData.FormatCode.ToString(),
                     ["BitString"] = bitString
                 }
             };

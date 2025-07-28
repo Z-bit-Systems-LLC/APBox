@@ -34,8 +34,9 @@ public static class ServiceCollectionExtensions
         services.AddSingleton<IEnhancedCardProcessingService, EnhancedCardProcessingService>();
         services.AddSingleton<IReaderService, ReaderService>();
         
-        // Register SignalR notification service
+        // Register SignalR notification services
         services.AddSingleton<ICardEventNotificationService, CardEventNotificationService>();
+        services.AddSingleton<INotificationService, NotificationService>();
         
         // Register SignalR factory and wrapper
         services.AddTransient<IHubConnectionFactory, HubConnectionFactory>();

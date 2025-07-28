@@ -8,13 +8,19 @@ public class ReaderConfigurationService : IReaderConfigurationService
 {
     private readonly IReaderConfigurationRepository _repository;
     private readonly ILogger<ReaderConfigurationService> _logger;
+    private readonly Lazy<IReaderService> _readerService;
+    private readonly INotificationService? _notificationService;
     
     public ReaderConfigurationService(
         IReaderConfigurationRepository repository,
-        ILogger<ReaderConfigurationService> logger)
+        ILogger<ReaderConfigurationService> logger,
+        Lazy<IReaderService> readerService,
+        INotificationService? notificationService = null)
     {
         _repository = repository;
         _logger = logger;
+        _readerService = readerService;
+        _notificationService = notificationService;
     }
     
     public async Task<IEnumerable<ReaderConfiguration>> GetAllReadersAsync()
@@ -48,16 +54,35 @@ public class ReaderConfigurationService : IReaderConfigurationService
         try
         {
             var exists = await _repository.ExistsAsync(reader.ReaderId);
+            var oldConfiguration = exists ? await _repository.GetByIdAsync(reader.ReaderId) : null;
             
             if (exists)
             {
                 await _repository.UpdateAsync(reader);
                 _logger.LogInformation("Updated reader configuration for {ReaderId}", reader.ReaderId);
+                
+                // Broadcast configuration change
+                if (_notificationService != null)
+                {
+                    await _notificationService.BroadcastReaderConfigurationAsync(reader, "Updated");
+                }
             }
             else
             {
                 await _repository.CreateAsync(reader);
                 _logger.LogInformation("Created new reader configuration for {ReaderId}", reader.ReaderId);
+                
+                // Broadcast configuration change
+                if (_notificationService != null)
+                {
+                    await _notificationService.BroadcastReaderConfigurationAsync(reader, "Created");
+                }
+            }
+
+            // Check if connection-critical settings have changed and restart connection if needed
+            if (exists && oldConfiguration != null && ShouldRestartConnection(oldConfiguration, reader))
+            {
+                await RestartReaderConnectionAsync(reader);
             }
         }
         catch (Exception ex)
@@ -71,11 +96,20 @@ public class ReaderConfigurationService : IReaderConfigurationService
     {
         try
         {
+            // Get reader configuration before deleting for notification
+            var readerToDelete = await _repository.GetByIdAsync(readerId);
+            
             var deleted = await _repository.DeleteAsync(readerId);
             
             if (deleted)
             {
                 _logger.LogInformation("Deleted reader configuration for {ReaderId}", readerId);
+                
+                // Broadcast configuration change
+                if (_notificationService != null && readerToDelete != null)
+                {
+                    await _notificationService.BroadcastReaderConfigurationAsync(readerToDelete, "Deleted");
+                }
             }
             else
             {
@@ -86,6 +120,83 @@ public class ReaderConfigurationService : IReaderConfigurationService
         {
             _logger.LogError(ex, "Error deleting reader configuration for {ReaderId}", readerId);
             throw;
+        }
+    }
+
+    /// <summary>
+    /// Determines if a reader connection should be restarted due to configuration changes
+    /// </summary>
+    private static bool ShouldRestartConnection(ReaderConfiguration oldConfig, ReaderConfiguration newConfig)
+    {
+        // Check if connection-critical settings have changed
+        return oldConfig.SerialPort != newConfig.SerialPort ||
+               oldConfig.BaudRate != newConfig.BaudRate ||
+               oldConfig.Address != newConfig.Address ||
+               oldConfig.SecurityMode != newConfig.SecurityMode ||
+               !AreSecureChannelKeysEqual(oldConfig.SecureChannelKey, newConfig.SecureChannelKey) ||
+               oldConfig.IsEnabled != newConfig.IsEnabled;
+    }
+
+    /// <summary>
+    /// Compares two secure channel key arrays for equality
+    /// </summary>
+    private static bool AreSecureChannelKeysEqual(byte[]? key1, byte[]? key2)
+    {
+        if (key1 == null && key2 == null) return true;
+        if (key1 == null || key2 == null) return false;
+        if (key1.Length != key2.Length) return false;
+        
+        for (int i = 0; i < key1.Length; i++)
+        {
+            if (key1[i] != key2[i]) return false;
+        }
+        
+        return true;
+    }
+
+    /// <summary>
+    /// Restarts the reader connection with new configuration
+    /// </summary>
+    private async Task RestartReaderConnectionAsync(ReaderConfiguration reader)
+    {
+        try
+        {
+            _logger.LogInformation("Restarting connection for reader {ReaderName} ({ReaderId}) due to configuration changes", 
+                reader.ReaderName, reader.ReaderId);
+
+            var readerService = _readerService.Value;
+            
+            // Disconnect the existing connection (natural OSDP status change will handle offline notification)
+            await readerService.DisconnectReaderAsync(reader.ReaderId);
+            
+            // Wait a brief moment for the disconnection to complete
+            await Task.Delay(500);
+            
+            // Reconnect with new configuration if enabled
+            if (reader.IsEnabled)
+            {
+                var connected = await readerService.ConnectReaderAsync(reader.ReaderId);
+                if (connected)
+                {
+                    _logger.LogInformation("Successfully restarted connection for reader {ReaderName}", reader.ReaderName);
+                    // Natural OSDP status events will handle online notification
+                }
+                else
+                {
+                    _logger.LogWarning("Failed to reconnect reader {ReaderName} with new configuration", reader.ReaderName);
+                    // Device remains offline from disconnect - natural OSDP events handle this
+                }
+            }
+            else
+            {
+                _logger.LogInformation("Reader {ReaderName} is disabled, keeping disconnected", reader.ReaderName);
+            }
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error restarting connection for reader {ReaderId}", reader.ReaderId);
+            // Natural OSDP status events will reflect the actual device state
+            // Don't rethrow - we don't want configuration save to fail due to connection issues
         }
     }
 }

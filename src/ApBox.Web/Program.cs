@@ -69,6 +69,8 @@ var logService = app.Services.GetRequiredService<ILogService>();
 var loggerFactory = app.Services.GetRequiredService<ILoggerFactory>();
 loggerFactory.AddProvider(new ApBoxLogProvider(logService));
 
+// Configuration change notifications are now handled directly via dependency injection
+
 // Configure the HTTP request pipeline
 if (!app.Environment.IsDevelopment())
 {

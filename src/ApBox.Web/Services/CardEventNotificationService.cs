@@ -22,6 +22,11 @@ public interface ICardEventNotificationService
     Task BroadcastReaderStatusAsync(Guid readerId, string readerName, bool isOnline, bool isEnabled, OsdpSecurityMode securityMode, DateTime? lastActivity = null);
 
     /// <summary>
+    /// Broadcast reader configuration change to all connected clients
+    /// </summary>
+    Task BroadcastReaderConfigurationAsync(ReaderConfiguration reader, string changeType);
+
+    /// <summary>
     /// Broadcast system statistics update to all connected clients
     /// </summary>
     Task BroadcastStatisticsAsync(int activeReaders, int loadedPlugins, int totalEventsToday, int totalEvents);
@@ -82,6 +87,34 @@ public class CardEventNotificationService(
         catch (Exception ex)
         {
             logger.LogError(ex, "Failed to broadcast reader status for reader {ReaderId}", readerId);
+        }
+    }
+
+    public async Task BroadcastReaderConfigurationAsync(ReaderConfiguration reader, string changeType)
+    {
+        try
+        {
+            var notification = new ReaderConfigurationNotification
+            {
+                ReaderId = reader.ReaderId,
+                ReaderName = reader.ReaderName,
+                SerialPort = reader.SerialPort,
+                BaudRate = reader.BaudRate,
+                Address = reader.Address,
+                SecurityMode = reader.SecurityMode,
+                IsEnabled = reader.IsEnabled,
+                UpdatedAt = reader.UpdatedAt,
+                ChangeType = changeType
+            };
+
+            await hubContext.Clients.Group("CardEvents").ReaderConfigurationChanged(notification);
+
+            logger.LogDebug("Broadcasted reader configuration change for {ReaderName}: {ChangeType}", 
+                reader.ReaderName, changeType);
+        }
+        catch (Exception ex)
+        {
+            logger.LogError(ex, "Failed to broadcast reader configuration change for reader {ReaderId}", reader.ReaderId);
         }
     }
 
