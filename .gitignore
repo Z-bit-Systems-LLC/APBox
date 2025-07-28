@@ -59,3 +59,8 @@ apbox_project_plan.md
 .claude/
 
 src/ApBox.Web/plugins/ApBox.SamplePlugins.dll
+
+# SQLite database files
+*.db
+*.db-shm
+*.db-wal
