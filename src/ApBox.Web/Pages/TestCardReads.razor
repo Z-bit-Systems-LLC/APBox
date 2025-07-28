@@ -2,6 +2,7 @@
 @using ApBox.Core.Services
 @using ApBox.Core.Models
 @using ApBox.Plugins
+@using ApBox.Web.Constants
 @using System.Text.Json
 @inject IReaderService ReaderService
 @inject HttpClient HttpClient
@@ -166,7 +167,7 @@
             var json = JsonSerializer.Serialize(request);
             var content = new StringContent(json, System.Text.Encoding.UTF8, "application/json");
 
-            var response = await HttpClient.PostAsync(Navigation.ToAbsoluteUri("/api/cardevents/process-realtime"), content);
+            var response = await HttpClient.PostAsync(Navigation.ToAbsoluteUri(HubConstants.ProcessRealtimeEndpoint), content);
             var responseContent = await response.Content.ReadAsStringAsync();
 
             if (response.IsSuccessStatusCode)

@@ -1,5 +1,6 @@
 using Microsoft.AspNetCore.SignalR.Client;
 using Microsoft.AspNetCore.Components;
+using ApBox.Web.Constants;
 
 namespace ApBox.Web.Services;
 
@@ -14,7 +15,7 @@ public class HubConnectionWrapper : IHubConnectionWrapper
     public HubConnectionWrapper(NavigationManager navigationManager)
     {
         _hubConnection = new HubConnectionBuilder()
-            .WithUrl(navigationManager.ToAbsoluteUri("/cardevents"))
+            .WithUrl(navigationManager.ToAbsoluteUri(HubConstants.NotificationHubUrl))
             .WithAutomaticReconnect()
             .Build();
     }

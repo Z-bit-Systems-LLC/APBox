@@ -6,7 +6,7 @@ namespace ApBox.Web.Hubs;
 /// <summary>
 /// SignalR hub for real-time card event notifications
 /// </summary>
-public class CardEventsHub : Hub<ICardEventsClient>
+public class NotificationHub : Hub<INotificationClient>
 {
     public async Task JoinGroup(string groupName)
     {
@@ -35,7 +35,7 @@ public class CardEventsHub : Hub<ICardEventsClient>
 /// <summary>
 /// Client interface for SignalR card events hub
 /// </summary>
-public interface ICardEventsClient
+public interface INotificationClient
 {
     /// <summary>
     /// Called when a new card event is processed

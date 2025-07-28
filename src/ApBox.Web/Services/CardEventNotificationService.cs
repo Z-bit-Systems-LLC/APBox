@@ -33,7 +33,7 @@ public interface ICardEventNotificationService
 }
 
 public class CardEventNotificationService(
-    IHubContext<CardEventsHub, ICardEventsClient> hubContext,
+    IHubContext<NotificationHub, INotificationClient> hubContext,
     ILogger<CardEventNotificationService> logger)
     : ICardEventNotificationService
 {

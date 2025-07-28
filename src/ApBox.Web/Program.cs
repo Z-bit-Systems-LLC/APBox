@@ -1,5 +1,6 @@
 using ApBox.Web.Services;
 using ApBox.Web.Hubs;
+using ApBox.Web.Constants;
 using ApBox.Core.Data;
 using ApBox.Core.Logging;
 using ApBox.Core.Services;
@@ -91,7 +92,7 @@ app.UseRouting();
 app.MapControllers();
 
 // Map SignalR hub
-app.MapHub<CardEventsHub>("/cardevents");
+app.MapHub<NotificationHub>(HubConstants.NotificationHubUrl);
 
 // Map Blazor
 app.MapBlazorHub();
