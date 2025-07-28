@@ -236,9 +236,8 @@ This project is licensed under the Eclipse Public License v2.0 - see the [LICENS
 
 ## Support
 
-- **Documentation**: [Wiki](https://github.com/your-org/ApBox/wiki)
-- **Issues**: [GitHub Issues](https://github.com/your-org/ApBox/issues)
-- **Discussions**: [GitHub Discussions](https://github.com/your-org/ApBox/discussions)
+- **Documentation**: [Wiki](https://github.com/Z-bit-Systems-LLC/ApBox/wiki)
+- **Issues**: [GitHub Issues](https://github.com/Z-bit-Systems-LLC/ApBox/issues)
 
 ## Testing with Sample Plugins
 
@@ -384,7 +383,7 @@ This testing environment lets you validate plugin behavior without physical card
 - [x] System configuration export/import functionality
 - [x] Real-time log viewer with filtering
 - [x] System restart management
-- [ ] OSDP integration and communication
+- [x] OSDP integration and communication
 - [ ] Docker deployment support
 
 ### Post-MVP
