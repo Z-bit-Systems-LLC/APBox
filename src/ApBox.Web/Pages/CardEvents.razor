@@ -103,7 +103,7 @@
                                     @foreach (var cardEvent in ViewModel.FilteredEvents.Take(ViewModel.PageSize))
                                     {
                                         <TableRow>
-                                            <TableRowCell>@cardEvent.Timestamp.ToString("MM/dd/yyyy HH:mm:ss")</TableRowCell>
+                                            <TableRowCell>@cardEvent.Timestamp.ToLocalTime().ToString("g")</TableRowCell>
                                             <TableRowCell>
                                                 <Badge Color="Color.Secondary">@cardEvent.ReaderName</Badge>
                                             </TableRowCell>
@@ -192,7 +192,7 @@
                             <Text TextWeight="TextWeight.Bold">Timestamp</Text>
                         </Column>
                         <Column>
-                            <Text>@ViewModel.SelectedEvent.Timestamp.ToString("MM/dd/yyyy HH:mm:ss")</Text>
+                            <Text>@ViewModel.SelectedEvent.Timestamp.ToLocalTime().ToString("MM/dd/yyyy HH:mm:ss")</Text>
                         </Column>
                     </Row>
                     
@@ -240,7 +240,7 @@
                                 <Div>
                                     @foreach (var plugin in pluginResults.SuccessfulPlugins)
                                     {
-                                        <Badge Color="Color.Success" Margin="Margin.Is1.FromEnd.Is2.FromBottom" Title="@($"Plugin approved access at {plugin.ProcessedAt:HH:mm:ss}")">
+                                        <Badge Color="Color.Success" Margin="Margin.Is1.FromEnd.Is2.FromBottom" Title="@($"Plugin approved access at {plugin.ProcessedAt.ToLocalTime():HH:mm:ss}")">
                                             @plugin.PluginName
                                         </Badge>
                                     }

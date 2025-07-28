@@ -139,7 +139,7 @@
                                     @foreach (var cardEvent in ViewModel.RecentEvents.Take(15))
                                     {
                                         <TableRow>
-                                            <TableRowCell>@cardEvent.Timestamp.ToString("HH:mm:ss")</TableRowCell>
+                                            <TableRowCell>@cardEvent.Timestamp.ToLocalTime().ToString("t")</TableRowCell>
                                             <TableRowCell>@cardEvent.ReaderName</TableRowCell>
                                             <TableRowCell>@cardEvent.CardNumber</TableRowCell>
                                             <TableRowCell>
