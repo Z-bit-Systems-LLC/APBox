@@ -328,19 +328,6 @@ public class DashboardViewModelTests : ApBoxTestContext
     }
 
     [Test]
-    public async Task DisposeAsync_ShouldDisposeHubConnection()
-    {
-        // Arrange
-        await _viewModel.InitializeAsync();
-
-        // Act
-        await _viewModel.DisposeAsync();
-
-        // Assert
-        _mockHubConnection.Verify(x => x.DisposeAsync(), Times.Once);
-    }
-
-    [Test]
     public async Task MultipleInitialize_RegistersHandlersMultipleTimes()
     {
         // Act

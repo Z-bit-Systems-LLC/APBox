@@ -320,9 +320,9 @@ public class IndexPageTests : ApBoxTestContext
         var cells = firstRow.QuerySelectorAll("td");
         Assert.That(cells.Length, Is.EqualTo(4));
         
-        // Time column should have time format
+        // Time column should have short time format (e.g., "10:29 PM")
         var timeCell = cells[0];
-        Assert.That(timeCell.TextContent, Does.Match(@"\d{2}:\d{2}:\d{2}"));
+        Assert.That(timeCell.TextContent, Does.Match(@"\d{1,2}:\d{2}\s?(AM|PM)"), "Time should be in short format like '10:29 PM'");
         
         // Reader name should be present
         var readerCell = cells[1];
@@ -514,8 +514,8 @@ public class IndexPageTests : ApBoxTestContext
         foreach (var row in tableRows)
         {
             var timeCell = row.QuerySelectorAll("td")[0];
-            Assert.That(timeCell.TextContent, Does.Match(@"\d{2}:\d{2}:\d{2}"), 
-                "All timestamps should be formatted consistently as HH:mm:ss");
+            Assert.That(timeCell.TextContent, Does.Match(@"\d{1,2}:\d{2}\s?(AM|PM)"), 
+                "All timestamps should be formatted consistently in short time format");
         }
     }
 
