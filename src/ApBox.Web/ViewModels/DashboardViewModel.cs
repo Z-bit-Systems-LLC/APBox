@@ -123,8 +123,10 @@ public partial class DashboardViewModel(
     {
         try
         {
-            var todayUtc = DateTime.UtcNow.Date;
-            var tomorrowUtc = todayUtc.AddDays(1);
+            var todayLocal = DateTime.Now.Date;
+            var tomorrowLocal = todayLocal.AddDays(1);
+            var todayUtc = todayLocal.ToUniversalTime();
+            var tomorrowUtc = tomorrowLocal.ToUniversalTime();
             var eventEntities = await cardEventRepository.GetByDateRangeAsync(todayUtc, tomorrowUtc, 25);
             var events = eventEntities.Select(e => e.ToCardReadEvent()).ToList();
             
@@ -147,8 +149,10 @@ public partial class DashboardViewModel(
     {
         try
         {
-            var todayUtc = DateTime.UtcNow.Date;
-            var tomorrowUtc = todayUtc.AddDays(1);
+            var todayLocal = DateTime.Now.Date;
+            var tomorrowLocal = todayLocal.AddDays(1);
+            var todayUtc = todayLocal.ToUniversalTime();
+            var tomorrowUtc = tomorrowLocal.ToUniversalTime();
             var todaysEvents = await cardEventRepository.GetByDateRangeAsync(todayUtc, tomorrowUtc);
             return todaysEvents.Count();
         }
@@ -217,8 +221,8 @@ public partial class DashboardViewModel(
                 RecentEvents.RemoveAt(RecentEvents.Count - 1);
             }
 
-            // Update total events count only if event is from today (UTC)
-            if (cardEvent.Timestamp.Date == DateTime.UtcNow.Date)
+            // Update total events count only if event is from today (local timezone)
+            if (cardEvent.Timestamp.ToLocalTime().Date == DateTime.Now.Date)
             {
                 TotalEvents++;
             }
