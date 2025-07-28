@@ -58,6 +58,13 @@ apbox_project_plan.md
 .idea/
 .claude/
 
+# IDE user settings
+*.user
+*.suo
+*.userosscache
+*.sln.docstates
+*.sln.DotSettings.user
+
 src/ApBox.Web/plugins/ApBox.SamplePlugins.dll
 
 # SQLite database files
