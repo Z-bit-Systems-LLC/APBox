@@ -1,11 +1,8 @@
 @page "/card-events"
-@using ApBox.Core.Services
-@using ApBox.Core.Data.Repositories
+@using ApBox.Web.ViewModels
 @using ApBox.Core.Models
-@using ApBox.Plugins
-@inject ICardProcessingService CardProcessingService
-@inject IReaderService ReaderService
-@inject ICardEventRepository CardEventRepository
+@inject CardEventsViewModel ViewModel
+@implements IAsyncDisposable
 
 <PageTitle>Card Events</PageTitle>
 
@@ -17,116 +14,145 @@
         </Column>
     </Row>
 
-    <Row Margin="Margin.Is4.FromBottom">
-        <Column ColumnSize="ColumnSize.Is6.OnTablet">
-            <Field>
-                <FieldLabel>Search</FieldLabel>
-                <Addons>
-                    <Addon AddonType="AddonType.Start">
-                        <AddonLabel>
-                            <Icon Name="IconName.Search" />
-                        </AddonLabel>
-                    </Addon>
-                    <Addon AddonType="AddonType.Body">
-                        <TextEdit Placeholder="Search by card number or reader..." @bind-Text="_searchTerm" @onkeyup="OnSearchChanged" ElementId="search-input" />
-                    </Addon>
-                </Addons>
-            </Field>
-        </Column>
-        <Column ColumnSize="ColumnSize.Is3.OnTablet">
-            <Field>
-                <FieldLabel>Reader Filter</FieldLabel>
-                <Select @bind-SelectedValue="_selectedReader" ElementId="reader-filter">
-                    <SelectItem Value="@("")">All Readers</SelectItem>
-                    @foreach (var reader in _readers)
-                    {
-                        <SelectItem Value="@reader.ReaderName">@reader.ReaderName</SelectItem>
-                    }
-                </Select>
-            </Field>
-        </Column>
-        <Column ColumnSize="ColumnSize.Is3.OnTablet">
-            <Field>
-                <FieldLabel>&nbsp;</FieldLabel>
-                <Button Color="Color.Secondary" Clicked="RefreshEvents" Block ElementId="refresh-button">
-                    <Icon Name="IconName.Sync" /> Refresh
-                </Button>
-            </Field>
-        </Column>
-    </Row>
+    @if (ViewModel.IsLoading)
+    {
+        <Row ElementId="loading-spinner">
+            <Column>
+                <Div Display="Display.Flex" JustifyContent="JustifyContent.Center" Margin="Margin.Is5.FromTop">
+                    <Spinner Type="SpinnerType.Border" Color="Color.Primary" />
+                    <Text Margin="Margin.Is2.FromStart">Loading events...</Text>
+                </Div>
+            </Column>
+        </Row>
+    }
+    else if (!string.IsNullOrEmpty(ViewModel.ErrorMessage))
+    {
+        <Row>
+            <Column>
+                <Alert Color="Color.Danger" Visible="true">
+                    <Icon Name="IconName.ExclamationTriangle" Margin="Margin.Is2.FromEnd" />
+                    @ViewModel.ErrorMessage
+                    <Button Color="Color.Secondary" Size="Size.Small" Margin="Margin.Is2.FromStart" Clicked="ViewModel.RefreshCommand.ExecuteAsync">
+                        <Icon Name="IconName.Redo" />
+                        Retry
+                    </Button>
+                </Alert>
+            </Column>
+        </Row>
+    }
+    else
+    {
+        <Row Margin="Margin.Is4.FromBottom">
+            <Column ColumnSize="ColumnSize.Is6.OnTablet">
+                <Field>
+                    <FieldLabel>Search</FieldLabel>
+                    <Addons>
+                        <Addon AddonType="AddonType.Start">
+                            <AddonLabel>
+                                <Icon Name="IconName.Search" />
+                            </AddonLabel>
+                        </Addon>
+                        <Addon AddonType="AddonType.Body">
+                            <TextEdit Placeholder="Search by card number or reader..." @bind-Text="ViewModel.SearchTerm" @onkeyup="OnSearchChanged" ElementId="search-input" />
+                        </Addon>
+                    </Addons>
+                </Field>
+            </Column>
+            <Column ColumnSize="ColumnSize.Is3.OnTablet">
+                <Field>
+                    <FieldLabel>Reader Filter</FieldLabel>
+                    <Select @bind-SelectedValue="ViewModel.SelectedReader" @onchange="OnReaderFilterChanged" ElementId="reader-filter">
+                        <SelectItem Value="@("")">All Readers</SelectItem>
+                        @foreach (var reader in ViewModel.Readers)
+                        {
+                            <SelectItem Value="@reader.ReaderName">@reader.ReaderName</SelectItem>
+                        }
+                    </Select>
+                </Field>
+            </Column>
+            <Column ColumnSize="ColumnSize.Is3.OnTablet">
+                <Field>
+                    <FieldLabel>&nbsp;</FieldLabel>
+                    <Button Color="Color.Secondary" Clicked="ViewModel.RefreshCommand.ExecuteAsync" Loading="ViewModel.RefreshCommand.IsRunning" Block ElementId="refresh-button">
+                        <Icon Name="IconName.Sync" /> Refresh
+                    </Button>
+                </Field>
+            </Column>
+        </Row>
 
-    <Row>
-        <Column>
-            <Card ElementId="events-card">
-                <CardHeader>
-                    <CardTitle Size="5" Margin="Margin.Is0.FromBottom" ElementId="events-count">Recent Events (@FilteredEvents.Count())</CardTitle>
-                </CardHeader>
-                <CardBody>
-                    @if (FilteredEvents.Any())
-                    {
-                        <Table Responsive Striped Hoverable ElementId="events-table">
-                            <TableHeader>
-                                <TableRow>
-                                    <TableHeaderCell>Timestamp</TableHeaderCell>
-                                    <TableHeaderCell>Reader</TableHeaderCell>
-                                    <TableHeaderCell>Card Number</TableHeaderCell>
-                                    <TableHeaderCell>Bit Length</TableHeaderCell>
-                                    <TableHeaderCell>Status</TableHeaderCell>
-                                </TableRow>
-                            </TableHeader>
-                            <TableBody>
-                                @foreach (var cardEvent in FilteredEvents.Take(_pageSize))
-                                {
+        <Row>
+            <Column>
+                <Card ElementId="events-card">
+                    <CardHeader>
+                        <CardTitle Size="5" Margin="Margin.Is0.FromBottom" ElementId="events-count">Recent Events (@ViewModel.FilteredEvents.Count())</CardTitle>
+                    </CardHeader>
+                    <CardBody>
+                        @if (ViewModel.FilteredEvents.Any())
+                        {
+                            <Table Responsive Striped Hoverable ElementId="events-table">
+                                <TableHeader>
                                     <TableRow>
-                                        <TableRowCell>@cardEvent.Timestamp.ToString("MM/dd/yyyy HH:mm:ss")</TableRowCell>
-                                        <TableRowCell>
-                                            <Badge Color="Color.Secondary">@cardEvent.ReaderName</Badge>
-                                        </TableRowCell>
-                                        <TableRowCell>
-                                            <Text TextStyle="TextStyle.Monospace">@cardEvent.CardNumber</Text>
-                                        </TableRowCell>
-                                        <TableRowCell>@cardEvent.BitLength bits</TableRowCell>
-                                        <TableRowCell>
-                                            @if (cardEvent.Success)
-                                            {
-                                                <span @onclick="() => ViewEventDetails(cardEvent)" style="cursor: pointer;" title="Click to view plugin details">
-                                                    <Badge Color="Color.Success">Success</Badge>
-                                                </span>
-                                            }
-                                            else
-                                            {
-                                                <span @onclick="() => ViewEventDetails(cardEvent)" style="cursor: pointer;" title="Click to view plugin details">
-                                                    <Badge Color="Color.Danger">Failed</Badge>
-                                                </span>
-                                            }
-                                        </TableRowCell>
+                                        <TableHeaderCell>Timestamp</TableHeaderCell>
+                                        <TableHeaderCell>Reader</TableHeaderCell>
+                                        <TableHeaderCell>Card Number</TableHeaderCell>
+                                        <TableHeaderCell>Bit Length</TableHeaderCell>
+                                        <TableHeaderCell>Status</TableHeaderCell>
                                     </TableRow>
-                                }
-                            </TableBody>
-                        </Table>
-                    }
-                    else
-                    {
-                        <Div TextAlignment="TextAlignment.Center" Padding="Padding.Is5" ElementId="no-events-message">
-                            <Icon Name="IconName.CreditCard" IconSize="IconSize.x3" TextColor="TextColor.Muted" />
-                            <Heading Size="HeadingSize.Is4" Margin="Margin.Is3.FromTop">No Events Found</Heading>
-                            <Paragraph TextColor="TextColor.Muted">No card events match your current filters.</Paragraph>
-                        </Div>
-                    }
-                    
-                    @if (FilteredEvents.Count() > _pageSize)
-                    {
-                        <Div Flex="Flex.JustifyContent.Between.AlignItems.Center" Margin="Margin.Is3.FromTop" ElementId="load-more-section">
-                            <Span TextColor="TextColor.Muted">Showing @_pageSize of @FilteredEvents.Count() events</Span>
-                            <Button Color="Color.Primary" Outline Clicked="LoadMoreEvents" ElementId="load-more-button">
-                                Load More
-                            </Button>
-                        </Div>
-                    }
-                </CardBody>
-            </Card>
-        </Column>
-    </Row>
+                                </TableHeader>
+                                <TableBody>
+                                    @foreach (var cardEvent in ViewModel.FilteredEvents.Take(ViewModel.PageSize))
+                                    {
+                                        <TableRow>
+                                            <TableRowCell>@cardEvent.Timestamp.ToString("MM/dd/yyyy HH:mm:ss")</TableRowCell>
+                                            <TableRowCell>
+                                                <Badge Color="Color.Secondary">@cardEvent.ReaderName</Badge>
+                                            </TableRowCell>
+                                            <TableRowCell>
+                                                <Text TextStyle="TextStyle.Monospace">@cardEvent.CardNumber</Text>
+                                            </TableRowCell>
+                                            <TableRowCell>@cardEvent.BitLength bits</TableRowCell>
+                                            <TableRowCell>
+                                                @if (cardEvent.Success)
+                                                {
+                                                    <span @onclick="() => ViewEventDetails(cardEvent)" style="cursor: pointer;" title="Click to view plugin details">
+                                                        <Badge Color="Color.Success">Success</Badge>
+                                                    </span>
+                                                }
+                                                else
+                                                {
+                                                    <span @onclick="() => ViewEventDetails(cardEvent)" style="cursor: pointer;" title="Click to view plugin details">
+                                                        <Badge Color="Color.Danger">Failed</Badge>
+                                                    </span>
+                                                }
+                                            </TableRowCell>
+                                        </TableRow>
+                                    }
+                                </TableBody>
+                            </Table>
+                        }
+                        else
+                        {
+                            <Div TextAlignment="TextAlignment.Center" Padding="Padding.Is5" ElementId="no-events-message">
+                                <Icon Name="IconName.CreditCard" IconSize="IconSize.x3" TextColor="TextColor.Muted" />
+                                <Heading Size="HeadingSize.Is4" Margin="Margin.Is3.FromTop">No Events Found</Heading>
+                                <Paragraph TextColor="TextColor.Muted">No card events match your current filters.</Paragraph>
+                            </Div>
+                        }
+                        
+                        @if (ViewModel.FilteredEvents.Count() > ViewModel.PageSize)
+                        {
+                            <Div Flex="Flex.JustifyContent.Between.AlignItems.Center" Margin="Margin.Is3.FromTop" ElementId="load-more-section">
+                                <Span TextColor="TextColor.Muted">Showing @ViewModel.PageSize of @ViewModel.FilteredEvents.Count() events</Span>
+                                <Button Color="Color.Primary" Outline Clicked="ViewModel.LoadMoreCommand.Execute" ElementId="load-more-button">
+                                    Load More
+                                </Button>
+                            </Div>
+                        }
+                    </CardBody>
+                </Card>
+            </Column>
+        </Row>
+    }
 </Container>
 
 <!-- Plugin Details Modal -->
@@ -137,9 +163,9 @@
             <CloseButton />
         </ModalHeader>
         <ModalBody>
-            @if (_selectedEvent != null)
+            @if (ViewModel.SelectedEvent != null)
             {
-                var pluginResults = _selectedEvent.GetPluginResults();
+                var pluginResults = ViewModel.SelectedEvent.GetPluginResults();
                 
                 <!-- Basic Information Section -->
                 <Div Margin="Margin.Is4.FromBottom">
@@ -148,7 +174,7 @@
                             <Text TextWeight="TextWeight.Bold">Card Number</Text>
                         </Column>
                         <Column>
-                            <Text TextStyle="TextStyle.Monospace">@_selectedEvent.CardNumber</Text>
+                            <Text TextStyle="TextStyle.Monospace">@ViewModel.SelectedEvent.CardNumber</Text>
                         </Column>
                     </Row>
                     
@@ -157,7 +183,7 @@
                             <Text TextWeight="TextWeight.Bold">Reader</Text>
                         </Column>
                         <Column>
-                            <Text>@_selectedEvent.ReaderName</Text>
+                            <Text>@ViewModel.SelectedEvent.ReaderName</Text>
                         </Column>
                     </Row>
                     
@@ -166,7 +192,7 @@
                             <Text TextWeight="TextWeight.Bold">Timestamp</Text>
                         </Column>
                         <Column>
-                            <Text>@_selectedEvent.Timestamp.ToString("MM/dd/yyyy HH:mm:ss")</Text>
+                            <Text>@ViewModel.SelectedEvent.Timestamp.ToString("MM/dd/yyyy HH:mm:ss")</Text>
                         </Column>
                     </Row>
                     
@@ -175,7 +201,7 @@
                             <Text TextWeight="TextWeight.Bold">Status</Text>
                         </Column>
                         <Column>
-                            @if (_selectedEvent.Success)
+                            @if (ViewModel.SelectedEvent.Success)
                             {
                                 <Badge Color="Color.Success">Success</Badge>
                             }
@@ -186,14 +212,14 @@
                         </Column>
                     </Row>
                     
-                    @if (!string.IsNullOrWhiteSpace(_selectedEvent.Message))
+                    @if (!string.IsNullOrWhiteSpace(ViewModel.SelectedEvent.Message))
                     {
                         <Row>
                             <Column ColumnSize="ColumnSize.Is4">
                                 <Text TextWeight="TextWeight.Bold">Message</Text>
                             </Column>
                             <Column>
-                                <Text>@_selectedEvent.Message</Text>
+                                <Text>@ViewModel.SelectedEvent.Message</Text>
                             </Column>
                         </Row>
                     }
@@ -255,90 +281,36 @@
 </Modal>
 
 @code {
-    private List<CardEventDisplay> _allEvents = [];
-    private List<ReaderConfiguration> _readers = [];
-    private string _searchTerm = "";
-    private string _selectedReader = "";
-    private int _pageSize = 20;
     private Modal pluginDetailsModal = default!;
-    private CardEventDisplay? _selectedEvent;
-
-    private IEnumerable<CardEventDisplay> FilteredEvents => FilterEvents();
 
     protected override async Task OnInitializedAsync()
     {
-        await LoadData();
-    }
-
-    private async Task LoadData()
-    {
-        try
-        {
-            // Load readers
-            var readerConfigs = await ReaderService.GetReadersAsync();
-            _readers = readerConfigs.ToList();
-
-            // Load card events from database
-            await LoadRecentEventsAsync();
-        }
-        catch (Exception ex)
-        {
-            Console.WriteLine($"Error loading data: {ex.Message}");
-        }
-    }
-
-    private async Task LoadRecentEventsAsync()
-    {
-        try
-        {
-            var eventEntities = await CardEventRepository.GetRecentAsync(500); // Load more for filtering
-            _allEvents = eventEntities.Select(CardEventDisplay.FromEntity).ToList();
-        }
-        catch (Exception ex)
-        {
-            Console.WriteLine($"Error loading recent events: {ex.Message}");
-        }
-    }
-
-    private IEnumerable<CardEventDisplay> FilterEvents()
-    {
-        var filtered = _allEvents.AsEnumerable();
-
-        if (!string.IsNullOrWhiteSpace(_searchTerm))
-        {
-            filtered = filtered.Where(e => 
-                e.CardNumber.Contains(_searchTerm, StringComparison.OrdinalIgnoreCase) ||
-                e.ReaderName.Contains(_searchTerm, StringComparison.OrdinalIgnoreCase));
-        }
-
-        if (!string.IsNullOrWhiteSpace(_selectedReader))
-        {
-            filtered = filtered.Where(e => e.ReaderName == _selectedReader);
-        }
-
-        return filtered;
+        // Set up component callbacks for the ViewModel
+        ViewModel.StateHasChanged = StateHasChanged;
+        ViewModel.InvokeAsync = InvokeAsync;
+        
+        // Initialize the ViewModel
+        await ViewModel.InitializeCommand.ExecuteAsync(null);
     }
 
     private void OnSearchChanged(KeyboardEventArgs e)
     {
-        StateHasChanged();
+        ViewModel.UpdateSearchTerm(ViewModel.SearchTerm);
     }
 
-
-    private async Task RefreshEvents()
+    private void OnReaderFilterChanged(ChangeEventArgs e)
     {
-        await LoadData();
-        StateHasChanged();
-    }
-
-    private void LoadMoreEvents()
-    {
-        _pageSize += 20;
+        ViewModel.UpdateReaderFilter(e.Value?.ToString() ?? "");
     }
 
     private async Task ViewEventDetails(CardEventDisplay cardEvent)
     {
-        _selectedEvent = cardEvent;
+        ViewModel.SelectEvent(cardEvent);
         await pluginDetailsModal.Show();
+    }
+
+    public async ValueTask DisposeAsync()
+    {
+        await ViewModel.DisposeAsync();
     }
 }

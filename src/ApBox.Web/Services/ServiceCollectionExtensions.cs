@@ -44,6 +44,7 @@ public static class ServiceCollectionExtensions
         
         // Register ViewModels
         services.AddScoped<DashboardViewModel>();
+        services.AddScoped<CardEventsViewModel>();
         services.AddScoped<ReadersConfigurationViewModel>();
         services.AddScoped<FeedbackConfigurationViewModel>();
         services.AddScoped<PluginsConfigurationViewModel>();

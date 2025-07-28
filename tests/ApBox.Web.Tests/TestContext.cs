@@ -95,6 +95,7 @@ public class ApBoxTestContext : Bunit.TestContext
         
         // Register ViewModels
         Services.AddScoped<DashboardViewModel>();
+        Services.AddScoped<CardEventsViewModel>();
         Services.AddScoped<ReadersConfigurationViewModel>();
         Services.AddScoped<FeedbackConfigurationViewModel>();
         Services.AddScoped<PluginsConfigurationViewModel>();
