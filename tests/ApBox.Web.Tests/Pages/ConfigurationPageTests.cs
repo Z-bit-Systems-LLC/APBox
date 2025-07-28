@@ -100,8 +100,8 @@ public class ConfigurationPageTests : ApBoxTestContext
         var pluginsTab = component.Find("#plugins-tab");
         pluginsTab.Click();
         
-        // Now verify plugin loader was called by multiple components (PluginsConfiguration, SystemConfiguration, and potentially others)
-        MockPluginLoader.Verify(x => x.LoadPluginsAsync(), Times.Exactly(2));
+        // Now verify plugin loader was called by multiple components (PluginsConfiguration, SystemConfiguration, and ReadersConfiguration)
+        MockPluginLoader.Verify(x => x.LoadPluginsAsync(), Times.Exactly(3));
     }
 
     [Test]

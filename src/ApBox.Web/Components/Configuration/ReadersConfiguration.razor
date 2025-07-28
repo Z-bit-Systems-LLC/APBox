@@ -15,7 +15,7 @@
                 @if (ViewModel.Readers.Any())
                 {
                     <Column ColumnSize="ColumnSize.IsAuto">
-                        <Button Color="Color.Primary" Clicked="() => ViewModel.ShowAddReaderCommand.Execute(null)" ElementId="add-reader-button">
+                        <Button Color="Color.Primary" Clicked="() => ViewModel.AddReaderCommand.Execute(null)" ElementId="add-reader-button">
                             <Icon Name="IconName.Add" Margin="Margin.Is2.FromEnd" />
                             Add Reader
                         </Button>
@@ -241,6 +241,68 @@
                         </Field>
                     </Column>
                 </Row>
+
+                <!-- Plugin Selection -->
+                <Heading Size="HeadingSize.Is5" Margin="Margin.Is4.FromTop.Is3.FromBottom">Plugin Configuration</Heading>
+                @if (ViewModel.LoadingPlugins)
+                {
+                    <Row>
+                        <Column>
+                            <Alert Color="Color.Info" Visible="true">
+                                <Icon Name="IconName.Sync" Animation="Animation.Spin" Margin="Margin.Is2.FromEnd" />
+                                Loading plugins...
+                            </Alert>
+                        </Column>
+                    </Row>
+                }
+                else if (ViewModel.AvailablePlugins.Any())
+                {
+                    @if (ViewModel.HasNoPluginsSelected)
+                    {
+                        <Row>
+                            <Column>
+                                <Alert Color="Color.Warning" Visible="true">
+                                    <Icon Name="IconName.ExclamationTriangle" Margin="Margin.Is2.FromEnd" />
+                                    No plugins selected. This reader will not process card events.
+                                </Alert>
+                            </Column>
+                        </Row>
+                    }
+                    <Row>
+                        <Column>
+                            <FieldHelp Margin="Margin.Is2.FromBottom">Select which plugins this reader should use for processing card events:</FieldHelp>
+                            @foreach (var plugin in ViewModel.AvailablePlugins)
+                            {
+                                <Field Margin="Margin.Is2.FromBottom">
+                                    <Check TValue="bool" 
+                                           Checked="@ViewModel.IsPluginSelected(plugin.Id)" 
+                                           CheckedChanged="@(() => ViewModel.TogglePluginSelectionCommand.Execute(plugin.Id))"
+                                           ElementId="@($"plugin-{plugin.Id}")">
+                                        <Icon Name="IconName.Code" Margin="Margin.Is2.FromEnd" />
+                                        @plugin.Name
+                                        @if (!string.IsNullOrEmpty(plugin.Description))
+                                        {
+                                            <Small TextColor="TextColor.Muted" Display="Display.Block" Margin="Margin.Is1.FromStart">
+                                                @plugin.Description
+                                            </Small>
+                                        }
+                                    </Check>
+                                </Field>
+                            }
+                        </Column>
+                    </Row>
+                }
+                else
+                {
+                    <Row>
+                        <Column>
+                            <Alert Color="Color.Info" Visible="true">
+                                <Icon Name="IconName.Info" Margin="Margin.Is2.FromEnd" />
+                                No plugins are available. Add plugin DLLs to the plugins directory and restart the application.
+                            </Alert>
+                        </Column>
+                    </Row>
+                }
             </Validations>
         </ModalBody>
         <ModalFooter>

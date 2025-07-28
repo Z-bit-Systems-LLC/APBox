@@ -5,6 +5,7 @@ using CommunityToolkit.Mvvm.Input;
 using ApBox.Core.Services;
 using ApBox.Core.Models;
 using ApBox.Web.Services;
+using ApBox.Plugins;
 using Microsoft.AspNetCore.SignalR.Client;
 using Microsoft.Extensions.Logging;
 
@@ -18,6 +19,8 @@ public partial class ReadersConfigurationViewModel : ObservableValidator, IAsync
     private readonly IReaderConfigurationService _readerConfigurationService;
     private readonly IReaderService _readerService;
     private readonly ISerialPortService _serialPortService;
+    private readonly IPluginLoader _pluginLoader;
+    private readonly IReaderPluginMappingService _readerPluginMappingService;
     private readonly ILogger<ReadersConfigurationViewModel> _logger;
     private readonly IHubConnectionWrapper? _hubConnection;
     private bool _disposed = false;
@@ -26,12 +29,16 @@ public partial class ReadersConfigurationViewModel : ObservableValidator, IAsync
         IReaderConfigurationService readerConfigurationService,
         IReaderService readerService,
         ISerialPortService serialPortService,
+        IPluginLoader pluginLoader,
+        IReaderPluginMappingService readerPluginMappingService,
         ILogger<ReadersConfigurationViewModel> logger,
         IHubConnectionWrapper? hubConnectionWrapper = null)
     {
         _readerConfigurationService = readerConfigurationService;
         _readerService = readerService;
         _serialPortService = serialPortService;
+        _pluginLoader = pluginLoader;
+        _readerPluginMappingService = readerPluginMappingService;
         _logger = logger;
         _hubConnection = hubConnectionWrapper;
     }
@@ -65,6 +72,16 @@ public partial class ReadersConfigurationViewModel : ObservableValidator, IAsync
 
     [ObservableProperty]
     private ReaderConfiguration? _readerToDelete;
+
+    // Plugin Selection Properties
+    [ObservableProperty]
+    private ObservableCollection<IApBoxPlugin> _availablePlugins = new();
+
+    [ObservableProperty]
+    private ObservableCollection<Guid> _selectedPluginIds = new();
+
+    [ObservableProperty]
+    private bool _loadingPlugins;
 
     // Form data
     [ObservableProperty]
@@ -120,6 +137,9 @@ public partial class ReadersConfigurationViewModel : ObservableValidator, IAsync
             // Load available serial ports
             AvailablePorts = _serialPortService.GetAvailablePortNames().ToList();
 
+            // Load available plugins
+            await LoadPluginsAsync();
+
             // Initialize SignalR
             await InitializeSignalRAsync();
         }
@@ -149,20 +169,38 @@ public partial class ReadersConfigurationViewModel : ObservableValidator, IAsync
     }
 
     [RelayCommand]
-    private void EditReader(ReaderConfiguration reader)
+    private async Task EditReader(ReaderConfiguration reader)
     {
-        EditingReader = reader;
-        
-        // Populate form with existing values
-        ReaderName = reader.ReaderName;
-        Address = reader.Address;
-        SerialPort = reader.SerialPort;
-        BaudRate = reader.BaudRate;
-        SecurityMode = reader.SecurityMode;
-        SecureChannelKey = reader.SecureChannelKey;
-        IsEnabled = reader.IsEnabled;
-        
-        ShowReaderModal = true;
+        try
+        {
+            // Load reader details into form
+            EditingReader = reader;
+            ReaderName = reader.ReaderName;
+            Address = reader.Address;
+            SerialPort = reader.SerialPort;
+            BaudRate = reader.BaudRate;
+            SecurityMode = reader.SecurityMode;
+            SecureChannelKey = reader.SecureChannelKey;
+            IsEnabled = reader.IsEnabled;
+
+            // Load existing plugin mappings
+            var pluginMappings = await _readerPluginMappingService.GetPluginsForReaderAsync(reader.ReaderId);
+            SelectedPluginIds.Clear();
+            foreach (var pluginIdString in pluginMappings)
+            {
+                if (Guid.TryParse(pluginIdString, out var pluginId))
+                {
+                    SelectedPluginIds.Add(pluginId);
+                }
+            }
+
+            ShowReaderModal = true;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error loading reader for editing");
+            ErrorMessage = $"Error loading reader: {ex.Message}";
+        }
     }
 
     [RelayCommand]
@@ -197,6 +235,10 @@ public partial class ReadersConfigurationViewModel : ObservableValidator, IAsync
 
             // Save reader (handles both add and update)
             await _readerConfigurationService.SaveReaderAsync(reader);
+            
+            // Save plugin mappings
+            var selectedPluginStrings = SelectedPluginIds.Select(id => id.ToString()).ToList();
+            await _readerPluginMappingService.SetPluginsForReaderAsync(reader.ReaderId, selectedPluginStrings);
             
             // Refresh data from service to ensure consistency
             var readers = await _readerConfigurationService.GetAllReadersAsync();
@@ -264,6 +306,14 @@ public partial class ReadersConfigurationViewModel : ObservableValidator, IAsync
     }
 
     [RelayCommand]
+    private void AddReader()
+    {
+        ResetForm();
+        EditingReader = null;
+        ShowReaderModal = true;
+    }
+
+    [RelayCommand]
     private void CancelDelete()
     {
         ShowDeleteModal = false;
@@ -277,6 +327,26 @@ public partial class ReadersConfigurationViewModel : ObservableValidator, IAsync
         ResetForm();
     }
 
+    [RelayCommand]
+    private void TogglePluginSelection(Guid pluginId)
+    {
+        if (SelectedPluginIds.Contains(pluginId))
+        {
+            SelectedPluginIds.Remove(pluginId);
+        }
+        else
+        {
+            SelectedPluginIds.Add(pluginId);
+        }
+    }
+
+    public bool IsPluginSelected(Guid pluginId)
+    {
+        return SelectedPluginIds.Contains(pluginId);
+    }
+
+    public bool HasNoPluginsSelected => !SelectedPluginIds.Any();
+
     private void ResetForm()
     {
         ReaderName = string.Empty;
@@ -287,6 +357,26 @@ public partial class ReadersConfigurationViewModel : ObservableValidator, IAsync
         SecureChannelKey = null;
         IsEnabled = true;
         EditingReader = null;
+        SelectedPluginIds.Clear();
+    }
+
+    private async Task LoadPluginsAsync()
+    {
+        try
+        {
+            LoadingPlugins = true;
+            var plugins = await _pluginLoader.LoadPluginsAsync();
+            AvailablePlugins = new ObservableCollection<IApBoxPlugin>(plugins);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error loading plugins");
+            ErrorMessage = $"Error loading plugins: {ex.Message}";
+        }
+        finally
+        {
+            LoadingPlugins = false;
+        }
     }
 
     private async Task InitializeSignalRAsync()

@@ -1,6 +1,7 @@
 using Bunit;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.Logging;
 using ApBox.Core.Services;
 using ApBox.Core.Data.Repositories;
 using ApBox.Core.Data.Models;
@@ -98,7 +99,14 @@ public class ApBoxTestContext : Bunit.TestContext
         
         // Register ViewModels
         Services.AddScoped<DashboardViewModel>();
-        Services.AddScoped<ReadersConfigurationViewModel>();
+        Services.AddScoped<ReadersConfigurationViewModel>(sp => new ReadersConfigurationViewModel(
+            sp.GetRequiredService<IReaderConfigurationService>(),
+            sp.GetRequiredService<IReaderService>(),
+            sp.GetRequiredService<ISerialPortService>(),
+            sp.GetRequiredService<IPluginLoader>(),
+            sp.GetRequiredService<IReaderPluginMappingService>(),
+            sp.GetRequiredService<ILogger<ReadersConfigurationViewModel>>(),
+            sp.GetService<IHubConnectionWrapper>()));
         Services.AddScoped<FeedbackConfigurationViewModel>();
         Services.AddScoped<PluginsConfigurationViewModel>();
         Services.AddScoped<SystemConfigurationViewModel>();
