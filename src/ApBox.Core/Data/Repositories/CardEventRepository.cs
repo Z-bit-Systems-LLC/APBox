@@ -41,7 +41,7 @@ public class CardEventRepository(IApBoxDbContext dbContext, ILogger<CardEventRep
         
         var sql = @"
             SELECT * FROM card_events 
-            WHERE timestamp >= @StartDate AND timestamp <= @EndDate 
+            WHERE timestamp >= @StartDate AND timestamp < @EndDate 
             ORDER BY timestamp DESC 
             LIMIT @Limit";
         

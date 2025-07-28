@@ -72,7 +72,7 @@ public class IndexPageTests : ApBoxTestContext
                 Success = true,
                 Message = "Success",
                 ProcessedByPlugin = "Test Plugin",
-                Timestamp = DateTime.Now.AddMinutes(-5)
+                Timestamp = DateTime.UtcNow.AddMinutes(-5)
             },
             new()
             {
@@ -84,11 +84,11 @@ public class IndexPageTests : ApBoxTestContext
                 Success = true,
                 Message = "Success",
                 ProcessedByPlugin = "Test Plugin",
-                Timestamp = DateTime.Now.AddMinutes(-10)
+                Timestamp = DateTime.UtcNow.AddMinutes(-10)
             }
         };
 
-        MockCardEventRepository.Setup(x => x.GetRecentAsync(It.IsAny<int>()))
+        MockCardEventRepository.Setup(x => x.GetByDateRangeAsync(It.IsAny<DateTime>(), It.IsAny<DateTime>(), It.IsAny<int>()))
             .ReturnsAsync(cardEvents);
 
         MockCardEventRepository.Setup(x => x.GetByDateRangeAsync(It.IsAny<DateTime>(), It.IsAny<DateTime>(), It.IsAny<int>()))
@@ -370,12 +370,12 @@ public class IndexPageTests : ApBoxTestContext
                 Success = true,
                 Message = "Success",
                 ProcessedByPlugin = "Test Plugin",
-                Timestamp = DateTime.Now
+                Timestamp = DateTime.UtcNow
             }
         };
 
-        // Update mock to return dynamic events
-        MockCardEventRepository.Setup(x => x.GetRecentAsync(It.IsAny<int>()))
+        // Update mock to return dynamic events for today's date range
+        MockCardEventRepository.Setup(x => x.GetByDateRangeAsync(It.IsAny<DateTime>(), It.IsAny<DateTime>(), It.IsAny<int>()))
             .ReturnsAsync(dynamicEvents);
 
         // Act
@@ -454,11 +454,11 @@ public class IndexPageTests : ApBoxTestContext
                 Success = true,
                 Message = "Success",
                 ProcessedByPlugin = "Test Plugin",
-                Timestamp = DateTime.Now.AddMinutes(-i)
+                Timestamp = DateTime.UtcNow.AddMinutes(-i)
             });
         }
 
-        MockCardEventRepository.Setup(x => x.GetRecentAsync(It.IsAny<int>()))
+        MockCardEventRepository.Setup(x => x.GetByDateRangeAsync(It.IsAny<DateTime>(), It.IsAny<DateTime>(), It.IsAny<int>()))
             .ReturnsAsync(manyEvents);
 
         // Act
@@ -497,7 +497,7 @@ public class IndexPageTests : ApBoxTestContext
             });
         }
 
-        MockCardEventRepository.Setup(x => x.GetRecentAsync(It.IsAny<int>()))
+        MockCardEventRepository.Setup(x => x.GetByDateRangeAsync(It.IsAny<DateTime>(), It.IsAny<DateTime>(), It.IsAny<int>()))
             .ReturnsAsync(realtimeEvents);
 
         // Act
@@ -535,7 +535,7 @@ public class IndexPageTests : ApBoxTestContext
                 Success = true,
                 Message = "Successfully processed",
                 ProcessedByPlugin = "Test Plugin",
-                Timestamp = DateTime.Now.AddMinutes(-1)
+                Timestamp = DateTime.UtcNow.AddMinutes(-1)
             },
             new()
             {
@@ -547,11 +547,11 @@ public class IndexPageTests : ApBoxTestContext
                 Success = true,
                 Message = "All plugins succeeded",
                 ProcessedByPlugin = "Test Plugin",
-                Timestamp = DateTime.Now.AddMinutes(-2)
+                Timestamp = DateTime.UtcNow.AddMinutes(-2)
             }
         };
 
-        MockCardEventRepository.Setup(x => x.GetRecentAsync(It.IsAny<int>()))
+        MockCardEventRepository.Setup(x => x.GetByDateRangeAsync(It.IsAny<DateTime>(), It.IsAny<DateTime>(), It.IsAny<int>()))
             .ReturnsAsync(mixedEvents);
 
         // Act

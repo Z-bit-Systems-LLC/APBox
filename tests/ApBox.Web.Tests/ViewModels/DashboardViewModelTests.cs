@@ -106,7 +106,7 @@ public class DashboardViewModelTests : ApBoxTestContext
             ReaderName = "Test Reader",
             CardNumber = "123456789",
             BitLength = 26,
-            Timestamp = DateTime.Now
+            Timestamp = DateTime.UtcNow
         };
 
         // Act
@@ -135,7 +135,7 @@ public class DashboardViewModelTests : ApBoxTestContext
             ReaderName = "Test Reader",
             CardNumber = "123456789",
             BitLength = 26,
-            Timestamp = DateTime.Now
+            Timestamp = DateTime.UtcNow
         };
 
         // Act
@@ -160,7 +160,7 @@ public class DashboardViewModelTests : ApBoxTestContext
                 ReaderName = $"Reader {i}",
                 CardNumber = $"123456{i:D3}",
                 BitLength = 26,
-                Timestamp = DateTime.Now.AddMinutes(-i)
+                Timestamp = DateTime.UtcNow.AddMinutes(-i)
             };
 
             // Act
@@ -186,7 +186,7 @@ public class DashboardViewModelTests : ApBoxTestContext
             ReaderName = "First Reader",
             CardNumber = "111111111",
             BitLength = 26,
-            Timestamp = DateTime.Now.AddMinutes(-5)
+            Timestamp = DateTime.UtcNow.AddMinutes(-5)
         };
         
         var event2 = new CardEventNotification
@@ -195,7 +195,7 @@ public class DashboardViewModelTests : ApBoxTestContext
             ReaderName = "Second Reader", 
             CardNumber = "222222222",
             BitLength = 26,
-            Timestamp = DateTime.Now
+            Timestamp = DateTime.UtcNow
         };
 
         // Act
@@ -357,7 +357,7 @@ public class DashboardViewModelTests : ApBoxTestContext
             ReaderName = "Test Reader",
             CardNumber = "123456789",
             BitLength = 26,
-            Timestamp = DateTime.Now
+            Timestamp = DateTime.UtcNow
         };
 
         // Act
@@ -407,7 +407,7 @@ public class DashboardViewModelTests : ApBoxTestContext
             ReaderName = "Test Reader",
             CardNumber = "123456789",
             BitLength = 26,
-            Timestamp = DateTime.Now
+            Timestamp = DateTime.UtcNow
         };
 
         // Act

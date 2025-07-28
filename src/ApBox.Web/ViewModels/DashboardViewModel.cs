@@ -133,13 +133,15 @@ public partial class DashboardViewModel(
     }
 
     /// <summary>
-    /// Loads recent card events from the database
+    /// Loads today's recent card events from the database
     /// </summary>
     private async Task LoadRecentEventsAsync()
     {
         try
         {
-            var eventEntities = await cardEventRepository.GetRecentAsync(25);
+            var todayUtc = DateTime.UtcNow.Date;
+            var tomorrowUtc = todayUtc.AddDays(1);
+            var eventEntities = await cardEventRepository.GetByDateRangeAsync(todayUtc, tomorrowUtc, 25);
             var events = eventEntities.Select(e => e.ToCardReadEvent()).ToList();
             
             RecentEvents.Clear();
@@ -150,7 +152,7 @@ public partial class DashboardViewModel(
         }
         catch (Exception ex)
         {
-            throw new InvalidOperationException($"Failed to load recent events: {ex.Message}", ex);
+            throw new InvalidOperationException($"Failed to load today's recent events: {ex.Message}", ex);
         }
     }
 
@@ -161,9 +163,9 @@ public partial class DashboardViewModel(
     {
         try
         {
-            var today = DateTime.Today;
-            var tomorrow = today.AddDays(1);
-            var todaysEvents = await cardEventRepository.GetByDateRangeAsync(today, tomorrow);
+            var todayUtc = DateTime.UtcNow.Date;
+            var tomorrowUtc = todayUtc.AddDays(1);
+            var todaysEvents = await cardEventRepository.GetByDateRangeAsync(todayUtc, tomorrowUtc);
             return todaysEvents.Count();
         }
         catch (Exception ex)
@@ -231,8 +233,11 @@ public partial class DashboardViewModel(
                 RecentEvents.RemoveAt(RecentEvents.Count - 1);
             }
 
-            // Update total events count
-            TotalEvents++;
+            // Update total events count only if event is from today (UTC)
+            if (cardEvent.Timestamp.Date == DateTime.UtcNow.Date)
+            {
+                TotalEvents++;
+            }
 
             // Notify UI to update
             await InvokeAsync(() => { StateHasChanged(); return Task.CompletedTask; });
