@@ -47,8 +47,12 @@
                     <CardBody>
                         <Div Flex="Flex.JustifyContent.Between.AlignItems.Center">
                             <Div>
-                                <Heading Size="HeadingSize.Is2" Margin="Margin.Is0" ElementId="active-readers-value">@ViewModel.ActiveReaders</Heading>
-                                <Small>Active Readers</Small>
+                                <Div Flex="Flex.AlignItems.Baseline">
+                                    <Heading Size="HeadingSize.Is2" Margin="Margin.Is0.FromEnd.Is1" TextColor="TextColor.Success" ElementId="online-readers-value">@ViewModel.OnlineReaders</Heading>
+                                    <Text TextColor="TextColor.Light">/</Text>
+                                    <Heading Size="HeadingSize.Is3" Margin="Margin.Is1.FromStart" TextColor="TextColor.Light" ElementId="configured-readers-value">@ViewModel.ConfiguredReaders</Heading>
+                                </Div>
+                                <Small>Online / Configured Readers</Small>
                             </Div>
                             <Div>
                                 <Icon Name="IconName.Tv" IconSize="IconSize.x2" />

@@ -24,7 +24,10 @@ public partial class DashboardViewModel(
     private readonly IHubConnectionWrapper? _hubConnection = hubConnectionWrapper;
 
     [ObservableProperty]
-    private int _activeReaders;
+    private int _configuredReaders;
+
+    [ObservableProperty]
+    private int _onlineReaders;
 
     [ObservableProperty]
     private int _loadedPlugins;
@@ -106,8 +109,9 @@ public partial class DashboardViewModel(
             // Load reader statuses
             ReaderStatuses = await readerService.GetAllReaderStatusesAsync();
             
-            // Calculate active readers (online readers)
-            ActiveReaders = ReaderStatuses.Count(kvp => kvp.Value);
+            // Calculate reader counts
+            ConfiguredReaders = Readers.Count;
+            OnlineReaders = ReaderStatuses.Count(kvp => kvp.Value);
 
             // Load plugins
             var plugins = await pluginLoader.LoadPluginsAsync();
@@ -249,8 +253,8 @@ public partial class DashboardViewModel(
             // Update reader status
             ReaderStatuses[notification.ReaderId] = notification.IsOnline;
 
-            // Recalculate active readers
-            ActiveReaders = ReaderStatuses.Count(kvp => kvp.Value);
+            // Recalculate online readers
+            OnlineReaders = ReaderStatuses.Count(kvp => kvp.Value);
 
             // Notify UI to update
             await InvokeAsync(() => { StateHasChanged(); return Task.CompletedTask; });

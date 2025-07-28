@@ -160,16 +160,19 @@ public class IndexPageTests : ApBoxTestContext
     }
 
     [Test]
-    public void Index_ShowsCorrectActiveReadersCount()
+    public void Index_ShowsCorrectReadersCount()
     {
-        // Arrange - Mock returns 2 readers by default
+        // Arrange - Mock returns 2 readers by default, both online
         
         // Act
         var component = RenderComponent<ApBox.Web.Pages.Index>();
 
         // Assert
-        var readersValue = component.Find("#active-readers-value");
-        Assert.That(readersValue.TextContent, Is.EqualTo("2"));
+        var onlineReadersValue = component.Find("#online-readers-value");
+        Assert.That(onlineReadersValue.TextContent, Is.EqualTo("2"));
+        
+        var configuredReadersValue = component.Find("#configured-readers-value");
+        Assert.That(configuredReadersValue.TextContent, Is.EqualTo("2"));
     }
 
     [Test]
@@ -236,8 +239,11 @@ public class IndexPageTests : ApBoxTestContext
         var component = RenderComponent<ApBox.Web.Pages.Index>();
 
         // Assert
-        var readersValue = component.Find("#active-readers-value");
-        Assert.That(readersValue.TextContent, Is.EqualTo("0"));
+        var onlineReadersValue = component.Find("#online-readers-value");
+        Assert.That(onlineReadersValue.TextContent, Is.EqualTo("0"));
+        
+        var configuredReadersValue = component.Find("#configured-readers-value");
+        Assert.That(configuredReadersValue.TextContent, Is.EqualTo("0"));
     }
 
     [Test]
@@ -262,8 +268,8 @@ public class IndexPageTests : ApBoxTestContext
         var component = RenderComponent<ApBox.Web.Pages.Index>();
 
         // Assert
-        var readersValue = component.Find("#active-readers-value");
-        Assert.That(readersValue.TextContent, Is.EqualTo("2")); // Default mock has 2 readers
+        var configuredReadersValue = component.Find("#configured-readers-value");
+        Assert.That(configuredReadersValue.TextContent, Is.EqualTo("2")); // Default mock has 2 readers
         
         // Should NOT show the "no readers" message or configure link
         var noReadersMessages = component.FindAll("#no-readers-message");
@@ -418,9 +424,12 @@ public class IndexPageTests : ApBoxTestContext
             var component = RenderComponent<ApBox.Web.Pages.Index>();
 
             // Assert
-            var activeReadersValue = component.Find("#active-readers-value").TextContent;
-            Assert.That(activeReadersValue, Is.EqualTo(scenario.ExpectedActive.ToString()), 
-                $"Should show {scenario.ExpectedActive} active readers when {scenario.ReadersOnline} of {scenario.TotalReaders} are online");
+            var onlineReadersValue = component.Find("#online-readers-value").TextContent;
+            var configuredReadersValue = component.Find("#configured-readers-value").TextContent;
+            Assert.That(onlineReadersValue, Is.EqualTo(scenario.ExpectedActive.ToString()), 
+                $"Should show {scenario.ExpectedActive} online readers when {scenario.ReadersOnline} of {scenario.TotalReaders} are online");
+            Assert.That(configuredReadersValue, Is.EqualTo(scenario.TotalReaders.ToString()), 
+                $"Should show {scenario.TotalReaders} configured readers");
             
             // Clean up for next iteration
             ResetMocks();
