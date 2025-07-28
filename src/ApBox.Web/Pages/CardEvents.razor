@@ -32,7 +32,7 @@
                 <Alert Color="Color.Danger" Visible="true">
                     <Icon Name="IconName.ExclamationTriangle" Margin="Margin.Is2.FromEnd" />
                     @ViewModel.ErrorMessage
-                    <Button Color="Color.Secondary" Size="Size.Small" Margin="Margin.Is2.FromStart" Clicked="ViewModel.RefreshCommand.ExecuteAsync">
+                    <Button Color="Color.Secondary" Size="Size.Small" Margin="Margin.Is2.FromStart" Clicked="ViewModel.InitializeCommand.ExecuteAsync">
                         <Icon Name="IconName.Redo" />
                         Retry
                     </Button>
@@ -68,14 +68,6 @@
                             <SelectItem Value="@reader.ReaderName">@reader.ReaderName</SelectItem>
                         }
                     </Select>
-                </Field>
-            </Column>
-            <Column ColumnSize="ColumnSize.Is3.OnTablet">
-                <Field>
-                    <FieldLabel>&nbsp;</FieldLabel>
-                    <Button Color="Color.Secondary" Clicked="ViewModel.RefreshCommand.ExecuteAsync" Loading="ViewModel.RefreshCommand.IsRunning" Block ElementId="refresh-button">
-                        <Icon Name="IconName.Sync" /> Refresh
-                    </Button>
                 </Field>
             </Column>
         </Row>

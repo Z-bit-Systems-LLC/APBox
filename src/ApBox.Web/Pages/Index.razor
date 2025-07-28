@@ -31,7 +31,7 @@
                 <Alert Color="Color.Danger" Visible="true">
                     <Icon Name="IconName.ExclamationTriangle" Margin="Margin.Is2.FromEnd" />
                     @ViewModel.ErrorMessage
-                    <Button Color="Color.Secondary" Size="Size.Small" Margin="Margin.Is2.FromStart" Clicked="ViewModel.RefreshCommand.ExecuteAsync">
+                    <Button Color="Color.Secondary" Size="Size.Small" Margin="Margin.Is2.FromStart" Clicked="ViewModel.InitializeCommand.ExecuteAsync">
                         <Icon Name="IconName.Redo" />
                         Retry
                     </Button>
@@ -115,13 +115,7 @@
             <Column>
                 <Card ElementId="recent-events-card">
                     <CardHeader>
-                        <Div Flex="Flex.JustifyContent.Between.AlignItems.Center">
-                            <Heading Size="HeadingSize.Is4" Margin="Margin.Is0" ElementId="recent-events-title">Today's Recent Events</Heading>
-                            <Button Color="Color.Secondary" Size="Size.Small" Clicked="ViewModel.RefreshCommand.ExecuteAsync" Loading="ViewModel.RefreshCommand.IsRunning">
-                                <Icon Name="IconName.Redo" />
-                                Refresh
-                            </Button>
-                        </Div>
+                        <Heading Size="HeadingSize.Is4" Margin="Margin.Is0" ElementId="recent-events-title">Today's Recent Events</Heading>
                     </CardHeader>
                     <CardBody>
                         @if (ViewModel.RecentEvents.Any())

@@ -53,9 +53,6 @@ public class CardEventsPageTests : ApBoxTestContext
 
         var readerFilter = component.Find("#reader-filter");
         Assert.That(readerFilter, Is.Not.Null);
-
-        var refreshButton = component.Find("#refresh-button");
-        Assert.That(refreshButton, Is.Not.Null);
     }
 
 
@@ -102,21 +99,6 @@ public class CardEventsPageTests : ApBoxTestContext
         Assert.That(eventsHeader.TextContent, Does.Match(@"Recent Events \(\d+\)"));
     }
 
-    [Test]
-    public void CardEvents_RefreshButton_ReloadsData()
-    {
-        // Act
-        var component = RenderComponent<CardEvents>();
-        MockReaderService.Invocations.Clear(); // Clear previous invocations
-        MockReaderService.Setup(x => x.GetReadersAsync())
-            .ReturnsAsync(GetDefaultReaderConfigurations());
-
-        var refreshButton = component.Find("#refresh-button");
-        refreshButton.Click();
-
-        // Assert - Verify service was called again
-        MockReaderService.Verify(x => x.GetReadersAsync(), Times.Once);
-    }
 
     [Test]
     public void CardEvents_SearchInput_IsBindable()

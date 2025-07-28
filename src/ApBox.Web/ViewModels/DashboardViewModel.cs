@@ -78,22 +78,6 @@ public partial class DashboardViewModel(
         }
     }
 
-    /// <summary>
-    /// Refreshes all dashboard data
-    /// </summary>
-    [RelayCommand]
-    public async Task RefreshAsync()
-    {
-        try
-        {
-            ErrorMessage = null;
-            await LoadDashboardDataAsync();
-        }
-        catch (Exception ex)
-        {
-            ErrorMessage = $"Failed to refresh dashboard: {ex.Message}";
-        }
-    }
 
     /// <summary>
     /// Loads all dashboard data from services

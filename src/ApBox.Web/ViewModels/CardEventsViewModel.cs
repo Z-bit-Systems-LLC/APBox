@@ -74,22 +74,6 @@ public partial class CardEventsViewModel(
         }
     }
 
-    /// <summary>
-    /// Refreshes the card events data
-    /// </summary>
-    [RelayCommand]
-    public async Task RefreshAsync()
-    {
-        try
-        {
-            ErrorMessage = null;
-            await LoadDataAsync();
-        }
-        catch (Exception ex)
-        {
-            ErrorMessage = $"Failed to refresh events: {ex.Message}";
-        }
-    }
 
     /// <summary>
     /// Loads more events (pagination)
