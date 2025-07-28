@@ -1,6 +1,7 @@
 @page "/card-events"
 @using ApBox.Web.ViewModels
 @using ApBox.Core.Models
+@using Blazorise.SpinKit
 @inject CardEventsViewModel ViewModel
 @implements IAsyncDisposable
 
@@ -19,8 +20,8 @@
         <Row ElementId="loading-spinner">
             <Column>
                 <Div Display="Display.Flex" JustifyContent="JustifyContent.Center" Margin="Margin.Is5.FromTop">
-                    <Spinner Type="SpinnerType.Border" Color="Color.Primary" />
-                    <Text Margin="Margin.Is2.FromStart">Loading events...</Text>
+                    <Text Margin="Margin.Is2.FromEnd">Loading events...</Text>
+                    <SpinKit Type="SpinKitType.Pulse"/>
                 </Div>
             </Column>
         </Row>

@@ -56,7 +56,7 @@ public class ConfigurationExportService(
         return System.Text.Encoding.UTF8.GetBytes(json);
     }
 
-    public async Task<ValidationResult> ValidateImportAsync(string jsonContent)
+    public Task<ValidationResult> ValidateImportAsync(string jsonContent)
     {
         var result = new ValidationResult { IsValid = true };
         
@@ -66,7 +66,7 @@ public class ConfigurationExportService(
             {
                 result.AddError("Import content cannot be empty");
                 result.IsValid = false;
-                return result;
+                return Task.FromResult(result);
             }
 
             var config = JsonSerializer.Deserialize<ConfigurationExport>(jsonContent, JsonOptions);
@@ -74,7 +74,7 @@ public class ConfigurationExportService(
             {
                 result.AddError("Invalid JSON format");
                 result.IsValid = false;
-                return result;
+                return Task.FromResult(result);
             }
 
             // Validate export version
@@ -149,7 +149,7 @@ public class ConfigurationExportService(
             result.IsValid = false;
         }
 
-        return result;
+        return Task.FromResult(result);
     }
 
     public async Task ImportConfigurationAsync(ConfigurationExport config)

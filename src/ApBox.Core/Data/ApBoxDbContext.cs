@@ -5,7 +5,10 @@ using ApBox.Core.Data.Mappers;
 
 namespace ApBox.Core.Data;
 
-public class ApBoxDbContext(string connectionString, ILogger<ApBoxDbContext> logger, IMigrationRunner migrationRunner)
+public class ApBoxDbContext(
+    string connectionString,
+    ILogger<ApBoxDbContext> logger,
+    IMigrationRunner? migrationRunner = null)
     : IApBoxDbContext
 {
     static ApBoxDbContext()
@@ -15,9 +18,6 @@ public class ApBoxDbContext(string connectionString, ILogger<ApBoxDbContext> log
     }
 
     // Constructor for migration runner to avoid circular dependency
-    public ApBoxDbContext(string connectionString, ILogger<ApBoxDbContext> logger) : this(connectionString, logger, null)
-    {
-    }
 
     public IDbConnection CreateDbConnectionAsync()
     {
@@ -37,7 +37,7 @@ public class ApBoxDbContext(string connectionString, ILogger<ApBoxDbContext> log
         {
             logger.LogWarning("Migration runner is not available - skipping migrations");
         }
-        
+
         logger.LogInformation("Database initialization completed");
     }
 }

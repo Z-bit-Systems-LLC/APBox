@@ -1,5 +1,6 @@
 @page "/"
 @using ApBox.Web.ViewModels
+@using Blazorise.SpinKit
 @inject DashboardViewModel ViewModel
 @implements IAsyncDisposable
 
@@ -18,8 +19,8 @@
         <Row ElementId="loading-spinner">
             <Column>
                 <Div Display="Display.Flex" JustifyContent="JustifyContent.Center" Margin="Margin.Is5.FromTop">
-                    <Spinner Type="SpinnerType.Border" Color="Color.Primary" />
-                    <Text Margin="Margin.Is2.FromStart">Loading dashboard...</Text>
+                    <Text Margin="Margin.Is2.FromEnd">Loading dashboard...</Text>
+                    <SpinKit Type="SpinKitType.Pulse"/>
                 </Div>
             </Column>
         </Row>

@@ -101,7 +101,7 @@ public class ReaderConfigurationServiceNotificationTests
     }
 
     [Test]
-    public async Task SaveReaderAsync_WhenNoNotificationServiceProvided_ShouldNotThrow()
+    public void SaveReaderAsync_WhenNoNotificationServiceProvided_ShouldNotThrow()
     {
         // Arrange
         var newReader = CreateTestReader();

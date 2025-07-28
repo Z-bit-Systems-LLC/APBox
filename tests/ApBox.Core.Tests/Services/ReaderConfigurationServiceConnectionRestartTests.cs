@@ -178,7 +178,7 @@ public class ReaderConfigurationServiceConnectionRestartTests
     }
 
     [Test]
-    public async Task SaveReaderAsync_WhenConnectionRestartFails_ShouldNotThrow()
+    public void SaveReaderAsync_WhenConnectionRestartFails_ShouldNotThrow()
     {
         // Arrange
         var oldReader = CreateTestReader("COM1");

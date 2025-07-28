@@ -1,6 +1,7 @@
 @using ApBox.Core.Models
 @using ApBox.Web.ViewModels
 @using ApBox.Web.Helpers
+@using Blazorise.SpinKit
 
 @inject ReadersConfigurationViewModel ViewModel
 @implements IAsyncDisposable
@@ -30,8 +31,10 @@
         <Row ElementId="loading-spinner">
             <Column>
                 <Div Display="Display.Flex" JustifyContent="JustifyContent.Center" Margin="Margin.Is5.FromTop">
-                    <Div ElementId="spinner-element"><Spinner Type="SpinnerType.Border" Color="Color.Primary" /></Div>
-                    <Text Margin="Margin.Is2.FromStart">Loading readers...</Text>
+                    <Text Margin="Margin.Is2.FromEnd">Loading readers...</Text>
+                    <Div ElementId="spinner-element">
+                        <SpinKit Type="SpinKitType.Pulse"/>
+                    </Div>
                 </Div>
             </Column>
         </Row>

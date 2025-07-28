@@ -74,7 +74,7 @@ public partial class DashboardViewModel(
         }
         finally
         {
-            IsLoading = false;
+           IsLoading = false;
         }
     }
 

@@ -426,13 +426,14 @@ public partial class ReadersConfigurationViewModel : ObservableValidator, IAsync
         {
             if (InvokeAsync != null)
             {
-                await InvokeAsync(async () =>
+                await InvokeAsync(() =>
                 {
                     _logger.LogDebug("Received reader status change for {ReaderName} ({ReaderId}): {Status}", 
                         notification.ReaderName, notification.ReaderId, notification.IsOnline ? "Online" : "Offline");
                     
                     ReaderStatuses[notification.ReaderId] = notification.IsOnline;
                     StateHasChanged?.Invoke();
+                    return Task.CompletedTask;
                 });
             }
         });
@@ -453,10 +454,11 @@ public partial class ReadersConfigurationViewModel : ObservableValidator, IAsync
         {
             if (InvokeAsync != null)
             {
-                await InvokeAsync(async () =>
+                await InvokeAsync(() =>
                 {
                     _logger.LogInformation("Received notification: {Message}", message);
                     StateHasChanged?.Invoke();
+                    return Task.CompletedTask;
                 });
             }
         });
