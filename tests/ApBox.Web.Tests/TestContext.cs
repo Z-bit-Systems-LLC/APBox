@@ -1,7 +1,5 @@
-using Bunit;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Configuration;
-using Microsoft.Extensions.Logging;
 using ApBox.Core.Services;
 using ApBox.Core.Data.Repositories;
 using ApBox.Core.Data.Models;
@@ -9,8 +7,6 @@ using ApBox.Core.Models;
 using ApBox.Plugins;
 using ApBox.Web.Services;
 using ApBox.Web.ViewModels;
-using Moq;
-using Blazorise;
 using Blazorise.Bootstrap5;
 using Blazorise.Icons.FontAwesome;
 using Blazorise.Tests.bUnit;
@@ -63,9 +59,9 @@ public class ApBoxTestContext : Bunit.TestContext
         MockHubConnectionWrapper.Setup(x => x.DisposeAsync()).Returns(ValueTask.CompletedTask);
         
         // Setup event handler registration to return disposable
-        MockHubConnectionWrapper.Setup(x => x.On<It.IsAnyType>(It.IsAny<string>(), It.IsAny<Func<It.IsAnyType, Task>>()))
+        MockHubConnectionWrapper.Setup(x => x.On(It.IsAny<string>(), It.IsAny<Func<It.IsAnyType, Task>>()))
             .Returns(Mock.Of<IDisposable>());
-        MockHubConnectionWrapper.Setup(x => x.On<It.IsAnyType, It.IsAnyType>(It.IsAny<string>(), It.IsAny<Func<It.IsAnyType, It.IsAnyType, Task>>()))
+        MockHubConnectionWrapper.Setup(x => x.On(It.IsAny<string>(), It.IsAny<Func<It.IsAnyType, It.IsAnyType, Task>>()))
             .Returns(Mock.Of<IDisposable>());
         
         // Setup serial port service
@@ -99,14 +95,7 @@ public class ApBoxTestContext : Bunit.TestContext
         
         // Register ViewModels
         Services.AddScoped<DashboardViewModel>();
-        Services.AddScoped<ReadersConfigurationViewModel>(sp => new ReadersConfigurationViewModel(
-            sp.GetRequiredService<IReaderConfigurationService>(),
-            sp.GetRequiredService<IReaderService>(),
-            sp.GetRequiredService<ISerialPortService>(),
-            sp.GetRequiredService<IPluginLoader>(),
-            sp.GetRequiredService<IReaderPluginMappingService>(),
-            sp.GetRequiredService<ILogger<ReadersConfigurationViewModel>>(),
-            sp.GetService<IHubConnectionWrapper>()));
+        Services.AddScoped<ReadersConfigurationViewModel>();
         Services.AddScoped<FeedbackConfigurationViewModel>();
         Services.AddScoped<PluginsConfigurationViewModel>();
         Services.AddScoped<SystemConfigurationViewModel>();
@@ -143,9 +132,9 @@ public class ApBoxTestContext : Bunit.TestContext
         MockHubConnectionWrapper.Setup(x => x.StartAsync(It.IsAny<CancellationToken>())).Returns(Task.CompletedTask);
         MockHubConnectionWrapper.Setup(x => x.StopAsync(It.IsAny<CancellationToken>())).Returns(Task.CompletedTask);
         MockHubConnectionWrapper.Setup(x => x.DisposeAsync()).Returns(ValueTask.CompletedTask);
-        MockHubConnectionWrapper.Setup(x => x.On<It.IsAnyType>(It.IsAny<string>(), It.IsAny<Func<It.IsAnyType, Task>>()))
+        MockHubConnectionWrapper.Setup(x => x.On(It.IsAny<string>(), It.IsAny<Func<It.IsAnyType, Task>>()))
             .Returns(Mock.Of<IDisposable>());
-        MockHubConnectionWrapper.Setup(x => x.On<It.IsAnyType, It.IsAnyType>(It.IsAny<string>(), It.IsAny<Func<It.IsAnyType, It.IsAnyType, Task>>()))
+        MockHubConnectionWrapper.Setup(x => x.On(It.IsAny<string>(), It.IsAny<Func<It.IsAnyType, It.IsAnyType, Task>>()))
             .Returns(Mock.Of<IDisposable>());
             
         MockSerialPortService.Setup(x => x.GetAvailablePortNames()).Returns(new[] { "COM1", "COM2", "COM3" });
