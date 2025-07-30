@@ -1,10 +1,20 @@
 # ApBox
 
-An industrial OSDP (Open Supervised Device Protocol) gateway with a plugin ecosystem for access control systems.
+An industrial OSDP (Open Supervised Device Protocol) gateway that bridges card readers with existing access control systems through a flexible plugin architecture.
 
 ## Overview
 
-ApBox is an open-source gateway solution that bridges OSDP card readers with custom business logic through a flexible plugin architecture. Built on .NET 8 with a modern Blazor Server web interface, ApBox provides real-time monitoring, configuration management, and extensible processing of card read events.
+Unlike traditional access controllers that limit third-party code execution, ApBox is designed as a pass-through gateway that preserves existing access control investments while enabling custom workflows and new technologies. Rather than making access decisions itself, ApBox typically forwards processed card data to existing access control systems, allowing organizations to enhance their current infrastructure without replacement.
+
+### Key Use Cases
+
+- **Elevator Dispatch Integration**: Connect any OSDP reader to elevator dispatch systems by receiving card reads and calling elevator APIs
+- **Multi-Factor Authentication**: Add facial recognition, biometric validation, or other security layers before forwarding credentials to access panels  
+- **Custom Enrollment Workflows**: Create specialized enrollment readers with validation logic tailored to organizational requirements
+- **Multi-System Lookup**: Enable parking gate readers to query multiple databases and systems for comprehensive card validation
+- **New Credential Technologies**: Integrate emerging credential formats not yet supported by legacy access controllers
+
+ApBox fills the gap between modern OSDP readers and existing access infrastructure, providing the flexibility to adopt new technologies and implement custom business logic without disrupting established access control investments.
 
 ## Features
 
