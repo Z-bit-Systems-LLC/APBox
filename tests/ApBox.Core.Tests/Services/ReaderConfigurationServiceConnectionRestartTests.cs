@@ -139,10 +139,30 @@ public class ReaderConfigurationServiceConnectionRestartTests
     }
 
     [Test]
-    public async Task SaveReaderAsync_WhenNewReader_ShouldNotRestartConnection()
+    public async Task SaveReaderAsync_WhenNewEnabledReader_ShouldRefreshAllReaders()
     {
         // Arrange
-        var newReader = CreateTestReader("COM1");
+        var newReader = CreateTestReader("COM1", isEnabled: true);
+
+        _mockRepository.Setup(x => x.ExistsAsync(_testReaderId)).ReturnsAsync(false);
+        _mockRepository.Setup(x => x.CreateAsync(It.IsAny<ReaderConfiguration>())).ReturnsAsync((ReaderConfiguration r) => r);
+        _mockReaderService.Setup(x => x.RefreshAllReadersAsync()).Returns(Task.CompletedTask);
+
+        // Act
+        await _service.SaveReaderAsync(newReader);
+
+        // Assert
+        _mockRepository.Verify(x => x.CreateAsync(newReader), Times.Once);
+        _mockReaderService.Verify(x => x.DisconnectReaderAsync(_testReaderId), Times.Never);
+        _mockReaderService.Verify(x => x.ConnectReaderAsync(_testReaderId), Times.Never);
+        _mockReaderService.Verify(x => x.RefreshAllReadersAsync(), Times.Once);
+    }
+
+    [Test]
+    public async Task SaveReaderAsync_WhenNewDisabledReader_ShouldNotRefreshReaders()
+    {
+        // Arrange
+        var newReader = CreateTestReader("COM1", isEnabled: false);
 
         _mockRepository.Setup(x => x.ExistsAsync(_testReaderId)).ReturnsAsync(false);
         _mockRepository.Setup(x => x.CreateAsync(It.IsAny<ReaderConfiguration>())).ReturnsAsync((ReaderConfiguration r) => r);
@@ -154,6 +174,7 @@ public class ReaderConfigurationServiceConnectionRestartTests
         _mockRepository.Verify(x => x.CreateAsync(newReader), Times.Once);
         _mockReaderService.Verify(x => x.DisconnectReaderAsync(_testReaderId), Times.Never);
         _mockReaderService.Verify(x => x.ConnectReaderAsync(_testReaderId), Times.Never);
+        _mockReaderService.Verify(x => x.RefreshAllReadersAsync(), Times.Never);
     }
 
     [Test]

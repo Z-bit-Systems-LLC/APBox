@@ -79,10 +79,16 @@ public class ReaderConfigurationService : IReaderConfigurationService
                 }
             }
 
-            // Check if connection-critical settings have changed and restart connection if needed
+            // Handle connection management
             if (exists && oldConfiguration != null && ShouldRestartConnection(oldConfiguration, reader))
             {
+                // Existing reader with configuration changes - restart connection
                 await RestartReaderConnectionAsync(reader);
+            }
+            else if (!exists && reader.IsEnabled)
+            {
+                // New enabled reader - connect immediately using RefreshAllReadersAsync to ensure consistency
+                await RefreshAllReadersAsync();
             }
         }
         catch (Exception ex)
@@ -152,6 +158,24 @@ public class ReaderConfigurationService : IReaderConfigurationService
         }
         
         return true;
+    }
+
+    /// <summary>
+    /// Refreshes all readers to sync OSDP manager with database changes
+    /// </summary>
+    private async Task RefreshAllReadersAsync()
+    {
+        try
+        {
+            var readerService = _readerService.Value;
+            await readerService.RefreshAllReadersAsync();
+            _logger.LogDebug("Refreshed all readers after configuration change");
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error refreshing readers after configuration change");
+            // Don't rethrow - we don't want configuration save to fail due to refresh issues
+        }
     }
 
     /// <summary>
