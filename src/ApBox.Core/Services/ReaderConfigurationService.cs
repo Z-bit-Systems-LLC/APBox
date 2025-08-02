@@ -105,6 +105,19 @@ public class ReaderConfigurationService : IReaderConfigurationService
             // Get reader configuration before deleting for notification
             var readerToDelete = await _repository.GetByIdAsync(readerId);
             
+            // Disconnect from OSDP bus before deleting from database
+            try
+            {
+                var readerService = _readerService.Value;
+                await readerService.DisconnectReaderAsync(readerId);
+                _logger.LogDebug("Disconnected reader {ReaderId} from OSDP bus before deletion", readerId);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogWarning(ex, "Failed to disconnect reader {ReaderId} from OSDP bus during deletion", readerId);
+                // Continue with database deletion even if disconnect fails
+            }
+            
             var deleted = await _repository.DeleteAsync(readerId);
             
             if (deleted)

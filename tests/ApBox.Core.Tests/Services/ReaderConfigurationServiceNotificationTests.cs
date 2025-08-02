@@ -68,36 +68,60 @@ public class ReaderConfigurationServiceNotificationTests
     }
 
     [Test]
-    public async Task DeleteReaderAsync_WhenReaderExists_ShouldBroadcastDeletedNotification()
+    public async Task DeleteReaderAsync_WhenReaderExists_ShouldDisconnectFromOsdpAndBroadcastDeletedNotification()
     {
         // Arrange
         var readerToDelete = CreateTestReader();
         _mockRepository.Setup(x => x.GetByIdAsync(_testReaderId)).ReturnsAsync(readerToDelete);
         _mockRepository.Setup(x => x.DeleteAsync(_testReaderId)).ReturnsAsync(true);
+        _mockReaderService.Setup(x => x.DisconnectReaderAsync(_testReaderId)).ReturnsAsync(true);
 
         // Act
         await _service.DeleteReaderAsync(_testReaderId);
 
         // Assert
+        _mockReaderService.Verify(x => x.DisconnectReaderAsync(_testReaderId), Times.Once);
         _mockNotificationService.Verify(x => x.BroadcastReaderConfigurationAsync(
             It.Is<ReaderConfiguration>(r => r.ReaderId == _testReaderId), 
             "Deleted"), Times.Once);
     }
 
     [Test]
-    public async Task DeleteReaderAsync_WhenReaderDoesNotExist_ShouldNotBroadcastNotification()
+    public async Task DeleteReaderAsync_WhenReaderDoesNotExist_ShouldStillAttemptDisconnectAndNotBroadcastNotification()
     {
         // Arrange
         _mockRepository.Setup(x => x.GetByIdAsync(_testReaderId)).ReturnsAsync((ReaderConfiguration?)null);
         _mockRepository.Setup(x => x.DeleteAsync(_testReaderId)).ReturnsAsync(false);
+        _mockReaderService.Setup(x => x.DisconnectReaderAsync(_testReaderId)).ReturnsAsync(false);
 
         // Act
         await _service.DeleteReaderAsync(_testReaderId);
 
         // Assert
+        _mockReaderService.Verify(x => x.DisconnectReaderAsync(_testReaderId), Times.Once);
         _mockNotificationService.Verify(x => x.BroadcastReaderConfigurationAsync(
             It.IsAny<ReaderConfiguration>(), 
             It.IsAny<string>()), Times.Never);
+    }
+
+    [Test]
+    public async Task DeleteReaderAsync_WhenDisconnectFails_ShouldStillDeleteFromDatabase()
+    {
+        // Arrange
+        var readerToDelete = CreateTestReader();
+        _mockRepository.Setup(x => x.GetByIdAsync(_testReaderId)).ReturnsAsync(readerToDelete);
+        _mockRepository.Setup(x => x.DeleteAsync(_testReaderId)).ReturnsAsync(true);
+        _mockReaderService.Setup(x => x.DisconnectReaderAsync(_testReaderId)).ThrowsAsync(new Exception("OSDP disconnect failed"));
+
+        // Act
+        await _service.DeleteReaderAsync(_testReaderId);
+
+        // Assert
+        _mockReaderService.Verify(x => x.DisconnectReaderAsync(_testReaderId), Times.Once);
+        _mockRepository.Verify(x => x.DeleteAsync(_testReaderId), Times.Once);
+        _mockNotificationService.Verify(x => x.BroadcastReaderConfigurationAsync(
+            It.Is<ReaderConfiguration>(r => r.ReaderId == _testReaderId), 
+            "Deleted"), Times.Once);
     }
 
     [Test]

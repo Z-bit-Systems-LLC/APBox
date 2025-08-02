@@ -10,7 +10,7 @@ namespace ApBox.Web.Services;
 public class HubConnectionWrapper : IHubConnectionWrapper
 {
     private readonly HubConnection _hubConnection;
-    private bool _disposed = false;
+    private bool _disposed;
     
     public HubConnectionWrapper(NavigationManager navigationManager)
     {
