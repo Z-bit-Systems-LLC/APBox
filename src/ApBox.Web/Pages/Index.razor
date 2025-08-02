@@ -2,7 +2,7 @@
 @using ApBox.Web.ViewModels
 @using Blazorise.SpinKit
 @inject DashboardViewModel ViewModel
-@implements IAsyncDisposable
+@implements IDisposable
 
 <PageTitle>ApBox Dashboard</PageTitle>
 
@@ -179,8 +179,8 @@
         };
     }
 
-    public async ValueTask DisposeAsync()
+    public void Dispose()
     {
-        await ViewModel.DisposeAsync();
+        ViewModel.Dispose();
     }
 }

@@ -12,6 +12,16 @@ namespace ApBox.Web.Services;
 public interface ICardEventNotificationService
 {
     /// <summary>
+    /// Event fired when a card event is processed - for server-side components
+    /// </summary>
+    event Action<CardEventNotification>? OnCardEventProcessed;
+    
+    /// <summary>
+    /// Event fired when reader status changes - for server-side components
+    /// </summary>
+    event Action<ReaderStatusNotification>? OnReaderStatusChanged;
+
+    /// <summary>
     /// Broadcast a card event to all connected clients
     /// </summary>
     Task BroadcastCardEventAsync(CardReadEvent cardEvent, CardReadResult result, ReaderFeedback? feedback = null);
@@ -37,6 +47,8 @@ public class CardEventNotificationService(
     ILogger<CardEventNotificationService> logger)
     : ICardEventNotificationService
 {
+    public event Action<CardEventNotification>? OnCardEventProcessed;
+    public event Action<ReaderStatusNotification>? OnReaderStatusChanged;
     public async Task BroadcastCardEventAsync(CardReadEvent cardEvent, CardReadResult result, ReaderFeedback? feedback = null)
     {
         try
@@ -53,7 +65,11 @@ public class CardEventNotificationService(
                 Feedback = feedback
             };
 
+            // Send to SignalR clients (browsers)
             await hubContext.Clients.Group("CardEvents").CardEventProcessed(notification);
+
+            // Fire event for server-side subscribers (ViewModels)
+            OnCardEventProcessed?.Invoke(notification);
 
             logger.LogDebug("Broadcasted card event for reader {ReaderName}: {CardNumber}", 
                 cardEvent.ReaderName, cardEvent.CardNumber);
@@ -79,7 +95,11 @@ public class CardEventNotificationService(
                 Status = isOnline ? "Online" : "Offline"
             };
 
+            // Send to SignalR clients (browsers)
             await hubContext.Clients.Group("CardEvents").ReaderStatusChanged(notification);
+
+            // Fire event for server-side subscribers (ViewModels)
+            OnReaderStatusChanged?.Invoke(notification);
 
             logger.LogDebug("Broadcasted reader status change for {ReaderName}: {Status}", 
                 readerName, notification.Status);

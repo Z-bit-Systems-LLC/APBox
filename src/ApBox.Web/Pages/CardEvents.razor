@@ -3,7 +3,7 @@
 @using ApBox.Core.Models
 @using Blazorise.SpinKit
 @inject CardEventsViewModel ViewModel
-@implements IAsyncDisposable
+@implements IDisposable
 
 <PageTitle>Card Events</PageTitle>
 
@@ -302,8 +302,8 @@
         await pluginDetailsModal.Show();
     }
 
-    public async ValueTask DisposeAsync()
+    public void Dispose()
     {
-        await ViewModel.DisposeAsync();
+        ViewModel.Dispose();
     }
 }

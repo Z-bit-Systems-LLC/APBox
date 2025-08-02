@@ -7,7 +7,6 @@ using ApBox.Core.Models;
 using ApBox.Plugins;
 using ApBox.Web.Hubs;
 using ApBox.Web.Services;
-using Microsoft.AspNetCore.SignalR.Client;
 
 namespace ApBox.Web.ViewModels;
 
@@ -18,10 +17,10 @@ public partial class DashboardViewModel(
     IReaderService readerService,
     IPluginLoader pluginLoader,
     ICardEventRepository cardEventRepository,
-    IHubConnectionWrapper? hubConnectionWrapper = null)
-    : ObservableObject, IAsyncDisposable
+    ICardEventNotificationService cardEventNotificationService)
+    : ObservableObject, IDisposable
 {
-    private readonly IHubConnectionWrapper? _hubConnection = hubConnectionWrapper;
+    private readonly ICardEventNotificationService _cardEventNotificationService = cardEventNotificationService;
 
     [ObservableProperty]
     private int _configuredReaders;
@@ -54,7 +53,7 @@ public partial class DashboardViewModel(
     private string? _errorMessage;
 
     /// <summary>
-    /// Initializes the dashboard data and SignalR connection
+    /// Initializes the dashboard data and SignalR event handlers
     /// </summary>
     [RelayCommand]
     public async Task InitializeAsync()
@@ -65,7 +64,7 @@ public partial class DashboardViewModel(
             ErrorMessage = null;
 
             await LoadDashboardDataAsync();
-            await InitializeSignalRAsync(); 
+            InitializeSignalRHandlers(); 
         }
         catch (Exception ex)
         {
@@ -163,42 +162,19 @@ public partial class DashboardViewModel(
     }
 
     /// <summary>
-    /// Initializes SignalR connection for real-time updates
+    /// Initializes SignalR event handlers for real-time updates
     /// </summary>
-    private async Task InitializeSignalRAsync()
+    private void InitializeSignalRHandlers()
     {
-        try
-        {
-            // Skip SignalR initialization if no hub connection is provided (e.g., in tests)
-            if (_hubConnection == null)
-            {
-                return;
-            }
-
-            // Always register handlers regardless of connection state
-            _hubConnection.On<CardEventNotification>("CardEventProcessed", OnCardEventProcessed);
-            _hubConnection.On<ReaderStatusNotification>("ReaderStatusChanged", OnReaderStatusChanged);
-
-            // Only start connection if it's disconnected
-            if (_hubConnection.State == HubConnectionState.Disconnected)
-            {
-                await _hubConnection.StartAsync();
-            }
-        }
-        catch (ObjectDisposedException)
-        {
-            // Connection was disposed, ignore
-        }
-        catch (Exception ex)
-        {
-            throw new InvalidOperationException($"SignalR initialization failed: {ex.Message}", ex);
-        }
+        // Register event handlers
+        _cardEventNotificationService.OnCardEventProcessed += OnCardEventProcessed;
+        _cardEventNotificationService.OnReaderStatusChanged += OnReaderStatusChanged;
     }
 
     /// <summary>
     /// Handles incoming card events from SignalR
     /// </summary>
-    private async Task OnCardEventProcessed(CardEventNotification notification)
+    private void OnCardEventProcessed(CardEventNotification notification)
     {
         try
         {
@@ -228,7 +204,7 @@ public partial class DashboardViewModel(
             }
 
             // Notify UI to update
-            await InvokeAsync(() => { StateHasChanged(); return Task.CompletedTask; });
+            InvokeAsync(() => { StateHasChanged(); return Task.CompletedTask; });
         }
         catch (Exception ex)
         {
@@ -240,7 +216,7 @@ public partial class DashboardViewModel(
     /// <summary>
     /// Handles reader status changes from SignalR
     /// </summary>
-    private async Task OnReaderStatusChanged(ReaderStatusNotification notification)
+    private void OnReaderStatusChanged(ReaderStatusNotification notification)
     {
         try
         {
@@ -251,7 +227,7 @@ public partial class DashboardViewModel(
             OnlineReaders = ReaderStatuses.Count(kvp => kvp.Value);
 
             // Notify UI to update
-            await InvokeAsync(() => { StateHasChanged(); return Task.CompletedTask; });
+            InvokeAsync(() => { StateHasChanged(); return Task.CompletedTask; });
         }
         catch (Exception ex)
         {
@@ -271,17 +247,12 @@ public partial class DashboardViewModel(
     public Func<Func<Task>, Task> InvokeAsync { get; set; } = func => func();
 
     /// <summary>
-    /// Disposes resources
+    /// Disposes resources and unsubscribes from SignalR events
     /// </summary>
-    private bool _disposed;
-
-    public async ValueTask DisposeAsync()
+    public void Dispose()
     {
-        if (_disposed) return;
-        _disposed = true;
-
-        // Don't dispose the hub connection - let it be reused by other ViewModels
-        // The connection will be disposed when the application shuts down
-        await Task.CompletedTask;
+        // Unsubscribe from events
+        _cardEventNotificationService.OnCardEventProcessed -= OnCardEventProcessed;
+        _cardEventNotificationService.OnReaderStatusChanged -= OnReaderStatusChanged;
     }
 }

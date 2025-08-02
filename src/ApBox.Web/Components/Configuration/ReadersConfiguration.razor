@@ -4,7 +4,7 @@
 @using Blazorise.SpinKit
 
 @inject ReadersConfigurationViewModel ViewModel
-@implements IAsyncDisposable
+@implements IDisposable
 
 <Container Fluid>
     <Row Margin="Margin.Is3.FromBottom">
@@ -384,8 +384,8 @@
         StateHasChanged();
     }
 
-    public async ValueTask DisposeAsync()
+    public void Dispose()
     {
-        await ViewModel.DisposeAsync();
+        ViewModel.Dispose();
     }
 }

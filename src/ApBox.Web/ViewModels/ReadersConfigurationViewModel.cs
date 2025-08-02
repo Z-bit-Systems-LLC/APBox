@@ -6,7 +6,6 @@ using ApBox.Core.Services;
 using ApBox.Core.Models;
 using ApBox.Web.Services;
 using ApBox.Plugins;
-using Microsoft.AspNetCore.SignalR.Client;
 using Microsoft.Extensions.Logging;
 
 namespace ApBox.Web.ViewModels;
@@ -14,7 +13,7 @@ namespace ApBox.Web.ViewModels;
 /// <summary>
 /// ViewModel for the Readers Configuration page using MVVM pattern
 /// </summary>
-public partial class ReadersConfigurationViewModel : ObservableValidator, IAsyncDisposable
+public partial class ReadersConfigurationViewModel : ObservableValidator, IDisposable
 {
     private readonly IReaderConfigurationService _readerConfigurationService;
     private readonly IReaderService _readerService;
@@ -22,9 +21,7 @@ public partial class ReadersConfigurationViewModel : ObservableValidator, IAsync
     private readonly IPluginLoader _pluginLoader;
     private readonly IReaderPluginMappingService _readerPluginMappingService;
     private readonly ILogger<ReadersConfigurationViewModel> _logger;
-    private readonly IHubConnectionWrapper? _hubConnection;
-    private bool _disposed = false;
-    private readonly List<IDisposable> _signalRSubscriptions = new();
+    private readonly ICardEventNotificationService _cardEventNotificationService;
 
     public ReadersConfigurationViewModel(
         IReaderConfigurationService readerConfigurationService,
@@ -33,7 +30,7 @@ public partial class ReadersConfigurationViewModel : ObservableValidator, IAsync
         IPluginLoader pluginLoader,
         IReaderPluginMappingService readerPluginMappingService,
         ILogger<ReadersConfigurationViewModel> logger,
-        IHubConnectionWrapper? hubConnectionWrapper = null)
+        ICardEventNotificationService cardEventNotificationService)
     {
         _readerConfigurationService = readerConfigurationService;
         _readerService = readerService;
@@ -41,7 +38,7 @@ public partial class ReadersConfigurationViewModel : ObservableValidator, IAsync
         _pluginLoader = pluginLoader;
         _readerPluginMappingService = readerPluginMappingService;
         _logger = logger;
-        _hubConnection = hubConnectionWrapper;
+        _cardEventNotificationService = cardEventNotificationService;
     }
 
     [ObservableProperty]
@@ -141,8 +138,8 @@ public partial class ReadersConfigurationViewModel : ObservableValidator, IAsync
             // Load available plugins
             await LoadPluginsAsync();
 
-            // Initialize SignalR
-            await InitializeSignalRAsync();
+            // Initialize SignalR event handlers
+            InitializeSignalRHandlers();
         }
         catch (Exception ex)
         {
@@ -245,9 +242,7 @@ public partial class ReadersConfigurationViewModel : ObservableValidator, IAsync
             var readers = await _readerConfigurationService.GetAllReadersAsync();
             Readers = new ObservableCollection<ReaderConfiguration>(readers);
             
-            // Re-register SignalR handlers to ensure real-time updates continue working
-            // after potential connection restart from configuration changes
-            ReregisterSignalRHandlers();
+            // SignalR handlers are automatically managed by the service - no need to re-register
             
             // Also refresh reader statuses to get current state after any connection changes
             ReaderStatuses = await _readerService.GetAllReaderStatusesAsync() ?? new Dictionary<Guid, bool>();
@@ -387,187 +382,34 @@ public partial class ReadersConfigurationViewModel : ObservableValidator, IAsync
         }
     }
 
-    private async Task InitializeSignalRAsync()
+    private void InitializeSignalRHandlers()
     {
-        if (_hubConnection == null) return;
-
-        try
-        {
-            // Always setup handlers regardless of connection state
-            SetupSignalRHandlers();
-            
-            // Only start connection if it's disconnected
-            if (_hubConnection.State == HubConnectionState.Disconnected)
-            {
-                await _hubConnection.StartAsync();
-                _logger.LogInformation("SignalR connection established for readers configuration");
-            }
-            else
-            {
-                _logger.LogInformation("SignalR connection already established, handlers registered for readers configuration");
-            }
-        }
-        catch (ObjectDisposedException)
-        {
-            _logger.LogWarning("SignalR connection was disposed before initialization could complete");
-        }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, "Error initializing SignalR connection");
-        }
+        // Register event handlers for real-time updates
+        _cardEventNotificationService.OnReaderStatusChanged += OnReaderStatusChanged;
     }
 
-    private void SetupSignalRHandlers()
-    {
-        if (_hubConnection == null) return;
-
-        // Set up event handlers and store disposables for cleanup
-        var readerStatusSubscription = _hubConnection.On<ReaderStatusNotification>("ReaderStatusChanged", async (notification) =>
-        {
-            if (InvokeAsync != null)
-            {
-                await InvokeAsync(() =>
-                {
-                    _logger.LogDebug("Received reader status change for {ReaderName} ({ReaderId}): {Status}", 
-                        notification.ReaderName, notification.ReaderId, notification.IsOnline ? "Online" : "Offline");
-                    
-                    ReaderStatuses[notification.ReaderId] = notification.IsOnline;
-                    StateHasChanged?.Invoke();
-                    return Task.CompletedTask;
-                });
-            }
-        });
-
-        var configSubscription = _hubConnection.On<ReaderConfigurationNotification>("ReaderConfigurationChanged", async (notification) =>
-        {
-            if (InvokeAsync != null)
-            {
-                await InvokeAsync(async () =>
-                {
-                    await HandleReaderConfigurationChangeAsync(notification);
-                    StateHasChanged?.Invoke();
-                });
-            }
-        });
-
-        var notificationSubscription = _hubConnection.On<string>("ReceiveNotification", async (message) =>
-        {
-            if (InvokeAsync != null)
-            {
-                await InvokeAsync(() =>
-                {
-                    _logger.LogInformation("Received notification: {Message}", message);
-                    StateHasChanged?.Invoke();
-                    return Task.CompletedTask;
-                });
-            }
-        });
-
-        _signalRSubscriptions.Add(readerStatusSubscription);
-        _signalRSubscriptions.Add(configSubscription);
-        _signalRSubscriptions.Add(notificationSubscription);
-    }
-
-    private void ReregisterSignalRHandlers()
-    {
-        if (_hubConnection == null) return;
-
-        try
-        {
-            _logger.LogDebug("Re-registering SignalR handlers after configuration change");
-            
-            // Dispose existing handlers
-            foreach (var subscription in _signalRSubscriptions)
-            {
-                subscription?.Dispose();
-            }
-            _signalRSubscriptions.Clear();
-            
-            // Re-setup handlers
-            SetupSignalRHandlers();
-            
-            _logger.LogDebug("SignalR handlers re-registered successfully");
-        }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, "Error re-registering SignalR handlers");
-        }
-    }
-
-    private async Task HandleReaderConfigurationChangeAsync(ReaderConfigurationNotification notification)
+    private void OnReaderStatusChanged(ReaderStatusNotification notification)
     {
         try
         {
-            switch (notification.ChangeType)
-            {
-                case "Created":
-                    // Reload all readers to get the new one
-                    var allReaders = await _readerConfigurationService.GetAllReadersAsync();
-                    Readers = new ObservableCollection<ReaderConfiguration>(allReaders);
-                    break;
-                
-                case "Updated":
-                    // Find and update the existing reader
-                    var existingReader = Readers.FirstOrDefault(r => r.ReaderId == notification.ReaderId);
-                    if (existingReader != null)
-                    {
-                        var updatedReader = await _readerConfigurationService.GetReaderAsync(notification.ReaderId);
-                        if (updatedReader != null)
-                        {
-                            var index = Readers.IndexOf(existingReader);
-                            Readers[index] = updatedReader;
-                        }
-                    }
-                    break;
-                
-                case "Deleted":
-                    // Remove the reader from the collection
-                    var readerToRemove = Readers.FirstOrDefault(r => r.ReaderId == notification.ReaderId);
-                    if (readerToRemove != null)
-                    {
-                        Readers.Remove(readerToRemove);
-                    }
-                    break;
-            }
+            _logger.LogDebug("Received reader status change for {ReaderName} ({ReaderId}): {Status}", 
+                notification.ReaderName, notification.ReaderId, notification.IsOnline ? "Online" : "Offline");
             
-            _logger.LogDebug("Handled reader configuration change: {ChangeType} for reader {ReaderName}", 
-                notification.ChangeType, notification.ReaderName);
+            ReaderStatuses[notification.ReaderId] = notification.IsOnline;
+            
+            // Notify UI to update
+            InvokeAsync?.Invoke(() => { StateHasChanged?.Invoke(); return Task.CompletedTask; });
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error handling reader configuration change for reader {ReaderId}", notification.ReaderId);
+            _logger.LogError(ex, "Error handling reader status change");
         }
     }
 
-    public async ValueTask DisposeAsync()
+
+    public void Dispose()
     {
-        if (_disposed) return;
-        _disposed = true;
-
-        // Dispose SignalR subscriptions
-        foreach (var subscription in _signalRSubscriptions)
-        {
-            subscription?.Dispose();
-        }
-        _signalRSubscriptions.Clear();
-
-        if (_hubConnection != null)
-        {
-            try
-            {
-                // Stop the connection before disposing
-                if (_hubConnection.State != HubConnectionState.Disconnected)
-                {
-                    await _hubConnection.StopAsync();
-                }
-                
-                // Dispose the connection
-                await _hubConnection.DisposeAsync();
-            }
-            catch (Exception ex)
-            {
-                _logger.LogWarning(ex, "Error stopping SignalR connection during disposal");
-            }
-        }
+        // Unsubscribe from events
+        _cardEventNotificationService.OnReaderStatusChanged -= OnReaderStatusChanged;
     }
 }

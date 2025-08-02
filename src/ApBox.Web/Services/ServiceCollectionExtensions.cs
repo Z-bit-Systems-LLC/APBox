@@ -39,10 +39,6 @@ public static class ServiceCollectionExtensions
         services.AddSingleton<ICardEventNotificationService, CardEventNotificationService>();
         services.AddSingleton<INotificationService, NotificationService>();
         
-        // Register SignalR factory and wrapper
-        services.AddTransient<IHubConnectionFactory, HubConnectionFactory>();
-        services.AddTransient<IHubConnectionWrapper>(sp => 
-            sp.GetRequiredService<IHubConnectionFactory>().CreateConnection());
         
         // Register ViewModels
         services.AddScoped<DashboardViewModel>();

@@ -7,13 +7,13 @@ using ApBox.Core.Models;
 using ApBox.Plugins;
 using ApBox.Web.Services;
 using ApBox.Web.ViewModels;
+using ApBox.Web.Tests.Services;
 using Blazorise.Bootstrap5;
 using Blazorise.Icons.FontAwesome;
 using Blazorise.Tests.bUnit;
 using Blazorise.Modules;
 using Microsoft.JSInterop;
 using Microsoft.AspNetCore.Components;
-using Microsoft.AspNetCore.SignalR.Client;
 
 namespace ApBox.Web.Tests;
 
@@ -30,7 +30,7 @@ public class ApBoxTestContext : Bunit.TestContext
     public Mock<ISystemRestartService> MockSystemRestartService { get; private set; }
     public Mock<ICardEventPersistenceService> MockCardEventPersistenceService { get; private set; }
     public Mock<ICardProcessingOrchestrator> MockCardProcessingOrchestrator { get; private set; }
-    public Mock<IHubConnectionWrapper> MockHubConnectionWrapper { get; private set; }
+    public MockCardEventNotificationService MockCardEventNotificationService { get; private set; }
     public Mock<IReaderPluginMappingService> MockReaderPluginMappingService { get; private set; }
     public Mock<ISerialPortService> MockSerialPortService { get; private set; }
 
@@ -48,21 +48,10 @@ public class ApBoxTestContext : Bunit.TestContext
         MockSystemRestartService = new Mock<ISystemRestartService>();
         MockCardEventPersistenceService = new Mock<ICardEventPersistenceService>();
         MockCardProcessingOrchestrator = new Mock<ICardProcessingOrchestrator>();
-        MockHubConnectionWrapper = new Mock<IHubConnectionWrapper>();
+        MockCardEventNotificationService = new MockCardEventNotificationService();
         MockReaderPluginMappingService = new Mock<IReaderPluginMappingService>();
         MockSerialPortService = new Mock<ISerialPortService>();
         
-        // Setup hub connection wrapper to return disconnected state by default
-        MockHubConnectionWrapper.Setup(x => x.State).Returns(HubConnectionState.Disconnected);
-        MockHubConnectionWrapper.Setup(x => x.StartAsync(It.IsAny<CancellationToken>())).Returns(Task.CompletedTask);
-        MockHubConnectionWrapper.Setup(x => x.StopAsync(It.IsAny<CancellationToken>())).Returns(Task.CompletedTask);
-        MockHubConnectionWrapper.Setup(x => x.DisposeAsync()).Returns(ValueTask.CompletedTask);
-        
-        // Setup event handler registration to return disposable
-        MockHubConnectionWrapper.Setup(x => x.On(It.IsAny<string>(), It.IsAny<Func<It.IsAnyType, Task>>()))
-            .Returns(Mock.Of<IDisposable>());
-        MockHubConnectionWrapper.Setup(x => x.On(It.IsAny<string>(), It.IsAny<Func<It.IsAnyType, It.IsAnyType, Task>>()))
-            .Returns(Mock.Of<IDisposable>());
         
         // Setup serial port service
         MockSerialPortService.Setup(x => x.GetAvailablePortNames()).Returns(new[] { "COM1", "COM2", "COM3" });
@@ -89,7 +78,7 @@ public class ApBoxTestContext : Bunit.TestContext
         Services.AddSingleton(MockSystemRestartService.Object);
         Services.AddSingleton(MockCardEventPersistenceService.Object);
         Services.AddSingleton(MockCardProcessingOrchestrator.Object);
-        Services.AddScoped<IHubConnectionWrapper>(_ => MockHubConnectionWrapper.Object);
+        Services.AddSingleton<ICardEventNotificationService>(MockCardEventNotificationService);
         Services.AddSingleton(MockReaderPluginMappingService.Object);
         Services.AddSingleton(MockSerialPortService.Object);
         
@@ -126,18 +115,8 @@ public class ApBoxTestContext : Bunit.TestContext
         MockSystemRestartService.Reset();
         MockReaderPluginMappingService.Reset();
         MockSerialPortService.Reset();
-        MockHubConnectionWrapper.Reset();
         
         // Re-setup default behaviors after reset
-        MockHubConnectionWrapper.Setup(x => x.State).Returns(HubConnectionState.Disconnected);
-        MockHubConnectionWrapper.Setup(x => x.StartAsync(It.IsAny<CancellationToken>())).Returns(Task.CompletedTask);
-        MockHubConnectionWrapper.Setup(x => x.StopAsync(It.IsAny<CancellationToken>())).Returns(Task.CompletedTask);
-        MockHubConnectionWrapper.Setup(x => x.DisposeAsync()).Returns(ValueTask.CompletedTask);
-        MockHubConnectionWrapper.Setup(x => x.On(It.IsAny<string>(), It.IsAny<Func<It.IsAnyType, Task>>()))
-            .Returns(Mock.Of<IDisposable>());
-        MockHubConnectionWrapper.Setup(x => x.On(It.IsAny<string>(), It.IsAny<Func<It.IsAnyType, It.IsAnyType, Task>>()))
-            .Returns(Mock.Of<IDisposable>());
-            
         MockSerialPortService.Setup(x => x.GetAvailablePortNames()).Returns(new[] { "COM1", "COM2", "COM3" });
     }
 
