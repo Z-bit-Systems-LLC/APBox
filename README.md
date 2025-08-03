@@ -154,43 +154,111 @@ dotnet-coverage collect "dotnet test" -f xml -o coverage.xml
 
 ## Configuration
 
-### Reader Configuration
+### System Configuration Export/Import
+
+ApBox supports exporting and importing complete system configurations through the web interface or API. The configuration export includes all readers, feedback settings, and system information.
+
+#### Export Schema
+
+The complete configuration export follows this JSON schema:
 
 ```json
 {
-  "ReaderId": "12345678-1234-1234-1234-123456789abc",
-  "ReaderName": "Main Entrance",
-  "Address": 1,
-  "IsEnabled": true,
-  "CreatedAt": "2024-01-01T00:00:00Z",
-  "UpdatedAt": "2024-01-01T00:00:00Z"
-}
-```
-
-### Feedback Configuration
-
-```json
-{
-  "SuccessFeedback": {
-    "Type": "Success",
-    "LedColor": "Green",
-    "LedDurationMs": 1000,
-    "BeepCount": 1,
-    "DisplayMessage": "ACCESS GRANTED"
+  "exportVersion": "1.0",
+  "exportedAt": "2024-01-01T12:00:00.000Z",
+  "systemInfo": {
+    "apBoxVersion": "1.0.0.0",
+    "framework": ".NET 8.0.0",
+    "platform": "Win32NT (Microsoft Windows 10.0.22631)",
+    "machineName": "PRODUCTION-SERVER",
+    "osVersion": "Microsoft Windows NT 10.0.22631.0",
+    "processorCount": 8,
+    "workingDirectory": "C:\\ApBox",
+    "startTime": "2024-01-01T12:00:00.000Z"
   },
-  "FailureFeedback": {
-    "Type": "Failure",
-    "LedColor": "Red",
-    "LedDurationMs": 2000,
-    "BeepCount": 3,
-    "DisplayMessage": "ACCESS DENIED"
-  },
-  "IdleState": {
-    "PermanentLedColor": "Blue",
-    "HeartbeatFlashColor": "Green"
+  "readers": [
+    {
+      "readerId": "12345678-1234-1234-1234-123456789abc",
+      "readerName": "Main Entrance",
+      "address": 1,
+      "isEnabled": true,
+      "createdAt": "2024-01-01T00:00:00.000Z",
+      "updatedAt": "2024-01-01T00:00:00.000Z",
+      "serialPort": "COM1",
+      "baudRate": 9600,
+      "securityMode": "ClearText",
+      "secureChannelKey": null
+    }
+  ],
+  "feedbackConfiguration": {
+    "successFeedback": {
+      "type": "Success",
+      "beepCount": 1,
+      "ledColor": "Green",
+      "ledDuration": 1000,
+      "displayMessage": "ACCESS GRANTED"
+    },
+    "failureFeedback": {
+      "type": "Failure",
+      "beepCount": 3,
+      "ledColor": "Red", 
+      "ledDuration": 2000,
+      "displayMessage": "ACCESS DENIED"
+    },
+    "idleState": {
+      "permanentLedColor": "Blue",
+      "heartbeatFlashColor": "Green"
+    }
   }
 }
 ```
+
+#### Reader Configuration Properties
+
+| Property | Type | Description |
+|----------|------|-------------|
+| `readerId` | `string` (GUID) | Unique identifier for the reader |
+| `readerName` | `string` | Human-readable name (max 100 chars) |
+| `address` | `number` (byte) | OSDP bus address (1-127) |
+| `isEnabled` | `boolean` | Whether reader is active |
+| `serialPort` | `string` | Serial port (e.g., "COM1", "/dev/ttyUSB0") |
+| `baudRate` | `number` | Communication speed (default: 9600) |
+| `securityMode` | `string` | OSDP security: "ClearText", "Install", "Secure" |
+| `secureChannelKey` | `byte[]` | Encryption key for secure mode |
+
+#### Feedback Configuration Properties
+
+| Property | Type | Description |
+|----------|------|-------------|
+| `type` | `string` | "None", "Success", "Failure", "Custom" |
+| `beepCount` | `number` | Number of beeps (0+ for success/failure) |
+| `ledColor` | `string` | "Off", "Red", "Green", "Amber", "Blue" |
+| `ledDuration` | `number` | LED duration in milliseconds |
+| `displayMessage` | `string` | Text shown on reader display |
+
+#### Import Validation
+
+The system validates imported configurations for:
+
+- **JSON Format**: Valid JSON structure and required fields
+- **Version Compatibility**: Warns about version mismatches  
+- **Reader Validation**: No duplicate names or addresses, valid names
+- **Feedback Validation**: Positive durations, non-negative beep counts
+- **Data Integrity**: Proper GUIDs, valid enums, range checking
+
+#### Export/Import Usage
+
+**Web Interface:**
+1. Navigate to Configuration → System
+2. Click "Export Configuration" to download JSON file
+3. Click "Import Configuration" to upload and validate JSON file
+4. Review validation results before confirming import
+
+**File Operations:**
+- Export creates timestamped backup with system information
+- Import overwrites existing configurations (readers are updated if they exist)
+- Validation prevents importing invalid or conflicting data
+- System restart may be required after major configuration changes
 
 ### Card Read Event Structure
 
