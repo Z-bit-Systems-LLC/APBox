@@ -10,12 +10,19 @@ public class DataEncryptionServiceTests
 {
     private IDataEncryptionService _encryptionService;
     private Mock<ILogger<DataEncryptionService>> _mockLogger;
+    private Mock<IEncryptionKeyService> _mockKeyService;
 
     [SetUp]
     public void Setup()
     {
         _mockLogger = new Mock<ILogger<DataEncryptionService>>();
-        _encryptionService = new DataEncryptionService(_mockLogger.Object);
+        _mockKeyService = new Mock<IEncryptionKeyService>();
+        
+        // Setup mock key service to return a consistent key
+        var testKey = new byte[32]; // All zeros for consistent testing
+        _mockKeyService.Setup(x => x.GetEncryptionKeyAsync()).ReturnsAsync(testKey);
+        
+        _encryptionService = new DataEncryptionService(_mockKeyService.Object, _mockLogger.Object);
     }
 
     [Test]

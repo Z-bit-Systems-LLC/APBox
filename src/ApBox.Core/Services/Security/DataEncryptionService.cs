@@ -8,16 +8,13 @@ namespace ApBox.Core.Services.Security;
 /// </summary>
 public class DataEncryptionService : IDataEncryptionService
 {
-    private readonly byte[] _key;
+    private readonly IEncryptionKeyService _keyService;
     private readonly ILogger<DataEncryptionService> _logger;
 
-    public DataEncryptionService(ILogger<DataEncryptionService> logger)
+    public DataEncryptionService(IEncryptionKeyService keyService, ILogger<DataEncryptionService> logger)
     {
+        _keyService = keyService;
         _logger = logger;
-        // In production, this key should come from secure configuration
-        // For now, using a hardcoded key for demonstration
-        var keyString = "ApBoxEncryptionKey123456789012345"; // Must be exactly 32 bytes for AES-256
-        _key = Encoding.UTF8.GetBytes(keyString).Take(32).ToArray(); // Ensure exactly 32 bytes
     }
 
     public string EncryptData(string plainText)
@@ -27,8 +24,10 @@ public class DataEncryptionService : IDataEncryptionService
 
         try
         {
+            var key = _keyService.GetEncryptionKeyAsync().GetAwaiter().GetResult();
+            
             using var aes = Aes.Create();
-            aes.Key = _key;
+            aes.Key = key;
             aes.GenerateIV();
 
             using var encryptor = aes.CreateEncryptor();
@@ -61,10 +60,11 @@ public class DataEncryptionService : IDataEncryptionService
 
         try
         {
+            var key = _keyService.GetEncryptionKeyAsync().GetAwaiter().GetResult();
             var fullCipher = Convert.FromBase64String(encryptedData);
 
             using var aes = Aes.Create();
-            aes.Key = _key;
+            aes.Key = key;
 
             var iv = new byte[aes.BlockSize / 8];
             var cipher = new byte[fullCipher.Length - iv.Length];

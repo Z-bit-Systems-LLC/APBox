@@ -62,7 +62,11 @@ public static class ServiceCollectionExtensions
         // Register PIN collection service
         services.AddSingleton<IPinCollectionService, PinCollectionService>();
         
-        // Register encryption service
+        // Register file system abstraction
+        services.AddSingleton<IFileSystem, FileSystem>();
+        
+        // Register encryption services
+        services.AddSingleton<IEncryptionKeyService, EncryptionKeyService>();
         services.AddSingleton<IDataEncryptionService, DataEncryptionService>();
         
         // Register PIN event persistence service
