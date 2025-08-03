@@ -9,6 +9,7 @@ namespace ApBox.Core.Services;
 public class ConfigurationExportService(
     IReaderConfigurationService readerConfigurationService,
     IFeedbackConfigurationService feedbackConfigurationService,
+    IReaderPluginMappingService readerPluginMappingService,
     ILogger<ConfigurationExportService> logger) : IConfigurationExportService
 {
     private static readonly JsonSerializerOptions JsonOptions = new()
@@ -28,6 +29,24 @@ public class ConfigurationExportService(
             // Export readers
             var readers = await readerConfigurationService.GetAllReadersAsync();
             export.Readers = readers.ToList();
+            
+            // Export plugin mappings for each reader
+            foreach (var reader in export.Readers)
+            {
+                var mappings = await readerPluginMappingService.GetAllMappingsAsync();
+                var readerMappings = mappings
+                    .Where(m => m.ReaderId == reader.ReaderId)
+                    .OrderBy(m => m.ExecutionOrder)
+                    .Select(m => new ReaderPluginMapping
+                    {
+                        PluginId = m.PluginId,
+                        ExecutionOrder = m.ExecutionOrder,
+                        IsEnabled = m.IsEnabled
+                    })
+                    .ToList();
+                
+                reader.PluginMappings = readerMappings;
+            }
             
             // Export feedback configuration
             export.FeedbackConfiguration = await feedbackConfigurationService.GetDefaultConfigurationAsync();
@@ -126,6 +145,9 @@ public class ConfigurationExportService(
                         result.IsValid = false;
                     }
                 }
+                
+                // Validate plugin mappings
+                ValidatePluginMappings(config.Readers, result);
             }
 
             // Validate feedback configuration
@@ -182,6 +204,39 @@ public class ConfigurationExportService(
                         await readerConfigurationService.SaveReaderAsync(reader);
                         logger.LogInformation("Added new reader: {ReaderName}", reader.ReaderName);
                     }
+                    
+                    // Import plugin mappings for this reader
+                    if (reader.PluginMappings.Any())
+                    {
+                        await readerPluginMappingService.SetPluginsForReaderAsync(
+                            reader.ReaderId, 
+                            reader.PluginMappings.Select(pm => pm.PluginId));
+                        
+                        // Update execution order and enabled state for each plugin
+                        foreach (var pluginMapping in reader.PluginMappings)
+                        {
+                            await readerPluginMappingService.UpdatePluginOrderAsync(
+                                reader.ReaderId, 
+                                pluginMapping.PluginId, 
+                                pluginMapping.ExecutionOrder);
+                            
+                            if (pluginMapping.IsEnabled)
+                            {
+                                await readerPluginMappingService.EnablePluginForReaderAsync(
+                                    reader.ReaderId, 
+                                    pluginMapping.PluginId);
+                            }
+                            else
+                            {
+                                await readerPluginMappingService.DisablePluginForReaderAsync(
+                                    reader.ReaderId, 
+                                    pluginMapping.PluginId);
+                            }
+                        }
+                        
+                        logger.LogInformation("Imported {PluginCount} plugin mappings for reader: {ReaderName}", 
+                            reader.PluginMappings.Count, reader.ReaderName);
+                    }
                 }
             }
 
@@ -233,6 +288,54 @@ public class ConfigurationExportService(
             {
                 result.AddError("Failure feedback beep count cannot be negative");
                 result.IsValid = false;
+            }
+        }
+    }
+    
+    private static void ValidatePluginMappings(List<ReaderConfiguration> readers, ValidationResult result)
+    {
+        foreach (var reader in readers)
+        {
+            if (!reader.PluginMappings.Any()) continue;
+            
+            // Check for duplicate execution orders within the same reader
+            var duplicateOrders = reader.PluginMappings
+                .GroupBy(pm => pm.ExecutionOrder)
+                .Where(g => g.Count() > 1)
+                .Select(g => g.Key);
+            
+            foreach (var order in duplicateOrders)
+            {
+                result.AddError($"Reader '{reader.ReaderName}' has duplicate plugin execution order: {order}");
+                result.IsValid = false;
+            }
+            
+            // Check for duplicate plugin IDs within the same reader
+            var duplicatePlugins = reader.PluginMappings
+                .GroupBy(pm => pm.PluginId)
+                .Where(g => g.Count() > 1)
+                .Select(g => g.Key);
+            
+            foreach (var pluginId in duplicatePlugins)
+            {
+                result.AddError($"Reader '{reader.ReaderName}' has duplicate plugin assignment: {pluginId}");
+                result.IsValid = false;
+            }
+            
+            // Check for invalid plugin IDs and execution orders
+            foreach (var pluginMapping in reader.PluginMappings)
+            {
+                if (string.IsNullOrWhiteSpace(pluginMapping.PluginId))
+                {
+                    result.AddError($"Reader '{reader.ReaderName}' has empty plugin ID");
+                    result.IsValid = false;
+                }
+                
+                if (pluginMapping.ExecutionOrder <= 0)
+                {
+                    result.AddError($"Reader '{reader.ReaderName}' plugin '{pluginMapping.PluginId}' has invalid execution order: {pluginMapping.ExecutionOrder}");
+                    result.IsValid = false;
+                }
             }
         }
     }

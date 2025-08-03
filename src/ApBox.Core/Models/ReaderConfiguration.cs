@@ -17,4 +17,7 @@ public class ReaderConfiguration
     public int BaudRate { get; set; } = 9600;
     public OsdpSecurityMode SecurityMode { get; set; } = OsdpSecurityMode.ClearText;
     public byte[]? SecureChannelKey { get; set; }
+    
+    // Plugin Mappings
+    public List<ReaderPluginMapping> PluginMappings { get; set; } = new();
 }
