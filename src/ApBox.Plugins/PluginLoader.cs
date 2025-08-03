@@ -43,6 +43,7 @@ public class PluginLoader : IPluginLoader
 {
     private readonly string _pluginDirectory;
     private readonly ILogger<PluginLoader>? _logger;
+    private readonly ILoggerFactory? _loggerFactory;
     private readonly IFileSystem _fileSystem;
     private readonly Dictionary<string, IApBoxPlugin> _loadedPlugins = new();
     private readonly List<PluginMetadata> _availablePlugins = new();
@@ -54,7 +55,7 @@ public class PluginLoader : IPluginLoader
     /// <param name="pluginDirectory">Directory path where plugin assemblies are located</param>
     /// <param name="logger">Optional logger for diagnostic information</param>
     public PluginLoader(string pluginDirectory, ILogger<PluginLoader>? logger = null) 
-        : this(pluginDirectory, new FileSystem(), logger)
+        : this(pluginDirectory, new FileSystem(), logger, null)
     {
     }
     
@@ -65,10 +66,23 @@ public class PluginLoader : IPluginLoader
     /// <param name="fileSystem">File system abstraction for testing purposes</param>
     /// <param name="logger">Optional logger for diagnostic information</param>
     public PluginLoader(string pluginDirectory, IFileSystem fileSystem, ILogger<PluginLoader>? logger = null)
+        : this(pluginDirectory, fileSystem, logger, null)
+    {
+    }
+    
+    /// <summary>
+    /// Initializes a new instance of the PluginLoader class with dependency injection support.
+    /// </summary>
+    /// <param name="pluginDirectory">Directory path where plugin assemblies are located</param>
+    /// <param name="fileSystem">File system abstraction for testing purposes</param>
+    /// <param name="logger">Optional logger for diagnostic information</param>
+    /// <param name="loggerFactory">Optional logger factory for plugin dependency injection</param>
+    public PluginLoader(string pluginDirectory, IFileSystem fileSystem, ILogger<PluginLoader>? logger, ILoggerFactory? loggerFactory)
     {
         _pluginDirectory = pluginDirectory;
         _fileSystem = fileSystem;
         _logger = logger;
+        _loggerFactory = loggerFactory;
     }
     
     /// <inheritdoc/>
@@ -168,7 +182,8 @@ public class PluginLoader : IPluginLoader
             {
                 try
                 {
-                    if (Activator.CreateInstance(pluginType) is IApBoxPlugin plugin)
+                    var plugin = CreatePluginInstance(pluginType);
+                    if (plugin != null)
                     {
                         await plugin.InitializeAsync();
                         
@@ -189,15 +204,50 @@ public class PluginLoader : IPluginLoader
                 }
                 catch (Exception ex)
                 {
-                    Console.WriteLine($"Failed to create instance of plugin {pluginType.Name}: {ex.Message}");
+                    _logger?.LogError(ex, "Failed to create instance of plugin {PluginType}", pluginType.Name);
                 }
             }
         }
         catch (Exception ex)
         {
-            Console.WriteLine($"Failed to load assembly {assemblyPath}: {ex.Message}");
+            _logger?.LogError(ex, "Failed to load assembly {AssemblyPath}", assemblyPath);
         }
         
         return plugins;
+    }
+    
+    /// <summary>
+    /// Creates a plugin instance with proper dependency injection support
+    /// </summary>
+    private IApBoxPlugin? CreatePluginInstance(Type pluginType)
+    {
+        try
+        {
+            // Try to inject logger if LoggerFactory is available
+            if (_loggerFactory != null)
+            {
+                // Look for constructors that take ILogger<T> or ILogger
+                var genericLoggerType = typeof(ILogger<>).MakeGenericType(pluginType);
+                var nonGenericLoggerType = typeof(ILogger);
+                
+                var constructorWithLogger = pluginType.GetConstructor(new[] { genericLoggerType }) 
+                                           ?? pluginType.GetConstructor(new[] { nonGenericLoggerType });
+                
+                if (constructorWithLogger != null)
+                {
+                    // Create logger using string-based method
+                    var stringLogger = _loggerFactory.CreateLogger(pluginType.FullName ?? pluginType.Name);
+                    return (IApBoxPlugin?)Activator.CreateInstance(pluginType, stringLogger);
+                }
+            }
+            
+            // Fall back to parameterless constructor
+            return (IApBoxPlugin?)Activator.CreateInstance(pluginType);
+        }
+        catch (Exception ex)
+        {
+            _logger?.LogError(ex, "Failed to create instance of plugin {PluginType}", pluginType.Name);
+            return null;
+        }
     }
 }

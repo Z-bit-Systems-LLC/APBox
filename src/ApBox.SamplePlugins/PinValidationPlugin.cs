@@ -10,7 +10,7 @@ namespace ApBox.SamplePlugins;
 public class PinValidationPlugin : IApBoxPlugin
 {
     private readonly HashSet<string> _authorizedPins;
-    private readonly ILogger<PinValidationPlugin>? _logger;
+    private readonly ILogger? _logger;
 
     public PinValidationPlugin()
     {
@@ -27,6 +27,12 @@ public class PinValidationPlugin : IApBoxPlugin
     }
 
     public PinValidationPlugin(ILogger<PinValidationPlugin> logger) : this()
+    {
+        _logger = logger;
+    }
+
+    // Constructor for non-generic ILogger (used by plugin loader)
+    public PinValidationPlugin(ILogger logger) : this()
     {
         _logger = logger;
     }

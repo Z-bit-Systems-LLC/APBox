@@ -9,7 +9,7 @@ namespace ApBox.SamplePlugins;
 /// </summary>
 public class EventLoggingPlugin : IApBoxPlugin
 {
-    private readonly ILogger<EventLoggingPlugin>? _logger;
+    private readonly ILogger? _logger;
     private int _totalEvents = 0;
     private int _successfulEvents = 0;
     private int _failedEvents = 0;
@@ -18,7 +18,13 @@ public class EventLoggingPlugin : IApBoxPlugin
     {
     }
 
-    public EventLoggingPlugin(ILogger<EventLoggingPlugin> logger)
+    public EventLoggingPlugin(ILogger<EventLoggingPlugin> logger) : this()
+    {
+        _logger = logger;
+    }
+
+    // Constructor for non-generic ILogger (used by plugin loader)
+    public EventLoggingPlugin(ILogger logger) : this()
     {
         _logger = logger;
     }

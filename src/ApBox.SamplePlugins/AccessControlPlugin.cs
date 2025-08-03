@@ -10,7 +10,7 @@ namespace ApBox.SamplePlugins;
 public class AccessControlPlugin : IApBoxPlugin
 {
     private readonly HashSet<string> _authorizedCards;
-    private readonly ILogger<AccessControlPlugin>? _logger;
+    private readonly ILogger? _logger;
 
     public AccessControlPlugin()
     {
@@ -27,6 +27,12 @@ public class AccessControlPlugin : IApBoxPlugin
     }
 
     public AccessControlPlugin(ILogger<AccessControlPlugin> logger) : this()
+    {
+        _logger = logger;
+    }
+
+    // Constructor for non-generic ILogger (used by plugin loader)
+    public AccessControlPlugin(ILogger logger) : this()
     {
         _logger = logger;
     }

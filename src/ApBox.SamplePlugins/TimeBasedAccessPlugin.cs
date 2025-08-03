@@ -9,7 +9,7 @@ namespace ApBox.SamplePlugins;
 public class TimeBasedAccessPlugin : IApBoxPlugin
 {
     private readonly Dictionary<string, AccessSchedule> _cardSchedules;
-    private readonly ILogger<TimeBasedAccessPlugin>? _logger;
+    private readonly ILogger? _logger;
 
     public TimeBasedAccessPlugin()
     {
@@ -55,6 +55,12 @@ public class TimeBasedAccessPlugin : IApBoxPlugin
     }
 
     public TimeBasedAccessPlugin(ILogger<TimeBasedAccessPlugin> logger) : this()
+    {
+        _logger = logger;
+    }
+
+    // Constructor for non-generic ILogger (used by plugin loader)
+    public TimeBasedAccessPlugin(ILogger logger) : this()
     {
         _logger = logger;
     }

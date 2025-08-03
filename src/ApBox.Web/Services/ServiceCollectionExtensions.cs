@@ -24,7 +24,8 @@ public static class ServiceCollectionExtensions
         {
             var pluginDirectory = configuration.GetValue<string>("PluginSettings:Directory") ?? "plugins";
             var logger = provider.GetService<ILogger<CachedPluginLoader>>();
-            return new CachedPluginLoader(pluginDirectory, logger);
+            var loggerFactory = provider.GetService<ILoggerFactory>();
+            return new CachedPluginLoader(pluginDirectory, logger, loggerFactory);
         });
         
         // Register OSDP services

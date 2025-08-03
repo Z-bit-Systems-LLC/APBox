@@ -12,7 +12,7 @@ public class AuditLoggingPlugin : IApBoxPlugin
 {
     private readonly string _logDirectory;
     private readonly object _logLock = new();
-    private readonly ILogger<AuditLoggingPlugin>? _logger;
+    private readonly ILogger? _logger;
 
     public AuditLoggingPlugin()
     {
@@ -26,7 +26,20 @@ public class AuditLoggingPlugin : IApBoxPlugin
         _logger = logger;
     }
 
+    // Constructor for non-generic ILogger (used by plugin loader)
+    public AuditLoggingPlugin(ILogger logger) : this()
+    {
+        _logger = logger;
+    }
+
     public AuditLoggingPlugin(string logDirectory, ILogger<AuditLoggingPlugin>? logger = null)
+    {
+        _logDirectory = logDirectory;
+        _logger = logger;
+        Directory.CreateDirectory(_logDirectory);
+    }
+
+    public AuditLoggingPlugin(string logDirectory, ILogger logger)
     {
         _logDirectory = logDirectory;
         _logger = logger;
