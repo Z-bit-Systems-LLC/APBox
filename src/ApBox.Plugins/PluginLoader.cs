@@ -35,17 +35,17 @@ public class PluginLoader : IPluginLoader
 {
     private readonly string _pluginDirectory;
     private readonly ILogger<PluginLoader>? _logger;
-    private readonly IPluginFileSystem _fileSystem;
+    private readonly IFileSystem _fileSystem;
     private readonly Dictionary<string, IApBoxPlugin> _loadedPlugins = new();
     private readonly List<PluginMetadata> _availablePlugins = new();
     private bool _pluginsLoaded = false;
     
     public PluginLoader(string pluginDirectory, ILogger<PluginLoader>? logger = null) 
-        : this(pluginDirectory, new PluginFileSystem(), logger)
+        : this(pluginDirectory, new FileSystem(), logger)
     {
     }
     
-    public PluginLoader(string pluginDirectory, IPluginFileSystem fileSystem, ILogger<PluginLoader>? logger = null)
+    public PluginLoader(string pluginDirectory, IFileSystem fileSystem, ILogger<PluginLoader>? logger = null)
     {
         _pluginDirectory = pluginDirectory;
         _fileSystem = fileSystem;

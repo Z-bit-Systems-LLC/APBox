@@ -1,8 +1,6 @@
-using System.Data;
 using System.Reflection;
 using Dapper;
-using Microsoft.Extensions.Logging;
-using ApBox.Core.Services.Infrastructure;
+using ApBox.Plugins.Infrastructure;
 
 namespace ApBox.Core.Data.Migrations;
 

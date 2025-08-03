@@ -1,6 +1,6 @@
 using System.Text;
 
-namespace ApBox.Core.Services.Infrastructure;
+namespace ApBox.Plugins.Infrastructure;
 
 /// <summary>
 /// Default implementation of IFileSystem that delegates to the actual file system
@@ -53,4 +53,6 @@ public class FileSystem : IFileSystem
     public void DeleteFile(string path) => File.Delete(path);
 
     public void DeleteDirectory(string path, bool recursive) => Directory.Delete(path, recursive);
+
+    public string GetTempPath() => Path.GetTempPath();
 }

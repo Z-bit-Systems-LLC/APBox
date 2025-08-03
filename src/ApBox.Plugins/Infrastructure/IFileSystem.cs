@@ -1,4 +1,4 @@
-namespace ApBox.Core.Services.Infrastructure;
+namespace ApBox.Plugins.Infrastructure;
 
 /// <summary>
 /// Abstraction for file system operations to enable testing
@@ -124,4 +124,10 @@ public interface IFileSystem
     /// <param name="path">The directory path to delete</param>
     /// <param name="recursive">Whether to delete recursively</param>
     void DeleteDirectory(string path, bool recursive);
+    
+    /// <summary>
+    /// Gets temporary path
+    /// </summary>
+    /// <returns>The temporary directory path</returns>
+    string GetTempPath();
 }

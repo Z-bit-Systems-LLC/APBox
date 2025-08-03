@@ -2,7 +2,7 @@ using NUnit.Framework;
 using Microsoft.Extensions.Logging;
 using Moq;
 using ApBox.Core.Services.Security;
-using ApBox.Core.Services.Infrastructure;
+using ApBox.Plugins.Infrastructure;
 using System.Text;
 
 namespace ApBox.Core.Tests.Services;

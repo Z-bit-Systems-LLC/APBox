@@ -1,13 +1,13 @@
 using System.Security.Cryptography;
 using System.Text;
-using ApBox.Core.Services.Infrastructure;
+using ApBox.Plugins.Infrastructure;
 
 namespace ApBox.Core.Services.Security;
 
 /// <summary>
 /// Service for managing encryption keys with secure local storage
 /// </summary>
-public class EncryptionKeyService : IEncryptionKeyService
+public sealed class EncryptionKeyService : IEncryptionKeyService
 {
     private readonly string _keyFilePath;
     private readonly ILogger<EncryptionKeyService> _logger;
@@ -20,7 +20,7 @@ public class EncryptionKeyService : IEncryptionKeyService
         _fileSystem = fileSystem;
         
         // Store the key file in the application data directory
-        var appDataPath = _fileSystem.GetFolderPath(Environment.SpecialFolder.LocalApplicationData);
+        var appDataPath = _fileSystem.GetFolderPath(Environment.SpecialFolder.CommonApplicationData);
         var apboxDataDir = _fileSystem.CombinePath(appDataPath, "ApBox");
         
         // Ensure directory exists
@@ -183,11 +183,11 @@ public class EncryptionKeyService : IEncryptionKeyService
         }
     }
 
-    protected virtual void Dispose(bool disposing)
+    private void Dispose(bool disposing)
     {
         if (disposing)
         {
-            _keyLock?.Dispose();
+            _keyLock.Dispose();
         }
     }
 

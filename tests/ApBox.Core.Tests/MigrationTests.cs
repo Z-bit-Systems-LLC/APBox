@@ -1,7 +1,7 @@
 using System.Data;
 using ApBox.Core.Data;
 using ApBox.Core.Data.Migrations;
-using ApBox.Core.Services.Infrastructure;
+using ApBox.Plugins.Infrastructure;
 using Microsoft.Extensions.Logging;
 using Dapper;
 using Moq;
