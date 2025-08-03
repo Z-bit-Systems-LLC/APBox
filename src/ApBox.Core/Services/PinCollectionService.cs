@@ -175,6 +175,16 @@ public class PinCollectionService : IPinCollectionService, IDisposable
                     return Task.FromResult(true);
                 }
 
+                // Check for asterisk key (clear)
+                if (digit == '*')
+                {
+                    _currentPin = string.Empty;
+                    
+                    // Reset the timer when clearing
+                    _timer.Change(TimeSpan.FromSeconds(3), Timeout.InfiniteTimeSpan);
+                    return Task.FromResult(false);
+                }
+
                 // Only add numeric digits
                 if (char.IsDigit(digit))
                 {

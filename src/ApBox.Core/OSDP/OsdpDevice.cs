@@ -355,7 +355,16 @@ public class OsdpDevice(
             {
                 if (i < keypadData.Data.Length)
                 {
-                    var digit = (char)keypadData.Data[i];
+                    var rawByte = keypadData.Data[i];
+                    
+                    // Map OSDP keypad codes to standard characters
+                    var digit = rawByte switch
+                    {
+                        0x0D => '#',  // OSDP pound key sends 0x0D (carriage return)
+                        0x7F => '*',  // OSDP asterisk key sends 0x7F (DEL character)
+                        _ when rawByte >= 0x30 && rawByte <= 0x39 => (char)rawByte, // Standard digits 0-9
+                        _ => (char)rawByte  // Pass through other characters as-is
+                    };
                     
                     var pinDigitEvent = new PinDigitEvent
                     {
@@ -366,7 +375,8 @@ public class OsdpDevice(
                         SequenceNumber = i + 1
                     };
 
-                    logger.LogDebug("PIN digit received on OSDP device {DeviceName}: {Digit}", Name, digit);
+                    logger.LogDebug("PIN digit received on OSDP device {DeviceName}: raw=0x{RawByte:X2} mapped='{Digit}'", 
+                        Name, rawByte, digit);
                     PinDigitReceived?.Invoke(this, pinDigitEvent);
                 }
             }
