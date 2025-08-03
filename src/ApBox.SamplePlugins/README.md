@@ -13,10 +13,6 @@ This library contains sample plugin implementations that demonstrate the ApBox p
 - Provides appropriate visual and audible feedback
 - Includes methods to add/remove authorized cards
 
-**Feedback**:
-- ✅ **Authorized**: Green LED, single beep, "ACCESS GRANTED"
-- ❌ **Unauthorized**: Red LED, triple beep, "ACCESS DENIED"
-
 ### 2. Time-Based Access Plugin
 **Purpose**: Access control with time and day-of-week restrictions  
 **Category**: Access Control  
@@ -32,10 +28,6 @@ This library contains sample plugin implementations that demonstrate the ApBox p
 - **Security 24/7**: All days, all hours
 - **Weekend Maintenance**: Sat-Sun, 7:00 AM - 3:00 PM
 
-**Feedback**:
-- ✅ **Authorized**: Green LED, double beep, "TIME ACCESS OK"
-- ❌ **Time Restricted**: Orange LED, double beep, "TIME RESTRICTED"
-
 ### 3. Audit Logging Plugin
 **Purpose**: Security auditing and compliance logging  
 **Category**: Security & Auditing  
@@ -49,9 +41,6 @@ This library contains sample plugin implementations that demonstrate the ApBox p
 **Log Format**: Each entry is a JSON object with:
 - Timestamp, EventId, ReaderId, ReaderName
 - CardNumber, BitLength, AdditionalData
-
-**Feedback**:
-- 🔵 **Logged**: Brief blue LED flash (100ms), no beep, no display message
 
 ### 4. Event Logging Plugin
 **Purpose**: Integration with .NET logging infrastructure  
@@ -125,33 +114,6 @@ public async Task<CardReadResult> ProcessCardReadAsync(CardReadEvent cardRead)
             ["YourCustomField"] = "YourCustomValue"
         }
     };
-}
-```
-
-### 4. Feedback Patterns
-```csharp
-public async Task<ReaderFeedback> GetFeedbackAsync(Guid readerId, CardReadResult result)
-{
-    if (result.Success)
-    {
-        return new ReaderFeedback
-        {
-            LedState = ReaderFeedback.LedColor.Green,
-            BeepPattern = ReaderFeedback.BeepType.Single,
-            DisplayMessage = "ACCESS GRANTED",
-            Duration = TimeSpan.FromSeconds(3)
-        };
-    }
-    else
-    {
-        return new ReaderFeedback
-        {
-            LedState = ReaderFeedback.LedColor.Red,
-            BeepPattern = ReaderFeedback.BeepType.Triple,
-            DisplayMessage = "ACCESS DENIED",
-            Duration = TimeSpan.FromSeconds(2)
-        };
-    }
 }
 ```
 
