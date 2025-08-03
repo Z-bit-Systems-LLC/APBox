@@ -1,6 +1,6 @@
 using System.Collections;
 using ApBox.Core.Models;
-using ApBox.Core.Services;
+using ApBox.Core.Services.Configuration;
 using ApBox.Plugins;
 using OSDP.Net;
 using OSDP.Net.Model.CommandData;

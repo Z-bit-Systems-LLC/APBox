@@ -1,6 +1,6 @@
 using System.Collections.Concurrent;
 using ApBox.Core.Models;
-using ApBox.Core.Services;
+using ApBox.Core.Services.Infrastructure;
 using Microsoft.Extensions.Logging;
 
 namespace ApBox.Core.Logging;

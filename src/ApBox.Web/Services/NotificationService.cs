@@ -1,5 +1,5 @@
 using ApBox.Core.Models;
-using ApBox.Core.Services;
+using ApBox.Core.Services.Infrastructure;
 
 namespace ApBox.Web.Services;
 

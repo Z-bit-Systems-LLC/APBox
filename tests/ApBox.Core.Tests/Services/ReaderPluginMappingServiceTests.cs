@@ -3,7 +3,7 @@ using Microsoft.Extensions.Logging;
 using Moq;
 using ApBox.Core.Data.Models;
 using ApBox.Core.Data.Repositories;
-using ApBox.Core.Services;
+using ApBox.Core.Services.Configuration;
 
 namespace ApBox.Core.Tests.Services;
 

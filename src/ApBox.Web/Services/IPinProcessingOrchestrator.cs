@@ -1,4 +1,4 @@
-using ApBox.Core.Services;
+using ApBox.Core.Services.Core;
 using ApBox.Plugins;
 
 namespace ApBox.Web.Services;

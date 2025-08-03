@@ -1,6 +1,10 @@
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Configuration;
-using ApBox.Core.Services;
+using ApBox.Core.Services.Core;
+using ApBox.Core.Services.Reader;
+using ApBox.Core.Services.Configuration;
+using ApBox.Core.Services.Persistence;
+using ApBox.Core.Services.Infrastructure;
 using ApBox.Core.Data.Repositories;
 using ApBox.Core.Data.Models;
 using ApBox.Core.Models;

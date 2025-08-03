@@ -1,6 +1,11 @@
 using ApBox.Core.Data.Repositories;
 using ApBox.Core.Data.Migrations;
-using ApBox.Core.Services;
+using ApBox.Core.Services.Reader;
+using ApBox.Core.Services.Configuration;
+using ApBox.Core.Services.Core;
+using ApBox.Core.Services.Security;
+using ApBox.Core.Services.Persistence;
+using ApBox.Core.Services.Infrastructure;
 using ApBox.Plugins;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;

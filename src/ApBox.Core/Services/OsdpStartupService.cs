@@ -1,6 +1,7 @@
 using ApBox.Core.Data.Repositories;
 using ApBox.Core.Extensions;
 using ApBox.Core.OSDP;
+using ApBox.Core.Services.Security;
 
 namespace ApBox.Core.Services;
 

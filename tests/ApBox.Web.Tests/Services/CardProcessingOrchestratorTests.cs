@@ -1,7 +1,9 @@
 using NUnit.Framework;
 using Moq;
 using Microsoft.Extensions.Logging;
-using ApBox.Core.Services;
+using ApBox.Core.Services.Core;
+using ApBox.Core.Services.Reader;
+using ApBox.Core.Services.Persistence;
 using ApBox.Web.Services;
 using ApBox.Plugins;
 using ApBox.Core.Models;
