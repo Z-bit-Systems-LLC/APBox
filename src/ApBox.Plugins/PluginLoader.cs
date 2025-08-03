@@ -4,6 +4,10 @@ using ApBox.Plugins.Infrastructure;
 
 namespace ApBox.Plugins;
 
+/// <summary>
+/// Interface for loading and managing ApBox plugins from assemblies.
+/// Provides methods for loading, reloading, and unloading plugins dynamically.
+/// </summary>
 public interface IPluginLoader
 {
     /// <summary>
@@ -31,6 +35,10 @@ public interface IPluginLoader
     IEnumerable<PluginMetadata> GetAvailablePlugins();
 }
 
+/// <summary>
+/// Default implementation of IPluginLoader that loads plugins from a specified directory.
+/// Supports caching of loaded plugins and provides metadata about available plugins.
+/// </summary>
 public class PluginLoader : IPluginLoader
 {
     private readonly string _pluginDirectory;
@@ -40,11 +48,22 @@ public class PluginLoader : IPluginLoader
     private readonly List<PluginMetadata> _availablePlugins = new();
     private bool _pluginsLoaded = false;
     
+    /// <summary>
+    /// Initializes a new instance of the PluginLoader class.
+    /// </summary>
+    /// <param name="pluginDirectory">Directory path where plugin assemblies are located</param>
+    /// <param name="logger">Optional logger for diagnostic information</param>
     public PluginLoader(string pluginDirectory, ILogger<PluginLoader>? logger = null) 
         : this(pluginDirectory, new FileSystem(), logger)
     {
     }
     
+    /// <summary>
+    /// Initializes a new instance of the PluginLoader class with a custom file system implementation.
+    /// </summary>
+    /// <param name="pluginDirectory">Directory path where plugin assemblies are located</param>
+    /// <param name="fileSystem">File system abstraction for testing purposes</param>
+    /// <param name="logger">Optional logger for diagnostic information</param>
     public PluginLoader(string pluginDirectory, IFileSystem fileSystem, ILogger<PluginLoader>? logger = null)
     {
         _pluginDirectory = pluginDirectory;
@@ -52,6 +71,7 @@ public class PluginLoader : IPluginLoader
         _logger = logger;
     }
     
+    /// <inheritdoc/>
     public async Task<IEnumerable<IApBoxPlugin>> LoadPluginsAsync()
     {
         // Return already loaded plugins if they exist
@@ -94,6 +114,7 @@ public class PluginLoader : IPluginLoader
         return loadedPlugins;
     }
     
+    /// <inheritdoc/>
     public async Task<IEnumerable<IApBoxPlugin>> ReloadPluginsAsync()
     {
         _logger?.LogInformation("Force reloading plugins from directory: {PluginDirectory}", _pluginDirectory);
@@ -107,6 +128,7 @@ public class PluginLoader : IPluginLoader
         return await LoadPluginsAsync();
     }
     
+    /// <inheritdoc/>
     public async Task UnloadPluginAsync(string pluginId)
     {
         if (_loadedPlugins.TryGetValue(pluginId, out var plugin))
@@ -126,6 +148,7 @@ public class PluginLoader : IPluginLoader
         }
     }
     
+    /// <inheritdoc/>
     public IEnumerable<PluginMetadata> GetAvailablePlugins()
     {
         return _availablePlugins.AsReadOnly();
