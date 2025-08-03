@@ -17,6 +17,7 @@ public partial class DashboardViewModel(
     IReaderService readerService,
     IPluginLoader pluginLoader,
     ICardEventRepository cardEventRepository,
+    IPinEventRepository pinEventRepository,
     ICardEventNotificationService cardEventNotificationService,
     IPinEventNotificationService pinEventNotificationService)
     : ObservableObject, IDisposable
@@ -118,7 +119,7 @@ public partial class DashboardViewModel(
     }
 
     /// <summary>
-    /// Loads today's recent card events from the database
+    /// Loads today's recent card and PIN events from the database
     /// </summary>
     private async Task LoadRecentEventsAsync()
     {
@@ -128,11 +129,28 @@ public partial class DashboardViewModel(
             var tomorrowLocal = todayLocal.AddDays(1);
             var todayUtc = todayLocal.ToUniversalTime();
             var tomorrowUtc = tomorrowLocal.ToUniversalTime();
-            var eventEntities = await cardEventRepository.GetByDateRangeAsync(todayUtc, tomorrowUtc, 25);
-            var events = eventEntities.Select(e => e.ToCardReadEvent()).ToList();
+            
+            // Load card events
+            var cardEventEntities = await cardEventRepository.GetByDateRangeAsync(todayUtc, tomorrowUtc, 25);
+            var cardEvents = cardEventEntities.Select(e => e.ToCardReadEvent()).Cast<object>().ToList();
+            
+            // Load PIN events
+            var pinEventEntities = await pinEventRepository.GetPinEventsByDateRangeAsync(todayUtc, tomorrowUtc, 25);
+            var pinEvents = pinEventEntities.Select(e => e.ToPinEventDisplay()).Cast<object>().ToList();
+            
+            // Combine and sort all events by timestamp (most recent first)
+            var allEvents = cardEvents.Concat(pinEvents)
+                .OrderByDescending(e => e switch
+                {
+                    CardReadEvent cardEvent => cardEvent.Timestamp,
+                    PinEventDisplay pinEvent => pinEvent.Timestamp,
+                    _ => DateTime.MinValue
+                })
+                .Take(25)
+                .ToList();
             
             RecentEvents.Clear();
-            foreach (var evt in events)
+            foreach (var evt in allEvents)
             {
                 RecentEvents.Add(evt);
             }
@@ -144,7 +162,7 @@ public partial class DashboardViewModel(
     }
 
     /// <summary>
-    /// Gets today's total event count
+    /// Gets today's total event count (cards + PINs)
     /// </summary>
     private async Task<int> GetTodaysEventCountAsync()
     {
@@ -154,8 +172,12 @@ public partial class DashboardViewModel(
             var tomorrowLocal = todayLocal.AddDays(1);
             var todayUtc = todayLocal.ToUniversalTime();
             var tomorrowUtc = tomorrowLocal.ToUniversalTime();
-            var todaysEvents = await cardEventRepository.GetByDateRangeAsync(todayUtc, tomorrowUtc);
-            return todaysEvents.Count();
+            
+            // Get both card and PIN event counts
+            var cardEvents = await cardEventRepository.GetByDateRangeAsync(todayUtc, tomorrowUtc);
+            var pinEvents = await pinEventRepository.GetPinEventsByDateRangeAsync(todayUtc, tomorrowUtc);
+            
+            return cardEvents.Count() + pinEvents.Count();
         }
         catch (Exception ex)
         {

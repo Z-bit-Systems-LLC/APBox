@@ -35,6 +35,7 @@ public static class ServiceCollectionExtensions
         services.AddSingleton<IPluginConfigurationRepository, PluginConfigurationRepository>();
         services.AddSingleton<IFeedbackConfigurationRepository, FeedbackConfigurationRepository>();
         services.AddSingleton<IReaderPluginMappingRepository, ReaderPluginMappingRepository>();
+        services.AddSingleton<IPinEventRepository, PinEventRepository>();
         
         // Register database-backed services
         services.AddSingleton<IReaderConfigurationService>(provider =>
@@ -55,6 +56,12 @@ public static class ServiceCollectionExtensions
         
         // Register PIN collection service
         services.AddSingleton<IPinCollectionService, PinCollectionService>();
+        
+        // Register encryption service
+        services.AddSingleton<IDataEncryptionService, DataEncryptionService>();
+        
+        // Register PIN event persistence service
+        services.AddSingleton<IPinEventPersistenceService, PinEventPersistenceService>();
         
         return services;
     }

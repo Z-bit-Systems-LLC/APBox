@@ -24,6 +24,7 @@ public class ApBoxTestContext : Bunit.TestContext
     public Mock<IPluginLoader> MockPluginLoader { get; private set; }
     public Mock<IReaderConfigurationService> MockReaderConfigurationService { get; private set; }
     public Mock<ICardEventRepository> MockCardEventRepository { get; private set; }
+    public Mock<IPinEventRepository> MockPinEventRepository { get; private set; }
     public Mock<IFeedbackConfigurationService> MockFeedbackConfigurationService { get; private set; }
     public Mock<ILogService> MockLogService { get; private set; }
     public Mock<IConfigurationExportService> MockConfigurationExportService { get; private set; }
@@ -42,6 +43,7 @@ public class ApBoxTestContext : Bunit.TestContext
         MockPluginLoader = new Mock<IPluginLoader>();
         MockReaderConfigurationService = new Mock<IReaderConfigurationService>();
         MockCardEventRepository = new Mock<ICardEventRepository>();
+        MockPinEventRepository = new Mock<IPinEventRepository>();
         MockFeedbackConfigurationService = new Mock<IFeedbackConfigurationService>();
         MockLogService = new Mock<ILogService>();
         MockConfigurationExportService = new Mock<IConfigurationExportService>();
@@ -72,6 +74,7 @@ public class ApBoxTestContext : Bunit.TestContext
         Services.AddSingleton(MockPluginLoader.Object);
         Services.AddSingleton(MockReaderConfigurationService.Object);
         Services.AddSingleton(MockCardEventRepository.Object);
+        Services.AddSingleton(MockPinEventRepository.Object);
         Services.AddSingleton(MockFeedbackConfigurationService.Object);
         Services.AddSingleton(MockLogService.Object);
         Services.AddSingleton(MockConfigurationExportService.Object);
@@ -109,6 +112,7 @@ public class ApBoxTestContext : Bunit.TestContext
         MockPluginLoader.Reset();
         MockReaderConfigurationService.Reset();
         MockCardEventRepository.Reset();
+        MockPinEventRepository.Reset();
         MockFeedbackConfigurationService.Reset();
         MockLogService.Reset();
         MockConfigurationExportService.Reset();
@@ -140,6 +144,9 @@ public class ApBoxTestContext : Bunit.TestContext
 
         MockCardEventRepository.Setup(x => x.GetByDateRangeAsync(It.IsAny<DateTime>(), It.IsAny<DateTime>(), It.IsAny<int>()))
             .ReturnsAsync(GetDefaultCardEventEntities().Take(5));
+
+        MockPinEventRepository.Setup(x => x.GetPinEventsByDateRangeAsync(It.IsAny<DateTime>(), It.IsAny<DateTime>(), It.IsAny<int>()))
+            .ReturnsAsync(GetDefaultPinEventEntities().Take(5));
 
         MockReaderConfigurationService.Setup(x => x.GetAllReadersAsync())
             .ReturnsAsync(GetDefaultReaderConfigurations());
@@ -258,6 +265,40 @@ public class ApBoxTestContext : Bunit.TestContext
                 Message = "Success",
                 ProcessedByPlugin = "Test Plugin",
                 Timestamp = now.AddMinutes(-15)
+            }
+        };
+    }
+
+    private static IEnumerable<PinEventEntity> GetDefaultPinEventEntities()
+    {
+        var now = DateTime.Now;
+        return new List<PinEventEntity>
+        {
+            new PinEventEntity
+            {
+                Id = 1,
+                ReaderId = Guid.NewGuid().ToString(),
+                ReaderName = "Test Reader 1",
+                EncryptedPin = "encrypted_pin_data_1",
+                PinLength = 4,
+                CompletionReason = 1, // PoundKey
+                Success = true,
+                Message = "PIN accepted",
+                ProcessedByPlugin = "Test Plugin",
+                Timestamp = now.AddMinutes(-3)
+            },
+            new PinEventEntity
+            {
+                Id = 2,
+                ReaderId = Guid.NewGuid().ToString(),
+                ReaderName = "Test Reader 2",
+                EncryptedPin = "encrypted_pin_data_2",
+                PinLength = 6,
+                CompletionReason = 0, // Timeout
+                Success = false,
+                Message = "PIN timeout",
+                ProcessedByPlugin = "Test Plugin",
+                Timestamp = now.AddMinutes(-8)
             }
         };
     }

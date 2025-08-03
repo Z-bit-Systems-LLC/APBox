@@ -64,6 +64,21 @@ CREATE TABLE system_logs (
     exception TEXT
 );
 
+-- PIN events table for logging (PIN data is encrypted)
+CREATE TABLE pin_events (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    reader_id TEXT NOT NULL,
+    reader_name TEXT NOT NULL,
+    encrypted_pin TEXT NOT NULL, -- Encrypted PIN data
+    pin_length INTEGER NOT NULL,
+    completion_reason INTEGER NOT NULL, -- 0=Timeout, 1=Complete, 2=Cancelled, etc.
+    success BOOLEAN NOT NULL,
+    message TEXT,
+    processed_by_plugin TEXT,
+    timestamp DATETIME NOT NULL,
+    FOREIGN KEY (reader_id) REFERENCES reader_configurations(reader_id) ON DELETE CASCADE
+);
+
 -- Reader-Plugin mapping table
 CREATE TABLE reader_plugin_mappings (
     reader_id TEXT NOT NULL,
@@ -79,6 +94,8 @@ CREATE TABLE reader_plugin_mappings (
 -- Create indexes for better performance
 CREATE INDEX idx_card_events_reader_id ON card_events(reader_id);
 CREATE INDEX idx_card_events_timestamp ON card_events(timestamp);
+CREATE INDEX idx_pin_events_reader_id ON pin_events(reader_id);
+CREATE INDEX idx_pin_events_timestamp ON pin_events(timestamp);
 CREATE INDEX idx_feedback_configurations_type ON feedback_configurations(configuration_type);
 CREATE INDEX idx_system_logs_timestamp ON system_logs(timestamp);
 CREATE INDEX idx_system_logs_level ON system_logs(level);

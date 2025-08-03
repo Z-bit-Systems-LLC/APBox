@@ -45,6 +45,7 @@ public class DashboardViewModelTests : ApBoxTestContext
             MockReaderService.Object,
             MockPluginLoader.Object,
             MockCardEventRepository.Object,
+            MockPinEventRepository.Object,
             _mockCardEventNotificationService,
             _mockPinEventNotificationService);
             
