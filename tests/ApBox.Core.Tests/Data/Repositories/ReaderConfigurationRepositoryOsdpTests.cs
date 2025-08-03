@@ -3,6 +3,7 @@ using ApBox.Core.Data;
 using ApBox.Core.Data.Migrations;
 using ApBox.Core.Data.Repositories;
 using ApBox.Core.Models;
+using ApBox.Core.Services.Infrastructure;
 using Microsoft.Extensions.Logging;
 using Moq;
 
@@ -15,6 +16,7 @@ public class ReaderConfigurationRepositoryOsdpTests
     private ReaderConfigurationRepository _repository = null!;
     private IDbConnection _persistConnection = null!;
     private string _testConnectionString = null!;
+    private IFileSystem _fileSystem = null!;
 
     [SetUp]
     public void SetUp()
@@ -25,10 +27,11 @@ public class ReaderConfigurationRepositoryOsdpTests
         var logger = new Mock<ILogger<ApBoxDbContext>>().Object;
         var migrationLogger = new Mock<ILogger<MigrationRunner>>().Object;
         var repoLogger = new Mock<ILogger<ReaderConfigurationRepository>>().Object;
+        _fileSystem = new FileSystem();
         
         // Create migration runner with proper context
         var migrationContext = new ApBoxDbContext(_testConnectionString, logger);
-        var migrationRunner = new MigrationRunner(migrationContext, migrationLogger);
+        var migrationRunner = new MigrationRunner(migrationContext, _fileSystem, migrationLogger);
         
         _dbContext = new ApBoxDbContext(_testConnectionString, logger, migrationRunner);
         _repository = new ReaderConfigurationRepository(_dbContext, repoLogger);

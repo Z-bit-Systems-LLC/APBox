@@ -35,4 +35,22 @@ public class FileSystem : IFileSystem
         Environment.GetFolderPath(folder);
 
     public string CombinePath(params string[] paths) => Path.Combine(paths);
+
+    public bool DirectoryExists(string path) => Directory.Exists(path);
+
+    public string[] GetFiles(string path, string searchPattern) => Directory.GetFiles(path, searchPattern);
+
+    public string GetFileNameWithoutExtension(string path) => Path.GetFileNameWithoutExtension(path);
+
+    public string GetFileName(string path) => Path.GetFileName(path);
+
+    public string? GetDirectoryName(string path) => Path.GetDirectoryName(path);
+
+    public async Task<string[]> ReadAllLinesAsync(string path) => await File.ReadAllLinesAsync(path);
+
+    public void AppendAllLines(string path, IEnumerable<string> contents) => File.AppendAllLines(path, contents);
+
+    public void DeleteFile(string path) => File.Delete(path);
+
+    public void DeleteDirectory(string path, bool recursive) => Directory.Delete(path, recursive);
 }

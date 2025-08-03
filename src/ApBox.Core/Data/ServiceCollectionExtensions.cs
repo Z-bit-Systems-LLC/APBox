@@ -21,9 +21,10 @@ public static class ServiceCollectionExtensions
         {
             var migrationLogger = provider.GetRequiredService<ILogger<MigrationRunner>>();
             var dbLogger = provider.GetRequiredService<ILogger<ApBoxDbContext>>();
+            var fileSystem = provider.GetRequiredService<IFileSystem>();
             // Create a simple context for migration runner to avoid circular dependency
             var simpleContext = new ApBoxDbContext(connectionString, dbLogger);
-            return new MigrationRunner(simpleContext, migrationLogger);
+            return new MigrationRunner(simpleContext, fileSystem, migrationLogger);
         });
         
         // Register database context

@@ -61,4 +61,67 @@ public interface IFileSystem
     /// <param name="paths">The path components to combine</param>
     /// <returns>The combined path</returns>
     string CombinePath(params string[] paths);
+    
+    /// <summary>
+    /// Checks if a directory exists
+    /// </summary>
+    /// <param name="path">The directory path to check</param>
+    /// <returns>True if the directory exists, false otherwise</returns>
+    bool DirectoryExists(string path);
+    
+    /// <summary>
+    /// Gets all files in a directory matching a pattern
+    /// </summary>
+    /// <param name="path">The directory path</param>
+    /// <param name="searchPattern">The search pattern (e.g., "*.dll")</param>
+    /// <returns>Array of file paths</returns>
+    string[] GetFiles(string path, string searchPattern);
+    
+    /// <summary>
+    /// Gets the filename without extension from a path
+    /// </summary>
+    /// <param name="path">The file path</param>
+    /// <returns>The filename without extension</returns>
+    string GetFileNameWithoutExtension(string path);
+    
+    /// <summary>
+    /// Gets the filename from a path
+    /// </summary>
+    /// <param name="path">The file path</param>
+    /// <returns>The filename</returns>
+    string GetFileName(string path);
+    
+    /// <summary>
+    /// Gets the directory name from a path
+    /// </summary>
+    /// <param name="path">The file path</param>
+    /// <returns>The directory path</returns>
+    string? GetDirectoryName(string path);
+    
+    /// <summary>
+    /// Reads all lines from a file asynchronously
+    /// </summary>
+    /// <param name="path">The file path to read from</param>
+    /// <returns>Array of lines from the file</returns>
+    Task<string[]> ReadAllLinesAsync(string path);
+    
+    /// <summary>
+    /// Appends lines to a file
+    /// </summary>
+    /// <param name="path">The file path to append to</param>
+    /// <param name="contents">The lines to append</param>
+    void AppendAllLines(string path, IEnumerable<string> contents);
+    
+    /// <summary>
+    /// Deletes a file
+    /// </summary>
+    /// <param name="path">The file path to delete</param>
+    void DeleteFile(string path);
+    
+    /// <summary>
+    /// Deletes a directory recursively
+    /// </summary>
+    /// <param name="path">The directory path to delete</param>
+    /// <param name="recursive">Whether to delete recursively</param>
+    void DeleteDirectory(string path, bool recursive);
 }

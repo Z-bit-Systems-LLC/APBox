@@ -1,6 +1,7 @@
 using System.Data;
 using ApBox.Core.Data;
 using ApBox.Core.Data.Migrations;
+using ApBox.Core.Services.Infrastructure;
 using Microsoft.Extensions.Logging;
 using Dapper;
 using Moq;
@@ -14,6 +15,7 @@ public class MigrationTests
     private string _testConnectionString;
     private ILogger<ApBoxDbContext> _dbLogger;
     private ILogger<MigrationRunner> _migrationLogger;
+    private IFileSystem _fileSystem;
     private ApBoxDbContext _dbContext;
     private IDbConnection _persistConnection;
     
@@ -26,6 +28,9 @@ public class MigrationTests
         // Create mock loggers
         _dbLogger = new Mock<ILogger<ApBoxDbContext>>().Object;
         _migrationLogger = new Mock<ILogger<MigrationRunner>>().Object;
+        
+        // Create file system
+        _fileSystem = new FileSystem();
         
         _dbContext = new ApBoxDbContext(_testConnectionString, _dbLogger);
         
@@ -45,7 +50,7 @@ public class MigrationTests
     public async Task MigrationRunner_CreatesSchemaVersionsTable()
     {
         // Arrange
-        var migrationRunner = new MigrationRunner(_dbContext, _migrationLogger);
+        var migrationRunner = new MigrationRunner(_dbContext, _fileSystem, _migrationLogger);
         
         // Act
         await migrationRunner.RunMigrationsAsync();
@@ -61,7 +66,7 @@ public class MigrationTests
     public async Task MigrationRunner_ReturnsCorrectAppliedMigrations()
     {
         // Arrange
-        var migrationRunner = new MigrationRunner(_dbContext, _migrationLogger);
+        var migrationRunner = new MigrationRunner(_dbContext, _fileSystem, _migrationLogger);
         
         // Act
         await migrationRunner.RunMigrationsAsync();
@@ -77,7 +82,7 @@ public class MigrationTests
     public async Task MigrationRunner_FindsAvailableMigrations()
     {
         // Arrange
-        var migrationRunner = new MigrationRunner(_dbContext, _migrationLogger);
+        var migrationRunner = new MigrationRunner(_dbContext, _fileSystem, _migrationLogger);
         
         // Act
         var pendingMigrations = await migrationRunner.GetPendingMigrationsAsync();
@@ -95,7 +100,7 @@ public class MigrationTests
     public async Task MigrationRunner_CombinedMigration_CreatesFeedbackConfigurationTable()
     {
         // Arrange
-        var migrationRunner = new MigrationRunner(_dbContext, _migrationLogger);
+        var migrationRunner = new MigrationRunner(_dbContext, _fileSystem, _migrationLogger);
         
         // Act
         await migrationRunner.RunMigrationsAsync();

@@ -3,6 +3,7 @@ using ApBox.Core.Data;
 using ApBox.Core.Data.Migrations;
 using ApBox.Core.Data.Repositories;
 using ApBox.Core.Models;
+using ApBox.Core.Services.Infrastructure;
 using ApBox.Plugins;
 using Microsoft.Extensions.Logging;
 using Moq;
@@ -17,6 +18,7 @@ public class FeedbackConfigurationRepositoryTests
     private ILogger<ApBoxDbContext> _dbLogger;
     private ILogger<MigrationRunner> _migrationLogger;
     private ILogger<FeedbackConfigurationRepository> _repositoryLogger;
+    private IFileSystem _fileSystem;
     private ApBoxDbContext _dbContext;
     private FeedbackConfigurationRepository _repository;
     private IDbConnection _persistConnection;
@@ -31,6 +33,7 @@ public class FeedbackConfigurationRepositoryTests
         _dbLogger = new Mock<ILogger<ApBoxDbContext>>().Object;
         _migrationLogger = new Mock<ILogger<MigrationRunner>>().Object;
         _repositoryLogger = new Mock<ILogger<FeedbackConfigurationRepository>>().Object;
+        _fileSystem = new FileSystem();
         
         _dbContext = new ApBoxDbContext(_testConnectionString, _dbLogger);
         
@@ -39,7 +42,7 @@ public class FeedbackConfigurationRepositoryTests
         _persistConnection.Open();
         
         // Run migrations to set up the database schema
-        var migrationRunner = new MigrationRunner(_dbContext, _migrationLogger);
+        var migrationRunner = new MigrationRunner(_dbContext, _fileSystem, _migrationLogger);
         await migrationRunner.RunMigrationsAsync();
         
         _repository = new FeedbackConfigurationRepository(_dbContext, _repositoryLogger);
@@ -72,7 +75,7 @@ public class FeedbackConfigurationRepositoryTests
     {
         // Arrange - Database should have been seeded by migration
         // Debug: Check what migrations were applied
-        var migrationRunner = new MigrationRunner(_dbContext, _migrationLogger);
+        var migrationRunner = new MigrationRunner(_dbContext, _fileSystem, _migrationLogger);
         var appliedMigrations = await migrationRunner.GetAppliedMigrationsAsync();
         Console.WriteLine($"Applied migrations: {string.Join(", ", appliedMigrations)}");
         

@@ -2,6 +2,7 @@ using System.Data;
 using System.Reflection;
 using Dapper;
 using Microsoft.Extensions.Logging;
+using ApBox.Core.Services.Infrastructure;
 
 namespace ApBox.Core.Data.Migrations;
 
@@ -13,7 +14,7 @@ public interface IMigrationRunner
     Task<IEnumerable<string>> GetPendingMigrationsAsync();
 }
 
-public class MigrationRunner(IApBoxDbContext dbContext, ILogger<MigrationRunner> logger) : IMigrationRunner
+public class MigrationRunner(IApBoxDbContext dbContext, IFileSystem fileSystem, ILogger<MigrationRunner> logger) : IMigrationRunner
 {
     public async Task RunMigrationsAsync()
     {
@@ -71,12 +72,12 @@ public class MigrationRunner(IApBoxDbContext dbContext, ILogger<MigrationRunner>
     private async Task ApplyMigrationAsync(string version)
     {
         var migrationFile = GetMigrationFilePath(version);
-        if (!File.Exists(migrationFile))
+        if (!fileSystem.FileExists(migrationFile))
         {
             throw new FileNotFoundException($"Migration file not found: {migrationFile}");
         }
         
-        var migrationSql = await File.ReadAllTextAsync(migrationFile);
+        var migrationSql = await fileSystem.ReadAllTextAsync(migrationFile, System.Text.Encoding.UTF8);
         var description = ExtractDescriptionFromSql(migrationSql);
 
         using var connection = dbContext.CreateDbConnectionAsync();
@@ -115,13 +116,13 @@ public class MigrationRunner(IApBoxDbContext dbContext, ILogger<MigrationRunner>
     private IEnumerable<string> GetAvailableMigrations()
     {
         var migrationsDirectory = GetMigrationsDirectory();
-        if (!Directory.Exists(migrationsDirectory))
+        if (!fileSystem.DirectoryExists(migrationsDirectory))
         {
             return [];
         }
         
-        return Directory.GetFiles(migrationsDirectory, "*.sql")
-            .Select(Path.GetFileNameWithoutExtension)
+        return fileSystem.GetFiles(migrationsDirectory, "*.sql")
+            .Select(fileSystem.GetFileNameWithoutExtension)
             .Where(f => f != null && f.Contains('_'))
             .Select(f => f?.Split('_')[0] ?? string.Empty)
             .OrderBy(v => v);
@@ -130,19 +131,19 @@ public class MigrationRunner(IApBoxDbContext dbContext, ILogger<MigrationRunner>
     private string GetMigrationsDirectory()
     {
         var assemblyLocation = Assembly.GetExecutingAssembly().Location;
-        var assemblyDirectory = Path.GetDirectoryName(assemblyLocation);
+        var assemblyDirectory = fileSystem.GetDirectoryName(assemblyLocation);
         
         // Try the output directory structure first (Data/Migrations)
-        var migrationsPath = Path.Combine(assemblyDirectory!, "Data", "Migrations");
-        return Directory.Exists(migrationsPath) ? migrationsPath :
+        var migrationsPath = fileSystem.CombinePath(assemblyDirectory!, "Data", "Migrations");
+        return fileSystem.DirectoryExists(migrationsPath) ? migrationsPath :
             // Fallback to a simple Migrations directory
-            Path.Combine(assemblyDirectory!, "Migrations");
+            fileSystem.CombinePath(assemblyDirectory!, "Migrations");
     }
     
     private string GetMigrationFilePath(string version)
     {
         var migrationsDirectory = GetMigrationsDirectory();
-        var migrationFiles = Directory.GetFiles(migrationsDirectory, $"{version}_*.sql");
+        var migrationFiles = fileSystem.GetFiles(migrationsDirectory, $"{version}_*.sql");
 
         return migrationFiles.Length switch
         {

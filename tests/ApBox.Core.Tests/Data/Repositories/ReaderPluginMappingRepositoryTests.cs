@@ -5,6 +5,7 @@ using ApBox.Core.Data;
 using ApBox.Core.Data.Models;
 using ApBox.Core.Data.Repositories;
 using ApBox.Core.Data.Migrations;
+using ApBox.Core.Services.Infrastructure;
 using Microsoft.Data.Sqlite;
 using Dapper;
 using System.Data;
@@ -20,6 +21,7 @@ public class ReaderPluginMappingRepositoryTests
     private Mock<ILogger<ApBoxDbContext>> _mockDbLogger;
     private Mock<ILogger<ReaderPluginMappingRepository>> _mockRepoLogger;
     private Mock<ILogger<MigrationRunner>> _mockMigrationLogger;
+    private IFileSystem _fileSystem;
     private IDbConnection _persistConnection;
 
     [SetUp]
@@ -32,6 +34,7 @@ public class ReaderPluginMappingRepositoryTests
         _mockDbLogger = new Mock<ILogger<ApBoxDbContext>>();
         _mockRepoLogger = new Mock<ILogger<ReaderPluginMappingRepository>>();
         _mockMigrationLogger = new Mock<ILogger<MigrationRunner>>();
+        _fileSystem = new FileSystem();
 
         // Create context
         _context = new ApBoxDbContext(_testConnectionString, _mockDbLogger.Object);
@@ -41,7 +44,7 @@ public class ReaderPluginMappingRepositoryTests
         _persistConnection.Open();
         
         // Run migrations to set up the database schema
-        var migrationRunner = new MigrationRunner(_context, _mockMigrationLogger.Object);
+        var migrationRunner = new MigrationRunner(_context, _fileSystem, _mockMigrationLogger.Object);
         await migrationRunner.RunMigrationsAsync();
         
         // Create repository
