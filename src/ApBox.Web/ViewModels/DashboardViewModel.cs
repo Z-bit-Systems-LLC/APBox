@@ -41,7 +41,7 @@ public partial class DashboardViewModel(
     private string _systemStatus = "Online";
 
     [ObservableProperty]
-    private ObservableCollection<object> _recentEvents = new(); // Mixed collection of CardReadEvent and PinEventDisplay
+    private ObservableCollection<object> _recentEvents = new(); // Mixed collection of CardEventDisplay and PinEventDisplay
 
     [ObservableProperty]
     private List<ReaderConfiguration> _readers = new();
@@ -132,7 +132,7 @@ public partial class DashboardViewModel(
             
             // Load card events
             var cardEventEntities = await cardEventRepository.GetByDateRangeAsync(todayUtc, tomorrowUtc, 25);
-            var cardEvents = cardEventEntities.Select(e => e.ToCardReadEvent()).Cast<object>().ToList();
+            var cardEvents = cardEventEntities.Select(e => CardEventDisplay.FromEntity(e)).Cast<object>().ToList();
             
             // Load PIN events
             var pinEventEntities = await pinEventRepository.GetPinEventsByDateRangeAsync(todayUtc, tomorrowUtc, 25);
@@ -142,7 +142,7 @@ public partial class DashboardViewModel(
             var allEvents = cardEvents.Concat(pinEvents)
                 .OrderByDescending(e => e switch
                 {
-                    CardReadEvent cardEvent => cardEvent.Timestamp,
+                    CardEventDisplay cardEvent => cardEvent.Timestamp,
                     PinEventDisplay pinEvent => pinEvent.Timestamp,
                     _ => DateTime.MinValue
                 })
@@ -203,14 +203,16 @@ public partial class DashboardViewModel(
     {
         try
         {
-            // Create CardReadEvent from notification
-            var cardEvent = new CardReadEvent
+            // Create CardEventDisplay from notification
+            var cardEvent = new CardEventDisplay
             {
                 ReaderId = notification.ReaderId,
                 ReaderName = notification.ReaderName,
                 CardNumber = notification.CardNumber,
                 BitLength = notification.BitLength,
-                Timestamp = notification.Timestamp
+                Timestamp = notification.Timestamp,
+                Success = notification.Success,
+                Message = notification.Message
             };
             
             // Add to recent events at the beginning

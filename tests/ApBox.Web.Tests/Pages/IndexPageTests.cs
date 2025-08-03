@@ -298,16 +298,21 @@ public class IndexPageTests : ApBoxTestContext
         
         // Check table headers
         var headers = component.FindAll("thead th");
-        Assert.That(headers.Count, Is.EqualTo(4));
+        Assert.That(headers.Count, Is.EqualTo(5));
         Assert.That(headers[0].TextContent, Is.EqualTo("Time"));
-        Assert.That(headers[1].TextContent, Is.EqualTo("Reader"));
-        Assert.That(headers[2].TextContent, Is.EqualTo("Card Number"));
-        Assert.That(headers[3].TextContent, Is.EqualTo("Status"));
+        Assert.That(headers[1].TextContent, Is.EqualTo("Type"));
+        Assert.That(headers[2].TextContent, Is.EqualTo("Reader"));
+        Assert.That(headers[3].TextContent, Is.EqualTo("Details"));
+        Assert.That(headers[4].TextContent, Is.EqualTo("Status"));
     }
 
     [Test]
     public void Index_DisplaysSampleCardEvents()
     {
+        // Arrange - Ensure no PIN events interfere with this test
+        MockPinEventRepository.Setup(x => x.GetPinEventsByDateRangeAsync(It.IsAny<DateTime>(), It.IsAny<DateTime>(), It.IsAny<int>()))
+            .ReturnsAsync(Enumerable.Empty<PinEventEntity>());
+        
         // Act
         var component = RenderComponent<ApBox.Web.Pages.Index>();
 
@@ -318,25 +323,29 @@ public class IndexPageTests : ApBoxTestContext
         // Check that events are displayed with proper structure
         var firstRow = tableRows[0];
         var cells = firstRow.QuerySelectorAll("td");
-        Assert.That(cells.Length, Is.EqualTo(4));
+        Assert.That(cells.Length, Is.EqualTo(5));
         
         // Time column should have short time format (e.g., "10:29 PM")
         var timeCell = cells[0];
         Assert.That(timeCell.TextContent, Does.Match(@"\d{1,2}:\d{2}\s?(AM|PM)"), "Time should be in short format like '10:29 PM'");
         
+        // Type column should have card type badge
+        var typeCell = cells[1];
+        Assert.That(typeCell.TextContent, Does.Contain("Card"));
+        
         // Reader name should be present
-        var readerCell = cells[1];
+        var readerCell = cells[2];
         Assert.That(readerCell.TextContent, Is.Not.Empty);
         
-        // Card number should be present
-        var cardCell = cells[2];
-        Assert.That(cardCell.TextContent, Is.Not.Empty);
+        // Card number should be present (Details column)
+        var detailsCell = cells[3];
+        Assert.That(detailsCell.TextContent, Is.Not.Empty);
         
-        // Status should be "Processed"
-        var statusCell = cells[3];
+        // Status should show success/failure
+        var statusCell = cells[4];
         var badge = statusCell.QuerySelector(".badge");
         Assert.That(badge, Is.Not.Null);
-        Assert.That(badge.TextContent, Is.EqualTo("Processed"));
+        Assert.That(badge.TextContent, Does.Match("Success|Failed"));
     }
 
     [Test]
@@ -553,6 +562,10 @@ public class IndexPageTests : ApBoxTestContext
 
         MockCardEventRepository.Setup(x => x.GetByDateRangeAsync(It.IsAny<DateTime>(), It.IsAny<DateTime>(), It.IsAny<int>()))
             .ReturnsAsync(mixedEvents);
+        
+        // Ensure no PIN events for this test
+        MockPinEventRepository.Setup(x => x.GetPinEventsByDateRangeAsync(It.IsAny<DateTime>(), It.IsAny<DateTime>(), It.IsAny<int>()))
+            .ReturnsAsync(Enumerable.Empty<PinEventEntity>());
 
         // Act
         var component = RenderComponent<ApBox.Web.Pages.Index>();
@@ -561,13 +574,13 @@ public class IndexPageTests : ApBoxTestContext
         var tableRows = component.FindAll("tbody tr");
         Assert.That(tableRows.Count, Is.EqualTo(2), "Should display both events");
         
-        // Verify status indicators (all should show "Processed" for successful events)
+        // Verify status indicators (all should show "Success" for successful events)
         foreach (var row in tableRows)
         {
-            var statusCell = row.QuerySelectorAll("td")[3]; // Status column
+            var statusCell = row.QuerySelectorAll("td")[4]; // Status column (0-indexed: Time, Type, Reader, Details, Status)
             var badge = statusCell.QuerySelector(".badge");
             Assert.That(badge, Is.Not.Null, "Should have status badge");
-            Assert.That(badge.TextContent, Is.EqualTo("Processed"), "Successful events should show 'Processed' status");
+            Assert.That(badge.TextContent, Is.EqualTo("Success"), "Successful events should show 'Success' status");
         }
     }
 }

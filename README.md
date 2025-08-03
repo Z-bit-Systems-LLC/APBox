@@ -94,6 +94,9 @@ ApBox includes a comprehensive web management interface with the following secti
 
 ## Getting Started
 
+> **⚠️ Early Development Notice**  
+> This project is in early development. After pulling code from Git, you must delete the SQLite database file (`apbox.db`) as there are currently no migration scripts. The database will be recreated automatically on the next run.
+
 ### Prerequisites
 
 - [.NET 8 SDK](https://dotnet.microsoft.com/download/dotnet/8.0)

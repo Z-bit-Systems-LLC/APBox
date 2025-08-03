@@ -17,7 +17,7 @@ public class AccessControlPlugin : IApBoxPlugin
         // Initialize with some sample authorized card numbers
         _authorizedCards = new HashSet<string>(StringComparer.OrdinalIgnoreCase)
         {
-            "12345678",    // Sample authorized cards
+            "23594378",    // Sample authorized cards
             "87654321",
             "11111111",
             "22222222",

@@ -55,6 +55,9 @@ dotnet add tests/ApBox.Plugins.Tests reference src/ApBox.Plugins
 dotnet build
 dotnet test
 
+# MANDATORY: Always run full test suite before any commits
+dotnet test --verbosity normal
+
 # Run specific tests
 dotnet test --filter "FullyQualifiedName~ApBox.Core.Tests"
 dotnet test --filter "TestCategory=Unit"
@@ -75,6 +78,12 @@ dotnet run --project src/ApBox.Web
 - Follow Red-Green-Refactor cycle
 - Aim for high test coverage on business logic
 - Use test categories: [Category("Unit")], [Category("Integration")]
+
+**MANDATORY PRE-COMMIT CHECKLIST**
+- ✅ Run `dotnet build` - ensure project builds without errors
+- ✅ Run `dotnet test` - ensure ALL tests pass (276+ tests across all projects)
+- ✅ No failing tests allowed in commits
+- ✅ Fix any broken tests immediately before committing
 
 **Testing Commands:**
 ```bash

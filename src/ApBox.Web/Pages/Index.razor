@@ -1,5 +1,6 @@
 @page "/"
 @using ApBox.Web.ViewModels
+@using ApBox.Core.Models
 @using Blazorise.SpinKit
 @inject DashboardViewModel ViewModel
 @implements IDisposable
@@ -135,7 +136,7 @@
                                     @foreach (var eventItem in ViewModel.RecentEvents.Take(15))
                                     {
                                         <TableRow>
-                                            @if (eventItem is CardReadEvent cardEvent)
+                                            @if (eventItem is CardEventDisplay cardEvent)
                                             {
                                                 <TableRowCell>@cardEvent.Timestamp.ToLocalTime().ToString("t")</TableRowCell>
                                                 <TableRowCell>
@@ -147,7 +148,29 @@
                                                 <TableRowCell>@cardEvent.ReaderName</TableRowCell>
                                                 <TableRowCell>@cardEvent.CardNumber</TableRowCell>
                                                 <TableRowCell>
-                                                    <Badge Color="Color.Success">Processed</Badge>
+                                                    @if (cardEvent.Success)
+                                                    {
+                                                        <Badge Color="Color.Success">Success</Badge>
+                                                    }
+                                                    else
+                                                    {
+                                                        <Badge Color="Color.Danger">Failed</Badge>
+                                                    }
+                                                </TableRowCell>
+                                            }
+                                            else if (eventItem is CardReadEvent legacyCardEvent)
+                                            {
+                                                <TableRowCell>@legacyCardEvent.Timestamp.ToLocalTime().ToString("t")</TableRowCell>
+                                                <TableRowCell>
+                                                    <Badge Color="Color.Primary">
+                                                        <Icon Name="IconName.CreditCard" Margin="Margin.Is1.FromEnd" />
+                                                        Card
+                                                    </Badge>
+                                                </TableRowCell>
+                                                <TableRowCell>@legacyCardEvent.ReaderName</TableRowCell>
+                                                <TableRowCell>@legacyCardEvent.CardNumber</TableRowCell>
+                                                <TableRowCell>
+                                                    <Badge Color="Color.Secondary">Processed</Badge>
                                                 </TableRowCell>
                                             }
                                             else if (eventItem is PinEventDisplay pinEvent)

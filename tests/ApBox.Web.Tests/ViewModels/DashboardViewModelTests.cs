@@ -96,13 +96,13 @@ public class DashboardViewModelTests : ApBoxTestContext
         // Assert
         Assert.That(_viewModel.RecentEvents.Count, Is.EqualTo(1), "Should have exactly one event after processing");
         var addedEvent = _viewModel.RecentEvents.First();
-        Assert.That(addedEvent, Is.TypeOf<CardReadEvent>(), "Added event should be a CardReadEvent");
-        var cardReadEvent = (CardReadEvent)addedEvent;
-        Assert.That(cardReadEvent.ReaderId, Is.EqualTo(cardEvent.ReaderId));
-        Assert.That(cardReadEvent.ReaderName, Is.EqualTo(cardEvent.ReaderName));
-        Assert.That(cardReadEvent.CardNumber, Is.EqualTo(cardEvent.CardNumber));
-        Assert.That(cardReadEvent.BitLength, Is.EqualTo(cardEvent.BitLength));
-        Assert.That(cardReadEvent.Timestamp, Is.EqualTo(cardEvent.Timestamp));
+        Assert.That(addedEvent, Is.TypeOf<CardEventDisplay>(), "Added event should be a CardEventDisplay");
+        var cardEventDisplay = (CardEventDisplay)addedEvent;
+        Assert.That(cardEventDisplay.ReaderId, Is.EqualTo(cardEvent.ReaderId));
+        Assert.That(cardEventDisplay.ReaderName, Is.EqualTo(cardEvent.ReaderName));
+        Assert.That(cardEventDisplay.CardNumber, Is.EqualTo(cardEvent.CardNumber));
+        Assert.That(cardEventDisplay.BitLength, Is.EqualTo(cardEvent.BitLength));
+        Assert.That(cardEventDisplay.Timestamp, Is.EqualTo(cardEvent.Timestamp));
     }
 
     [Test]
@@ -154,7 +154,7 @@ public class DashboardViewModelTests : ApBoxTestContext
         Assert.That(_viewModel.RecentEvents.Count, Is.EqualTo(25));
         
         // Verify most recent event is first
-        var firstEvent = (CardReadEvent)_viewModel.RecentEvents.First();
+        var firstEvent = (CardEventDisplay)_viewModel.RecentEvents.First();
         Assert.That(firstEvent.ReaderName, Is.EqualTo("Reader 29"));
     }
 
@@ -188,8 +188,8 @@ public class DashboardViewModelTests : ApBoxTestContext
 
         // Assert
         Assert.That(_viewModel.RecentEvents.Count, Is.EqualTo(2), "Should have exactly two events after processing both");
-        var firstEvent = (CardReadEvent)_viewModel.RecentEvents[0];
-        var secondEvent = (CardReadEvent)_viewModel.RecentEvents[1];
+        var firstEvent = (CardEventDisplay)_viewModel.RecentEvents[0];
+        var secondEvent = (CardEventDisplay)_viewModel.RecentEvents[1];
         Assert.That(firstEvent.ReaderName, Is.EqualTo("Second Reader")); // Most recent first
         Assert.That(secondEvent.ReaderName, Is.EqualTo("First Reader"));
     }

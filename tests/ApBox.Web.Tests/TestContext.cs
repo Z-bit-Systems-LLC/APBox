@@ -32,6 +32,7 @@ public class ApBoxTestContext : Bunit.TestContext
     public Mock<ICardEventPersistenceService> MockCardEventPersistenceService { get; private set; }
     public Mock<ICardProcessingOrchestrator> MockCardProcessingOrchestrator { get; private set; }
     public MockCardEventNotificationService MockCardEventNotificationService { get; private set; }
+    public MockPinEventNotificationService MockPinEventNotificationService { get; private set; }
     public Mock<IReaderPluginMappingService> MockReaderPluginMappingService { get; private set; }
     public Mock<ISerialPortService> MockSerialPortService { get; private set; }
 
@@ -51,6 +52,7 @@ public class ApBoxTestContext : Bunit.TestContext
         MockCardEventPersistenceService = new Mock<ICardEventPersistenceService>();
         MockCardProcessingOrchestrator = new Mock<ICardProcessingOrchestrator>();
         MockCardEventNotificationService = new MockCardEventNotificationService();
+        MockPinEventNotificationService = new MockPinEventNotificationService();
         MockReaderPluginMappingService = new Mock<IReaderPluginMappingService>();
         MockSerialPortService = new Mock<ISerialPortService>();
         
@@ -82,6 +84,7 @@ public class ApBoxTestContext : Bunit.TestContext
         Services.AddSingleton(MockCardEventPersistenceService.Object);
         Services.AddSingleton(MockCardProcessingOrchestrator.Object);
         Services.AddSingleton<ICardEventNotificationService>(MockCardEventNotificationService);
+        Services.AddSingleton<IPinEventNotificationService>(MockPinEventNotificationService);
         Services.AddSingleton(MockReaderPluginMappingService.Object);
         Services.AddSingleton(MockSerialPortService.Object);
         
