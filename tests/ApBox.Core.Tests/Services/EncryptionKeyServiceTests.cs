@@ -21,10 +21,10 @@ public class EncryptionKeyServiceTests
         _mockFileSystem = new Mock<IFileSystem>();
         
         // Setup file system mocks
-        _mockFileSystem.Setup(x => x.GetFolderPath(Environment.SpecialFolder.LocalApplicationData))
-                      .Returns(@"C:\Users\TestUser\AppData\Local");
+        _mockFileSystem.Setup(x => x.GetFolderPath(Environment.SpecialFolder.CommonApplicationData))
+                      .Returns(@"C:\ProgramData");
         _mockFileSystem.Setup(x => x.CombinePath(It.IsAny<string[]>()))
-                      .Returns((string[] paths) => Path.Combine(paths));
+                      .Returns((string[] paths) => paths != null && paths.Length > 0 ? Path.Combine(paths) : string.Empty);
         
         _keyService = new EncryptionKeyService(_mockLogger.Object, _mockFileSystem.Object);
     }
