@@ -53,6 +53,9 @@ public static class ServiceCollectionExtensions
         services.AddSingleton<ISerialPortService, SerialPortService>();
         services.AddSingleton<IReaderService, ReaderService>();
         
+        // Register PIN collection service
+        services.AddSingleton<IPinCollectionService, PinCollectionService>();
+        
         return services;
     }
     

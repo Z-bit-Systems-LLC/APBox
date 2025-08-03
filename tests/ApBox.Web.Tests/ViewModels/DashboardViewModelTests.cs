@@ -16,6 +16,7 @@ namespace ApBox.Web.Tests.ViewModels;
 public class DashboardViewModelTests : ApBoxTestContext
 {
     private MockCardEventNotificationService _mockCardEventNotificationService;
+    private MockPinEventNotificationService _mockPinEventNotificationService;
     private DashboardViewModel _viewModel;
 
     [SetUp]
@@ -35,15 +36,17 @@ public class DashboardViewModelTests : ApBoxTestContext
         MockCardEventRepository.Setup(x => x.GetByDateRangeAsync(It.IsAny<DateTime>(), It.IsAny<DateTime>(), It.IsAny<int>()))
             .ReturnsAsync(new List<CardEventEntity>());
         
-        // Create a mock notification service for this test
+        // Create mock notification services for this test
         _mockCardEventNotificationService = new MockCardEventNotificationService();
+        _mockPinEventNotificationService = new MockPinEventNotificationService();
 
-        // Create ViewModel with mocked notification service
+        // Create ViewModel with mocked notification services
         _viewModel = new DashboardViewModel(
             MockReaderService.Object,
             MockPluginLoader.Object,
             MockCardEventRepository.Object,
-            _mockCardEventNotificationService);
+            _mockCardEventNotificationService,
+            _mockPinEventNotificationService);
             
         // Set up UI callbacks
         _viewModel.StateHasChanged = () => { };
@@ -92,11 +95,13 @@ public class DashboardViewModelTests : ApBoxTestContext
         // Assert
         Assert.That(_viewModel.RecentEvents.Count, Is.EqualTo(1), "Should have exactly one event after processing");
         var addedEvent = _viewModel.RecentEvents.First();
-        Assert.That(addedEvent.ReaderId, Is.EqualTo(cardEvent.ReaderId));
-        Assert.That(addedEvent.ReaderName, Is.EqualTo(cardEvent.ReaderName));
-        Assert.That(addedEvent.CardNumber, Is.EqualTo(cardEvent.CardNumber));
-        Assert.That(addedEvent.BitLength, Is.EqualTo(cardEvent.BitLength));
-        Assert.That(addedEvent.Timestamp, Is.EqualTo(cardEvent.Timestamp));
+        Assert.That(addedEvent, Is.TypeOf<CardReadEvent>(), "Added event should be a CardReadEvent");
+        var cardReadEvent = (CardReadEvent)addedEvent;
+        Assert.That(cardReadEvent.ReaderId, Is.EqualTo(cardEvent.ReaderId));
+        Assert.That(cardReadEvent.ReaderName, Is.EqualTo(cardEvent.ReaderName));
+        Assert.That(cardReadEvent.CardNumber, Is.EqualTo(cardEvent.CardNumber));
+        Assert.That(cardReadEvent.BitLength, Is.EqualTo(cardEvent.BitLength));
+        Assert.That(cardReadEvent.Timestamp, Is.EqualTo(cardEvent.Timestamp));
     }
 
     [Test]
@@ -148,7 +153,8 @@ public class DashboardViewModelTests : ApBoxTestContext
         Assert.That(_viewModel.RecentEvents.Count, Is.EqualTo(25));
         
         // Verify most recent event is first
-        Assert.That(_viewModel.RecentEvents.First().ReaderName, Is.EqualTo("Reader 29"));
+        var firstEvent = (CardReadEvent)_viewModel.RecentEvents.First();
+        Assert.That(firstEvent.ReaderName, Is.EqualTo("Reader 29"));
     }
 
     [Test]
@@ -181,8 +187,10 @@ public class DashboardViewModelTests : ApBoxTestContext
 
         // Assert
         Assert.That(_viewModel.RecentEvents.Count, Is.EqualTo(2), "Should have exactly two events after processing both");
-        Assert.That(_viewModel.RecentEvents[0].ReaderName, Is.EqualTo("Second Reader")); // Most recent first
-        Assert.That(_viewModel.RecentEvents[1].ReaderName, Is.EqualTo("First Reader"));
+        var firstEvent = (CardReadEvent)_viewModel.RecentEvents[0];
+        var secondEvent = (CardReadEvent)_viewModel.RecentEvents[1];
+        Assert.That(firstEvent.ReaderName, Is.EqualTo("Second Reader")); // Most recent first
+        Assert.That(secondEvent.ReaderName, Is.EqualTo("First Reader"));
     }
 
     // ==============================================

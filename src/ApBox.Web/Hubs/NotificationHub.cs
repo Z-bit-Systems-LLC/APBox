@@ -43,6 +43,11 @@ public interface INotificationClient
     Task CardEventProcessed(CardEventNotification notification);
 
     /// <summary>
+    /// Called when a new PIN event is processed
+    /// </summary>
+    Task PinEventProcessed(PinEventNotification notification);
+
+    /// <summary>
     /// Called when reader status changes
     /// </summary>
     Task ReaderStatusChanged(ReaderStatusNotification notification);

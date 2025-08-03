@@ -20,6 +20,7 @@ public interface IOsdpDevice
     Task<bool> SendFeedbackAsync(ReaderFeedback feedback);
     
     event EventHandler<CardReadEvent>? CardRead;
+    event EventHandler<PinDigitEvent>? PinDigitReceived;
     event EventHandler<OsdpStatusChangedEventArgs>? StatusChanged;
 }
 

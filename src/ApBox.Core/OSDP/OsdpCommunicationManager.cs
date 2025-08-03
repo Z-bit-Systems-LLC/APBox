@@ -33,6 +33,7 @@ public class OsdpCommunicationManager : IOsdpCommunicationManager
     }
     
     public event EventHandler<CardReadEvent>? CardRead;
+    public event EventHandler<PinDigitEvent>? PinDigitReceived;
     public event EventHandler<OsdpDeviceStatusEventArgs>? DeviceStatusChanged;
     
     public Task<IEnumerable<IOsdpDevice>> GetDevicesAsync()
@@ -91,6 +92,7 @@ public class OsdpCommunicationManager : IOsdpCommunicationManager
             // Create device with shared ControlPanel and connection
             var device = new OsdpDevice(config, _logger, _controlPanel, connectionId, _feedbackConfigurationService);
             device.CardRead += OnDeviceCardRead;
+            device.PinDigitReceived += OnDevicePinDigitReceived;
             device.StatusChanged += OnDeviceStatusChanged;
             device.SecurityModeChanged += OnDeviceSecurityModeChanged;
             
@@ -118,6 +120,7 @@ public class OsdpCommunicationManager : IOsdpCommunicationManager
         if (_devices.TryGetValue(deviceId, out var device))
         {
             device.CardRead -= OnDeviceCardRead;
+            device.PinDigitReceived -= OnDevicePinDigitReceived;
             device.StatusChanged -= OnDeviceStatusChanged;
             
             await device.DisconnectAsync();
@@ -189,6 +192,11 @@ public class OsdpCommunicationManager : IOsdpCommunicationManager
     private void OnDeviceCardRead(object? sender, CardReadEvent e)
     {
         CardRead?.Invoke(this, e);
+    }
+    
+    private void OnDevicePinDigitReceived(object? sender, PinDigitEvent e)
+    {
+        PinDigitReceived?.Invoke(this, e);
     }
     
     private void OnDeviceStatusChanged(object? sender, OsdpStatusChangedEventArgs e)

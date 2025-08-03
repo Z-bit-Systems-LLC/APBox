@@ -45,6 +45,7 @@ public class MockOsdpDevice : IOsdpDevice
     }
 
     public event EventHandler<CardReadEvent>? CardRead;
+    public event EventHandler<PinDigitEvent>? PinDigitReceived;
     public event EventHandler<OsdpStatusChangedEventArgs>? StatusChanged;
     
     public Task<bool> ConnectAsync()

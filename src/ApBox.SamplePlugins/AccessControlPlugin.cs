@@ -58,6 +58,29 @@ public class AccessControlPlugin : IApBoxPlugin
         return isAuthorized;
     }
 
+    public async Task<bool> ProcessPinReadAsync(PinReadEvent pinRead)
+    {
+        await Task.CompletedTask; // Async signature for future extensibility
+        
+        _logger?.LogInformation("Access Control Plugin processing PIN from reader {ReaderName}: {PinLength} digits, reason: {CompletionReason}", 
+            pinRead.ReaderName, pinRead.Pin.Length, pinRead.CompletionReason);
+
+        // For demonstration: authorize PINs with exactly 4 digits that start with "12"
+        bool isAuthorized = pinRead.Pin.Length == 4 && pinRead.Pin.StartsWith("12");
+
+        if (isAuthorized)
+        {
+            _logger?.LogInformation("PIN from reader {ReaderName} is authorized - granting access", pinRead.ReaderName);
+        }
+        else
+        {
+            _logger?.LogWarning("PIN from reader {ReaderName} is not authorized - denying access (length: {PinLength})", 
+                pinRead.ReaderName, pinRead.Pin.Length);
+        }
+
+        return isAuthorized;
+    }
+
     public Task InitializeAsync()
     {
         _logger?.LogInformation("Access Control Plugin initialized with {Count} authorized cards", 

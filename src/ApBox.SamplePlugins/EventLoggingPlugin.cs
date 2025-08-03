@@ -60,6 +60,38 @@ public class EventLoggingPlugin : IApBoxPlugin
         return true;
     }
 
+    public async Task<bool> ProcessPinReadAsync(PinReadEvent pinRead)
+    {
+        await Task.CompletedTask; // Async signature for future extensibility
+
+        // Increment counters
+        Interlocked.Increment(ref _totalEvents);
+
+        // Log detailed PIN event information (but NOT the actual PIN for security)
+        _logger?.LogInformation(
+            "PIN read event: Reader={ReaderName} ({ReaderId}), PinLength={PinLength}, CompletionReason={CompletionReason}, Time={Timestamp:yyyy-MM-dd HH:mm:ss.fff}",
+            pinRead.ReaderName,
+            pinRead.ReaderId,
+            pinRead.Pin.Length,
+            pinRead.CompletionReason,
+            pinRead.Timestamp);
+
+        // Log additional data if present
+        if (pinRead.AdditionalData?.Any() == true)
+        {
+            foreach (var kvp in pinRead.AdditionalData)
+            {
+                _logger?.LogDebug("PIN read additional data: {Key}={Value}", kvp.Key, kvp.Value);
+            }
+        }
+
+        // Event logging plugin is passive - it doesn't make access decisions
+        // It just logs and tracks statistics
+        Interlocked.Increment(ref _successfulEvents);
+        
+        return true;
+    }
+
     public Task InitializeAsync()
     {
         _logger?.LogInformation("Event Logging Plugin initialized");

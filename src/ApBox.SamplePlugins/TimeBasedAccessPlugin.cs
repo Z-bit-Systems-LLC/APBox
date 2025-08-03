@@ -108,6 +108,63 @@ public class TimeBasedAccessPlugin : IApBoxPlugin
         return true;
     }
 
+    public async Task<bool> ProcessPinReadAsync(PinReadEvent pinRead)
+    {
+        await Task.CompletedTask; // Async signature for future extensibility
+
+        _logger?.LogInformation("Time-Based Access Plugin processing PIN from reader {ReaderName} at {Timestamp}", 
+            pinRead.ReaderName, pinRead.Timestamp);
+
+        // For demonstration: PIN access is also time-based but with different rules
+        var now = DateTime.Now;
+        var currentDay = now.DayOfWeek;
+        var currentTime = TimeOnly.FromDateTime(now);
+
+        // PIN access allowed only during specific hours (simulating emergency/after-hours access)
+        var emergencySchedule = new AccessSchedule
+        {
+            AllowedDays = DayOfWeek.Monday | DayOfWeek.Tuesday | DayOfWeek.Wednesday | DayOfWeek.Thursday | DayOfWeek.Friday | DayOfWeek.Saturday | DayOfWeek.Sunday,
+            StartTime = new TimeOnly(18, 0),  // 6:00 PM
+            EndTime = new TimeOnly(7, 0),     // 7:00 AM next day (after hours)
+            Description = "Emergency/After-Hours PIN Access"
+        };
+
+        // Check if current day is allowed
+        if (!emergencySchedule.AllowedDays.HasFlag(GetDayOfWeekFlag(currentDay)))
+        {
+            _logger?.LogInformation("PIN from reader {ReaderName} denied - {Day} not in allowed days", 
+                pinRead.ReaderName, currentDay);
+            
+            return false;
+        }
+
+        // Check if current time is within allowed hours (handling overnight schedule)
+        bool isWithinHours = false;
+        if (emergencySchedule.EndTime < emergencySchedule.StartTime)
+        {
+            // Overnight schedule (e.g., 18:00 to 07:00)
+            isWithinHours = currentTime >= emergencySchedule.StartTime || currentTime <= emergencySchedule.EndTime;
+        }
+        else
+        {
+            // Same-day schedule
+            isWithinHours = currentTime >= emergencySchedule.StartTime && currentTime <= emergencySchedule.EndTime;
+        }
+
+        if (!isWithinHours)
+        {
+            _logger?.LogInformation("PIN from reader {ReaderName} denied - time {CurrentTime} outside emergency access hours {StartTime}-{EndTime}", 
+                pinRead.ReaderName, currentTime, emergencySchedule.StartTime, emergencySchedule.EndTime);
+            
+            return false;
+        }
+
+        // Access granted for emergency/after-hours PIN
+        _logger?.LogInformation("PIN from reader {ReaderName} granted time-based emergency access", pinRead.ReaderName);
+        
+        return true;
+    }
+
     public Task InitializeAsync()
     {
         _logger?.LogInformation("Time-Based Access Plugin initialized with {Count} scheduled cards", 

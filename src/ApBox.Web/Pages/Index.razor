@@ -116,7 +116,7 @@
             <Column>
                 <Card ElementId="recent-events-card">
                     <CardHeader>
-                        <Heading Size="HeadingSize.Is4" Margin="Margin.Is0" ElementId="recent-events-title">Today's Recent Events</Heading>
+                        <Heading Size="HeadingSize.Is4" Margin="Margin.Is0" ElementId="recent-events-title">Today's Recent Events (Cards & PINs)</Heading>
                     </CardHeader>
                     <CardBody>
                         @if (ViewModel.RecentEvents.Any())
@@ -125,21 +125,53 @@
                                 <TableHeader>
                                     <TableRow>
                                         <TableHeaderCell>Time</TableHeaderCell>
+                                        <TableHeaderCell>Type</TableHeaderCell>
                                         <TableHeaderCell>Reader</TableHeaderCell>
-                                        <TableHeaderCell>Card Number</TableHeaderCell>
+                                        <TableHeaderCell>Details</TableHeaderCell>
                                         <TableHeaderCell>Status</TableHeaderCell>
                                     </TableRow>
                                 </TableHeader>
                                 <TableBody>
-                                    @foreach (var cardEvent in ViewModel.RecentEvents.Take(15))
+                                    @foreach (var eventItem in ViewModel.RecentEvents.Take(15))
                                     {
                                         <TableRow>
-                                            <TableRowCell>@cardEvent.Timestamp.ToLocalTime().ToString("t")</TableRowCell>
-                                            <TableRowCell>@cardEvent.ReaderName</TableRowCell>
-                                            <TableRowCell>@cardEvent.CardNumber</TableRowCell>
-                                            <TableRowCell>
-                                                <Badge Color="Color.Success">Processed</Badge>
-                                            </TableRowCell>
+                                            @if (eventItem is CardReadEvent cardEvent)
+                                            {
+                                                <TableRowCell>@cardEvent.Timestamp.ToLocalTime().ToString("t")</TableRowCell>
+                                                <TableRowCell>
+                                                    <Badge Color="Color.Primary">
+                                                        <Icon Name="IconName.CreditCard" Margin="Margin.Is1.FromEnd" />
+                                                        Card
+                                                    </Badge>
+                                                </TableRowCell>
+                                                <TableRowCell>@cardEvent.ReaderName</TableRowCell>
+                                                <TableRowCell>@cardEvent.CardNumber</TableRowCell>
+                                                <TableRowCell>
+                                                    <Badge Color="Color.Success">Processed</Badge>
+                                                </TableRowCell>
+                                            }
+                                            else if (eventItem is PinEventDisplay pinEvent)
+                                            {
+                                                <TableRowCell>@pinEvent.Timestamp.ToLocalTime().ToString("t")</TableRowCell>
+                                                <TableRowCell>
+                                                    <Badge Color="Color.Info">
+                                                        <Icon Name="IconName.Key" Margin="Margin.Is1.FromEnd" />
+                                                        PIN
+                                                    </Badge>
+                                                </TableRowCell>
+                                                <TableRowCell>@pinEvent.ReaderName</TableRowCell>
+                                                <TableRowCell>@pinEvent.PinLength digits (@pinEvent.CompletionReason)</TableRowCell>
+                                                <TableRowCell>
+                                                    @if (pinEvent.Success)
+                                                    {
+                                                        <Badge Color="Color.Success">Success</Badge>
+                                                    }
+                                                    else
+                                                    {
+                                                        <Badge Color="Color.Danger">Failed</Badge>
+                                                    }
+                                                </TableRowCell>
+                                            }
                                         </TableRow>
                                     }
                                 </TableBody>
@@ -148,7 +180,7 @@
                         else
                         {
                             <Div Display="Display.Flex" JustifyContent="JustifyContent.Center" Margin="Margin.Is4">
-                                <Text TextColor="TextColor.Muted">No recent card events</Text>
+                                <Text TextColor="TextColor.Muted">No recent events</Text>
                             </Div>
                         }
                     </CardBody>

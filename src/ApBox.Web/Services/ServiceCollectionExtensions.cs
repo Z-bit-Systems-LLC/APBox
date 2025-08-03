@@ -27,6 +27,7 @@ public static class ServiceCollectionExtensions
         services.AddHostedService<OsdpStartupService>();
         services.AddHostedService<OsdpStatusBridgeService>();
         services.AddHostedService<CardProcessingBridgeService>();
+        services.AddHostedService<PinProcessingBridgeService>();
         
         // Register core application services
         services.AddSingleton<ICardProcessingService, CardProcessingService>();
@@ -35,8 +36,14 @@ public static class ServiceCollectionExtensions
         services.AddSingleton<IEnhancedCardProcessingService, EnhancedCardProcessingService>();
         services.AddSingleton<IReaderService, ReaderService>();
         
+        // Register PIN processing services
+        services.AddSingleton<IPinProcessingService, PinProcessingService>();
+        services.AddSingleton<IPinEventPersistenceService, PinEventPersistenceService>();
+        services.AddSingleton<IPinProcessingOrchestrator, PinProcessingOrchestrator>();
+        
         // Register SignalR notification services
         services.AddSingleton<ICardEventNotificationService, CardEventNotificationService>();
+        services.AddSingleton<IPinEventNotificationService, PinEventNotificationService>();
         services.AddSingleton<INotificationService, NotificationService>();
         
         

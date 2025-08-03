@@ -31,6 +31,7 @@ public class OsdpDevice(
     public bool IsEnabled { get; } = config.IsEnabled;
 
     public event EventHandler<CardReadEvent>? CardRead;
+    public event EventHandler<PinDigitEvent>? PinDigitReceived;
     public event EventHandler<OsdpStatusChangedEventArgs>? StatusChanged;
     public event EventHandler<SecurityModeChangedEventArgs>? SecurityModeChanged;
     
@@ -45,6 +46,7 @@ public class OsdpDevice(
             
             // Subscribe to events before adding device
             controlPanel.RawCardDataReplyReceived += OnCardRead;
+            controlPanel.KeypadReplyReceived += OnKeypadReply;
             controlPanel.ConnectionStatusChanged += OnConnectionStatusChanged;
             
             // Add device to the existing connection
@@ -81,6 +83,7 @@ public class OsdpDevice(
             // Unsubscribe from events after disconnecting
             // This ensures any final status change events are processed
             controlPanel.RawCardDataReplyReceived -= OnCardRead;
+            controlPanel.KeypadReplyReceived -= OnKeypadReply;
             controlPanel.ConnectionStatusChanged -= OnConnectionStatusChanged;
         }
         catch (Exception ex)
@@ -329,6 +332,48 @@ public class OsdpDevice(
         catch (Exception ex)
         {
             logger.LogError(ex, "Error processing card read from OSDP device {DeviceName}", Name);
+        }
+    }
+
+    private void OnKeypadReply(object? sender, ControlPanel.KeypadReplyEventArgs eventArgs)
+    {
+        try
+        {
+            // Only process keypad events for our device address
+            if (eventArgs.Address != Address) return;
+            
+            LastActivity = DateTime.UtcNow;
+
+            // Convert keypad data to individual digits
+            var keypadData = eventArgs.KeypadData;
+            
+            logger.LogDebug("Keypad data received on OSDP device {DeviceName}: {KeypadData}", 
+                Name, Convert.ToHexString(keypadData.Data));
+
+            // Process each digit in the keypad data
+            for (int i = 0; i < keypadData.DigitCount; i++)
+            {
+                if (i < keypadData.Data.Length)
+                {
+                    var digit = (char)keypadData.Data[i];
+                    
+                    var pinDigitEvent = new PinDigitEvent
+                    {
+                        ReaderId = Id,
+                        Digit = digit,
+                        Timestamp = DateTime.UtcNow,
+                        ReaderName = Name,
+                        SequenceNumber = i + 1
+                    };
+
+                    logger.LogDebug("PIN digit received on OSDP device {DeviceName}: {Digit}", Name, digit);
+                    PinDigitReceived?.Invoke(this, pinDigitEvent);
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+            logger.LogError(ex, "Error processing keypad data from OSDP device {DeviceName}", Name);
         }
     }
     
@@ -609,6 +654,7 @@ public class OsdpDevice(
         try
         {
             controlPanel.RawCardDataReplyReceived -= OnCardRead;
+            controlPanel.KeypadReplyReceived -= OnKeypadReply;
             controlPanel.ConnectionStatusChanged -= OnConnectionStatusChanged;
         }
         catch (Exception ex)

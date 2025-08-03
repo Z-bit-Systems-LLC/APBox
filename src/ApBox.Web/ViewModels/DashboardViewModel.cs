@@ -17,10 +17,12 @@ public partial class DashboardViewModel(
     IReaderService readerService,
     IPluginLoader pluginLoader,
     ICardEventRepository cardEventRepository,
-    ICardEventNotificationService cardEventNotificationService)
+    ICardEventNotificationService cardEventNotificationService,
+    IPinEventNotificationService pinEventNotificationService)
     : ObservableObject, IDisposable
 {
     private readonly ICardEventNotificationService _cardEventNotificationService = cardEventNotificationService;
+    private readonly IPinEventNotificationService _pinEventNotificationService = pinEventNotificationService;
 
     [ObservableProperty]
     private int _configuredReaders;
@@ -38,7 +40,7 @@ public partial class DashboardViewModel(
     private string _systemStatus = "Online";
 
     [ObservableProperty]
-    private ObservableCollection<CardReadEvent> _recentEvents = new();
+    private ObservableCollection<object> _recentEvents = new(); // Mixed collection of CardReadEvent and PinEventDisplay
 
     [ObservableProperty]
     private List<ReaderConfiguration> _readers = new();
@@ -168,6 +170,7 @@ public partial class DashboardViewModel(
     {
         // Register event handlers
         _cardEventNotificationService.OnCardEventProcessed += OnCardEventProcessed;
+        _pinEventNotificationService.OnPinEventProcessed += OnPinEventProcessed;
         _cardEventNotificationService.OnReaderStatusChanged += OnReaderStatusChanged;
     }
 
@@ -214,6 +217,50 @@ public partial class DashboardViewModel(
     }
 
     /// <summary>
+    /// Handles incoming PIN events from SignalR
+    /// </summary>
+    private void OnPinEventProcessed(PinEventNotification notification)
+    {
+        try
+        {
+            // Create PinEventDisplay from notification
+            var pinEvent = new PinEventDisplay
+            {
+                ReaderId = notification.ReaderId,
+                ReaderName = notification.ReaderName,
+                PinLength = notification.PinLength,
+                CompletionReason = notification.CompletionReason,
+                Timestamp = notification.Timestamp,
+                Success = notification.Success,
+                Message = notification.Message
+            };
+            
+            // Add to recent events at the beginning
+            RecentEvents.Insert(0, pinEvent);
+            
+            // Keep only the most recent 25 events
+            while (RecentEvents.Count > 25)
+            {
+                RecentEvents.RemoveAt(RecentEvents.Count - 1);
+            }
+
+            // Update total events count only if event is from today (local timezone)
+            if (pinEvent.Timestamp.ToLocalTime().Date == DateTime.Now.Date)
+            {
+                TotalEvents++;
+            }
+
+            // Notify UI to update
+            InvokeAsync(() => { StateHasChanged(); return Task.CompletedTask; });
+        }
+        catch (Exception ex)
+        {
+            // Log error but don't throw to avoid breaking SignalR
+            Console.WriteLine($"Error handling PIN event: {ex.Message}");
+        }
+    }
+
+    /// <summary>
     /// Handles reader status changes from SignalR
     /// </summary>
     private void OnReaderStatusChanged(ReaderStatusNotification notification)
@@ -253,6 +300,7 @@ public partial class DashboardViewModel(
     {
         // Unsubscribe from events
         _cardEventNotificationService.OnCardEventProcessed -= OnCardEventProcessed;
+        _pinEventNotificationService.OnPinEventProcessed -= OnPinEventProcessed;
         _cardEventNotificationService.OnReaderStatusChanged -= OnReaderStatusChanged;
     }
 }

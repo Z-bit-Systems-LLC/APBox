@@ -106,6 +106,12 @@ public class PluginSystemIntegrationTests
             return Task.FromResult(true);
         }
         
+        public Task<bool> ProcessPinReadAsync(PinReadEvent pinRead)
+        {
+            // Simple test logic - accept all PINs
+            return Task.FromResult(true);
+        }
+        
         
         public Task InitializeAsync()
         {

@@ -71,6 +71,39 @@ public class AuditLoggingPlugin : IApBoxPlugin
         }
     }
 
+    public async Task<bool> ProcessPinReadAsync(PinReadEvent pinRead)
+    {
+        try
+        {
+            // Create audit entry for PIN read (WITHOUT storing the actual PIN for security)
+            var auditEntry = new PinAuditLogEntry
+            {
+                Timestamp = pinRead.Timestamp,
+                EventId = Guid.NewGuid(),
+                ReaderId = pinRead.ReaderId,
+                ReaderName = pinRead.ReaderName,
+                PinLength = pinRead.Pin.Length,
+                CompletionReason = pinRead.CompletionReason.ToString(),
+                AdditionalData = pinRead.AdditionalData ?? new Dictionary<string, object>()
+            };
+
+            // Write to audit log
+            await WritePinAuditEntryAsync(auditEntry);
+
+            _logger?.LogInformation("PIN audit entry created for reader {ReaderName} (PIN length: {PinLength})", 
+                pinRead.ReaderName, pinRead.Pin.Length);
+
+            // Audit plugin doesn't make access decisions - it just logs
+            return true;
+        }
+        catch (Exception ex)
+        {
+            _logger?.LogError(ex, "Failed to write PIN audit entry for reader {ReaderName}", pinRead.ReaderName);
+            
+            return false;
+        }
+    }
+
     public Task InitializeAsync()
     {
         _logger?.LogInformation("Audit Logging Plugin initialized. Log directory: {LogDirectory}", _logDirectory);
@@ -193,6 +226,71 @@ public class AuditLoggingPlugin : IApBoxPlugin
         
         return Task.CompletedTask;
     }
+
+    private async Task WritePinAuditEntryAsync(PinAuditLogEntry entry)
+    {
+        var logFileName = GetTodayPinLogFileName();
+        var jsonEntry = JsonSerializer.Serialize(entry, new JsonSerializerOptions 
+        { 
+            WriteIndented = false,
+            PropertyNamingPolicy = JsonNamingPolicy.CamelCase
+        });
+
+        // Use lock to ensure thread-safe file writing
+        lock (_logLock)
+        {
+            File.AppendAllLines(logFileName, new[] { jsonEntry });
+        }
+
+        await Task.CompletedTask;
+    }
+
+    private string GetTodayPinLogFileName()
+    {
+        var today = DateTime.Now.ToString("yyyy-MM-dd");
+        return Path.Combine(_logDirectory, $"pin-audit-{today}.jsonl");
+    }
+}
+
+/// <summary>
+/// Represents an audit log entry for PIN access attempts
+/// </summary>
+public class PinAuditLogEntry
+{
+    /// <summary>
+    /// Timestamp when the PIN read occurred
+    /// </summary>
+    public DateTime Timestamp { get; set; }
+    
+    /// <summary>
+    /// Unique identifier for this audit event
+    /// </summary>
+    public Guid EventId { get; set; }
+    
+    /// <summary>
+    /// ID of the reader that processed the PIN
+    /// </summary>
+    public Guid ReaderId { get; set; }
+    
+    /// <summary>
+    /// Name of the reader that processed the PIN
+    /// </summary>
+    public string ReaderName { get; set; } = string.Empty;
+    
+    /// <summary>
+    /// Length of the PIN (NOT the actual PIN for security)
+    /// </summary>
+    public int PinLength { get; set; }
+    
+    /// <summary>
+    /// How the PIN collection was completed
+    /// </summary>
+    public string CompletionReason { get; set; } = string.Empty;
+    
+    /// <summary>
+    /// Additional data associated with the PIN read
+    /// </summary>
+    public Dictionary<string, object> AdditionalData { get; set; } = new();
 }
 
 /// <summary>
