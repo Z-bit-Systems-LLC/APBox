@@ -6,6 +6,7 @@ namespace ApBox.Core.Services;
 public class PinCollectionService : IPinCollectionService, IDisposable
 {
     private readonly ILogger<PinCollectionService> _logger;
+    private readonly IReaderConfigurationService _readerConfigurationService;
     private readonly ConcurrentDictionary<Guid, PinCollection> _activePinCollections = new();
     private readonly TimeSpan _pinTimeout = TimeSpan.FromSeconds(3);
     private bool _disposed;
@@ -13,9 +14,12 @@ public class PinCollectionService : IPinCollectionService, IDisposable
     public event EventHandler<PinReadEvent>? PinCollectionCompleted;
     public event EventHandler<PinDigitEvent>? PinDigitReceived;
 
-    public PinCollectionService(ILogger<PinCollectionService> logger)
+    public PinCollectionService(
+        ILogger<PinCollectionService> logger,
+        IReaderConfigurationService readerConfigurationService)
     {
         _logger = logger;
+        _readerConfigurationService = readerConfigurationService;
     }
 
     public async Task<bool> AddDigitAsync(Guid readerId, char digit)
@@ -61,34 +65,45 @@ public class PinCollectionService : IPinCollectionService, IDisposable
         return Task.CompletedTask;
     }
 
-    private Task OnPinTimeout(PinCollection collection)
+    private async Task OnPinTimeout(PinCollection collection)
     {
         _logger.LogDebug("PIN collection timeout for reader {ReaderId}", collection.ReaderId);
         
         if (_activePinCollections.TryRemove(collection.ReaderId, out _))
         {
-            return CompletePinCollection(collection, PinCompletionReason.Timeout);
+            await CompletePinCollection(collection, PinCompletionReason.Timeout);
         }
-        
-        return Task.CompletedTask;
     }
 
-    private Task CompletePinCollection(PinCollection collection, PinCompletionReason? reason = null)
+    private async Task CompletePinCollection(PinCollection collection, PinCompletionReason? reason = null)
     {
         try
         {
             var completionReason = reason ?? (collection.CompletedByPound ? PinCompletionReason.PoundKey : PinCompletionReason.Timeout);
             
+            // Look up reader name from configuration
+            string readerName = string.Empty;
+            try
+            {
+                var readerConfig = await _readerConfigurationService.GetReaderAsync(collection.ReaderId);
+                readerName = readerConfig?.ReaderName ?? string.Empty;
+            }
+            catch (Exception ex)
+            {
+                _logger.LogWarning(ex, "Failed to get reader name for {ReaderId}, using empty name", collection.ReaderId);
+            }
+            
             var pinReadEvent = new PinReadEvent
             {
                 ReaderId = collection.ReaderId,
+                ReaderName = readerName,
                 Pin = collection.CurrentPin,
                 Timestamp = DateTime.UtcNow,
                 CompletionReason = completionReason
             };
 
-            _logger.LogInformation("PIN collection completed for reader {ReaderId}, reason: {Reason}, length: {Length}", 
-                collection.ReaderId, completionReason, collection.CurrentPin.Length);
+            _logger.LogInformation("PIN collection completed for reader {ReaderName} ({ReaderId}), reason: {Reason}, length: {Length}", 
+                readerName, collection.ReaderId, completionReason, collection.CurrentPin.Length);
 
             PinCollectionCompleted?.Invoke(this, pinReadEvent);
         }
@@ -102,8 +117,6 @@ public class PinCollectionService : IPinCollectionService, IDisposable
             _activePinCollections.TryRemove(collection.ReaderId, out _);
             collection.Dispose();
         }
-        
-        return Task.CompletedTask;
     }
 
     public void Dispose()
