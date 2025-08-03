@@ -15,7 +15,7 @@ public class ReaderConfigurationTests
         // Assert
         Assert.That(config.ReaderId, Is.EqualTo(Guid.Empty)); // Default constructor doesn't auto-generate GUID
         Assert.That(config.ReaderName, Is.EqualTo(string.Empty));
-        Assert.That(config.Address, Is.EqualTo(1));
+        Assert.That(config.Address, Is.EqualTo(0));
         Assert.That(config.IsEnabled, Is.True);
         Assert.That(config.SerialPort, Is.Null);
         Assert.That(config.BaudRate, Is.EqualTo(9600));
