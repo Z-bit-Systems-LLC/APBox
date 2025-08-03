@@ -1,5 +1,6 @@
 using System.Reflection;
 using Microsoft.Extensions.Logging;
+using ApBox.Plugins.Infrastructure;
 
 namespace ApBox.Plugins;
 
@@ -34,13 +35,20 @@ public class PluginLoader : IPluginLoader
 {
     private readonly string _pluginDirectory;
     private readonly ILogger<PluginLoader>? _logger;
+    private readonly IPluginFileSystem _fileSystem;
     private readonly Dictionary<string, IApBoxPlugin> _loadedPlugins = new();
     private readonly List<PluginMetadata> _availablePlugins = new();
     private bool _pluginsLoaded = false;
     
-    public PluginLoader(string pluginDirectory, ILogger<PluginLoader>? logger = null)
+    public PluginLoader(string pluginDirectory, ILogger<PluginLoader>? logger = null) 
+        : this(pluginDirectory, new PluginFileSystem(), logger)
+    {
+    }
+    
+    public PluginLoader(string pluginDirectory, IPluginFileSystem fileSystem, ILogger<PluginLoader>? logger = null)
     {
         _pluginDirectory = pluginDirectory;
+        _fileSystem = fileSystem;
         _logger = logger;
     }
     
@@ -55,7 +63,7 @@ public class PluginLoader : IPluginLoader
         
         _logger?.LogInformation("Loading plugins from directory: {PluginDirectory}", _pluginDirectory);
         
-        if (!Directory.Exists(_pluginDirectory))
+        if (!_fileSystem.DirectoryExists(_pluginDirectory))
         {
             _logger?.LogWarning("Plugin directory does not exist: {PluginDirectory}", _pluginDirectory);
             _pluginsLoaded = true; // Mark as loaded even if directory doesn't exist
@@ -63,7 +71,7 @@ public class PluginLoader : IPluginLoader
         }
         
         var loadedPlugins = new List<IApBoxPlugin>();
-        var assemblyFiles = Directory.GetFiles(_pluginDirectory, "*.dll");
+        var assemblyFiles = _fileSystem.GetFiles(_pluginDirectory, "*.dll");
         
         _logger?.LogInformation("Found {AssemblyCount} assemblies to scan for plugins", assemblyFiles.Length);
         
@@ -73,11 +81,11 @@ public class PluginLoader : IPluginLoader
             {
                 var plugins = await LoadPluginsFromAssemblyAsync(assemblyFile);
                 loadedPlugins.AddRange(plugins);
-                _logger?.LogInformation("Loaded {PluginCount} plugins from {AssemblyFile}", plugins.Count(), Path.GetFileName(assemblyFile));
+                _logger?.LogInformation("Loaded {PluginCount} plugins from {AssemblyFile}", plugins.Count(), _fileSystem.GetFileName(assemblyFile));
             }
             catch (Exception ex)
             {
-                _logger?.LogError(ex, "Failed to load plugins from {AssemblyFile}", Path.GetFileName(assemblyFile));
+                _logger?.LogError(ex, "Failed to load plugins from {AssemblyFile}", _fileSystem.GetFileName(assemblyFile));
             }
         }
         
