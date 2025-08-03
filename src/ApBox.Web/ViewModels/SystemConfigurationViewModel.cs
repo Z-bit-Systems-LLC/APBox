@@ -6,6 +6,7 @@ using ApBox.Core.Services.Configuration;
 using ApBox.Core.Services.Infrastructure;
 using ApBox.Core.Models;
 using ApBox.Plugins;
+using ApBox.Core.Services.Plugins;
 using Microsoft.JSInterop;
 using Blazorise;
 

@@ -5,6 +5,7 @@ using ApBox.Core.Services.Reader;
 using ApBox.Core.Data.Repositories;
 using ApBox.Core.Models;
 using ApBox.Plugins;
+using ApBox.Core.Services.Plugins;
 using ApBox.Web.Hubs;
 using ApBox.Web.Services;
 

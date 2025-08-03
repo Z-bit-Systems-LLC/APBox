@@ -1,7 +1,7 @@
 using ApBox.Core.Models;
 using ApBox.Core.Services.Configuration;
 using ApBox.Core.Services.Infrastructure;
-using ApBox.Plugins.Infrastructure;
+using ApBox.Core.Services.Infrastructure;
 using ApBox.Core.Services.Security;
 using ApBox.Plugins;
 using Microsoft.Extensions.DependencyInjection;

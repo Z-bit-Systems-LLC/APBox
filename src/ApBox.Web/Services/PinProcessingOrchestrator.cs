@@ -2,6 +2,7 @@ using ApBox.Core.Services.Core;
 using ApBox.Core.Services.Reader;
 using ApBox.Core.Services.Persistence;
 using ApBox.Plugins;
+using ApBox.Core.Services.Plugins;
 
 namespace ApBox.Web.Services;
 

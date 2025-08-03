@@ -3,6 +3,7 @@ using Microsoft.AspNetCore.SignalR;
 using ApBox.Core.Models;
 using ApBox.Web.Hubs;
 using ApBox.Plugins;
+using ApBox.Core.Services.Plugins;
 
 namespace ApBox.Web.Services;
 

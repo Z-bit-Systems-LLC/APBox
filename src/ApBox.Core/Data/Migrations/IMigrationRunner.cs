@@ -1,6 +1,6 @@
 using System.Reflection;
 using Dapper;
-using ApBox.Plugins.Infrastructure;
+using ApBox.Core.Services.Infrastructure;
 
 namespace ApBox.Core.Data.Migrations;
 

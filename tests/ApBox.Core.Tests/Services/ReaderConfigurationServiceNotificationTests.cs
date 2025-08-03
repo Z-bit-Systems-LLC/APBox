@@ -1,6 +1,6 @@
 using ApBox.Core.Services.Reader;
 using ApBox.Core.Services.Infrastructure;
-using ApBox.Plugins.Infrastructure;
+using ApBox.Core.Services.Infrastructure;
 using ApBox.Core.Data.Repositories;
 using ApBox.Core.Models;
 using Microsoft.Extensions.Logging;

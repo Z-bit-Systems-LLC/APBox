@@ -6,7 +6,7 @@ using ApBox.Core.Services.Core;
 using ApBox.Core.Services.Security;
 using ApBox.Core.Services.Persistence;
 using ApBox.Core.Services.Infrastructure;
-using ApBox.Plugins.Infrastructure;
+using ApBox.Core.Services.Infrastructure;
 using ApBox.Plugins;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;

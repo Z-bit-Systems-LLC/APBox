@@ -1,6 +1,7 @@
 using Bunit;
 using ApBox.Core.Models;
 using ApBox.Plugins;
+using ApBox.Core.Services.Plugins;
 using Microsoft.AspNetCore.Components;
 using Microsoft.AspNetCore.Components.Web;
 

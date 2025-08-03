@@ -6,6 +6,7 @@ using ApBox.Core.Services.Reader;
 using ApBox.Core.Services.Persistence;
 using ApBox.Web.Services;
 using ApBox.Plugins;
+using ApBox.Core.Services.Plugins;
 using ApBox.Core.Models;
 
 namespace ApBox.Web.Tests.Services;

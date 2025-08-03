@@ -3,7 +3,7 @@ using ApBox.Core.Data;
 using ApBox.Core.Data.Migrations;
 using ApBox.Core.Data.Repositories;
 using ApBox.Core.Models;
-using ApBox.Plugins.Infrastructure;
+using ApBox.Core.Services.Infrastructure;
 using Microsoft.Extensions.Logging;
 using Moq;
 

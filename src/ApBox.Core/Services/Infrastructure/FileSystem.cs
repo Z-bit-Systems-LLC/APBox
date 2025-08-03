@@ -1,6 +1,6 @@
 using System.Text;
 
-namespace ApBox.Plugins.Infrastructure;
+namespace ApBox.Core.Services.Infrastructure;
 
 /// <summary>
 /// Default implementation of IFileSystem that delegates to the actual file system

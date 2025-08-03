@@ -6,6 +6,7 @@ using ApBox.Core.Services.Reader;
 using ApBox.Core.Services.Configuration;
 using ApBox.Core.Services.Persistence;
 using ApBox.Core.Services.Infrastructure;
+using ApBox.Core.Services.Plugins;
 using ApBox.Core.Data;
 using ApBox.Web.ViewModels;
 using Microsoft.AspNetCore.SignalR.Client;

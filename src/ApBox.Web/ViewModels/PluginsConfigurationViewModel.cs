@@ -2,6 +2,7 @@ using System.Collections.ObjectModel;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using ApBox.Plugins;
+using ApBox.Core.Services.Plugins;
 
 namespace ApBox.Web.ViewModels;
 

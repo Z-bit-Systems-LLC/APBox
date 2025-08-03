@@ -1,4 +1,4 @@
-namespace ApBox.Plugins.Infrastructure;
+namespace ApBox.Core.Services.Infrastructure;
 
 /// <summary>
 /// Abstraction for file system operations to enable testing

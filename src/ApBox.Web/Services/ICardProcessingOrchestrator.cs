@@ -1,5 +1,6 @@
 using ApBox.Core.Models;
 using ApBox.Plugins;
+using ApBox.Core.Services.Plugins;
 
 namespace ApBox.Web.Services;
 

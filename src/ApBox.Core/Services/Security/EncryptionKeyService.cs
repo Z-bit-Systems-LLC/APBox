@@ -1,6 +1,6 @@
 using System.Security.Cryptography;
 using System.Text;
-using ApBox.Plugins.Infrastructure;
+using ApBox.Core.Services.Infrastructure;
 
 namespace ApBox.Core.Services.Security;
 

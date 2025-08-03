@@ -1,7 +1,8 @@
 using System.Reflection;
 using Microsoft.Extensions.Logging;
+using ApBox.Plugins;
 
-namespace ApBox.Plugins;
+namespace ApBox.Core.Services.Plugins;
 
 /// <summary>
 /// Enhanced plugin loader with file system monitoring and proper caching

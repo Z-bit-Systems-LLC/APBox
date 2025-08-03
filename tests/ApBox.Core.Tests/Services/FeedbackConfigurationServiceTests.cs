@@ -2,6 +2,7 @@ using ApBox.Core.Data.Repositories;
 using ApBox.Core.Models;
 using ApBox.Core.Services.Configuration;
 using ApBox.Plugins;
+using ApBox.Core.Services.Plugins;
 using Microsoft.Extensions.Logging;
 using Moq;
 

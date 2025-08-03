@@ -1,7 +1,8 @@
 using System.Reflection;
 using Microsoft.Extensions.Logging;
+using ApBox.Plugins;
 
-namespace ApBox.Plugins;
+namespace ApBox.Core.Services.Plugins;
 
 /// <summary>
 /// Static factory for creating plugin instances with proper dependency injection support.

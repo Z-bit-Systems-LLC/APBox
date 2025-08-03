@@ -1,5 +1,6 @@
 using ApBox.Core.Models;
 using ApBox.Core.Services.Configuration;
+using ApBox.Core.Services.Plugins;
 using ApBox.Plugins;
 using System.Linq;
 

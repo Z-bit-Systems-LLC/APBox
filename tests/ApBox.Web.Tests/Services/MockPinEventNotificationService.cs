@@ -1,6 +1,7 @@
 using ApBox.Core.Models;
 using ApBox.Core.Services.Core;
 using ApBox.Plugins;
+using ApBox.Core.Services.Plugins;
 using ApBox.Web.Services;
 
 namespace ApBox.Web.Tests.Services;

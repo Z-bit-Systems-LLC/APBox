@@ -1,6 +1,7 @@
 using ApBox.Core.Models;
 using ApBox.Core.OSDP;
 using ApBox.Plugins;
+using ApBox.Core.Services.Plugins;
 using Microsoft.Extensions.Logging;
 
 namespace ApBox.Core.Tests.OSDP;
