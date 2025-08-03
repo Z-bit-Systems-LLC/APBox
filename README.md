@@ -187,7 +187,24 @@ The complete configuration export follows this JSON schema:
       "serialPort": "COM1",
       "baudRate": 9600,
       "securityMode": "ClearText",
-      "secureChannelKey": null
+      "secureChannelKey": null,
+      "pluginMappings": [
+        {
+          "pluginId": "AccessControlPlugin",
+          "executionOrder": 1,
+          "isEnabled": true
+        },
+        {
+          "pluginId": "TimeBasedAccessPlugin", 
+          "executionOrder": 2,
+          "isEnabled": true
+        },
+        {
+          "pluginId": "AuditLoggingPlugin",
+          "executionOrder": 3,
+          "isEnabled": false
+        }
+      ]
     }
   ],
   "feedbackConfiguration": {
@@ -225,6 +242,15 @@ The complete configuration export follows this JSON schema:
 | `baudRate` | `number` | Communication speed (default: 9600) |
 | `securityMode` | `string` | OSDP security: "ClearText", "Install", "Secure" |
 | `secureChannelKey` | `byte[]` | Encryption key for secure mode |
+| `pluginMappings` | `array` | List of plugins assigned to this reader |
+
+#### Plugin Mapping Properties
+
+| Property | Type | Description |
+|----------|------|-------------|
+| `pluginId` | `string` | Unique identifier of the plugin |
+| `executionOrder` | `number` | Plugin execution sequence (1-based) |
+| `isEnabled` | `boolean` | Whether plugin is active for this reader |
 
 #### Feedback Configuration Properties
 
@@ -243,6 +269,7 @@ The system validates imported configurations for:
 - **JSON Format**: Valid JSON structure and required fields
 - **Version Compatibility**: Warns about version mismatches  
 - **Reader Validation**: No duplicate names or addresses, valid names
+- **Plugin Mappings**: Valid plugin IDs, unique execution orders per reader
 - **Feedback Validation**: Positive durations, non-negative beep counts
 - **Data Integrity**: Proper GUIDs, valid enums, range checking
 
@@ -255,8 +282,9 @@ The system validates imported configurations for:
 4. Review validation results before confirming import
 
 **File Operations:**
-- Export creates timestamped backup with system information
-- Import overwrites existing configurations (readers are updated if they exist)
+- Export creates timestamped backup with system information and plugin assignments
+- Import overwrites existing configurations (readers and plugin mappings are updated if they exist)
+- Plugin assignments are preserved and validated during import
 - Validation prevents importing invalid or conflicting data
 - System restart may be required after major configuration changes
 
