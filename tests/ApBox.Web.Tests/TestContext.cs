@@ -19,6 +19,7 @@ using Blazorise.Tests.bUnit;
 using Blazorise.Modules;
 using Microsoft.JSInterop;
 using Microsoft.AspNetCore.Components;
+using Blazored.LocalStorage;
 
 namespace ApBox.Web.Tests;
 
@@ -40,6 +41,7 @@ public class ApBoxTestContext : Bunit.TestContext
     public MockPinEventNotificationService MockPinEventNotificationService { get; private set; }
     public Mock<IReaderPluginMappingService> MockReaderPluginMappingService { get; private set; }
     public Mock<ISerialPortService> MockSerialPortService { get; private set; }
+    public Mock<ILocalStorageService> MockLocalStorageService { get; private set; }
 
     public ApBoxTestContext()
     {
@@ -60,16 +62,26 @@ public class ApBoxTestContext : Bunit.TestContext
         MockPinEventNotificationService = new MockPinEventNotificationService();
         MockReaderPluginMappingService = new Mock<IReaderPluginMappingService>();
         MockSerialPortService = new Mock<ISerialPortService>();
+        MockLocalStorageService = new Mock<ILocalStorageService>();
         
         
         // Setup serial port service
         MockSerialPortService.Setup(x => x.GetAvailablePortNames()).Returns(new[] { "COM1", "COM2", "COM3" });
+        
+        // Setup LocalStorage service
+        MockLocalStorageService.Setup(x => x.GetItemAsStringAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(string.Empty);
+        MockLocalStorageService.Setup(x => x.SetItemAsStringAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<CancellationToken>()))
+            .Returns(ValueTask.CompletedTask);
 
         // Configure Blazorise for testing
         Services
             .AddBlazoriseTests()
             .AddBootstrap5Providers()
             .AddFontAwesomeIcons();
+            
+        // Add mock LocalStorage for testing (instead of real Blazored LocalStorage)
+        Services.AddSingleton(MockLocalStorageService.Object);
             
         // Add mock FilePicker module for testing
         Services.AddTransient<IJSFilePickerModule, MockFilePickerModule>();
@@ -101,6 +113,9 @@ public class ApBoxTestContext : Bunit.TestContext
         Services.AddScoped<PluginsConfigurationViewModel>();
         Services.AddScoped<SystemConfigurationViewModel>();
 
+        // Add card number format service for UI testing
+        Services.AddScoped<CardNumberFormatService>();
+
         // Add other required services
         Services.AddLogging();
         
@@ -127,9 +142,14 @@ public class ApBoxTestContext : Bunit.TestContext
         MockSystemRestartService.Reset();
         MockReaderPluginMappingService.Reset();
         MockSerialPortService.Reset();
+        MockLocalStorageService.Reset();
         
         // Re-setup default behaviors after reset
         MockSerialPortService.Setup(x => x.GetAvailablePortNames()).Returns(new[] { "COM1", "COM2", "COM3" });
+        MockLocalStorageService.Setup(x => x.GetItemAsStringAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(string.Empty);
+        MockLocalStorageService.Setup(x => x.SetItemAsStringAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<CancellationToken>()))
+            .Returns(ValueTask.CompletedTask);
     }
 
     public void SetupDefaultMocks()

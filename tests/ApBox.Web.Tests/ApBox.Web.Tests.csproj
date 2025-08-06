@@ -9,6 +9,7 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <PackageReference Include="Blazored.LocalStorage" Version="4.5.0" />
     <PackageReference Include="bunit" Version="1.40.0" />
     <PackageReference Include="Blazorise.Tests.bUnit" Version="1.8.0" />
     <PackageReference Include="coverlet.collector" Version="6.0.2" />

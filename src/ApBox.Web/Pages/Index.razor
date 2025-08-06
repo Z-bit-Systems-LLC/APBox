@@ -1,8 +1,10 @@
 @page "/"
 @using ApBox.Web.ViewModels
+@using ApBox.Web.Services
 @using ApBox.Core.Models
 @using Blazorise.SpinKit
 @inject DashboardViewModel ViewModel
+@inject CardNumberFormatService FormatService
 @implements IDisposable
 
 <PageTitle>ApBox Dashboard</PageTitle>
@@ -117,7 +119,10 @@
             <Column>
                 <Card ElementId="recent-events-card">
                     <CardHeader>
-                        <Heading Size="HeadingSize.Is4" Margin="Margin.Is0" ElementId="recent-events-title">Today's Recent Events (Cards & PINs)</Heading>
+                        <Div Flex="Flex.JustifyContent.Between.AlignItems.Center">
+                            <Heading Size="HeadingSize.Is4" Margin="Margin.Is0" ElementId="recent-events-title">Today's Recent Events (Cards & PINs)</Heading>
+                            <ApBox.Web.Components.CardNumberFormatSelector />
+                        </Div>
                     </CardHeader>
                     <CardBody>
                         @if (ViewModel.RecentEvents.Any())
@@ -146,7 +151,9 @@
                                                     </Badge>
                                                 </TableRowCell>
                                                 <TableRowCell>@cardEvent.ReaderName</TableRowCell>
-                                                <TableRowCell>@cardEvent.CardNumber</TableRowCell>
+                                                <TableRowCell>
+                                                    <Text TextStyle="TextStyle.Monospace">@FormatService.FormatCardNumber(cardEvent.CardNumber, cardEvent.BitLength)</Text>
+                                                </TableRowCell>
                                                 <TableRowCell>
                                                     @if (cardEvent.Success)
                                                     {
@@ -168,7 +175,9 @@
                                                     </Badge>
                                                 </TableRowCell>
                                                 <TableRowCell>@legacyCardEvent.ReaderName</TableRowCell>
-                                                <TableRowCell>@legacyCardEvent.CardNumber</TableRowCell>
+                                                <TableRowCell>
+                                                    <Text TextStyle="TextStyle.Monospace">@FormatService.FormatCardNumber(legacyCardEvent.CardNumber, legacyCardEvent.BitLength)</Text>
+                                                </TableRowCell>
                                                 <TableRowCell>
                                                     <Badge Color="Color.Secondary">Processed</Badge>
                                                 </TableRowCell>
@@ -220,6 +229,10 @@
         ViewModel.StateHasChanged = StateHasChanged;
         ViewModel.InvokeAsync = InvokeAsync;
         
+        // Initialize format service and subscribe to changes
+        await FormatService.InitializeAsync();
+        FormatService.FormatChanged += OnFormatChanged;
+        
         // Initialize the ViewModel
         await ViewModel.InitializeCommand.ExecuteAsync(null);
     }
@@ -234,8 +247,17 @@
         };
     }
 
+    private void OnFormatChanged(CardNumberFormat newFormat)
+    {
+        InvokeAsync(StateHasChanged);
+    }
+
     public void Dispose()
     {
         ViewModel.Dispose();
+        if (FormatService != null)
+        {
+            FormatService.FormatChanged -= OnFormatChanged;
+        }
     }
 }

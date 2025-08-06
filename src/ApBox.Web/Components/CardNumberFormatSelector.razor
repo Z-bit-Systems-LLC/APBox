@@ -1,0 +1,66 @@
+@using ApBox.Web.Services
+@inject CardNumberFormatService FormatService
+@implements IDisposable
+
+<Buttons Role="ButtonsRole.Toolbar">
+    <Buttons>
+        <Button Color="@GetButtonColor(CardNumberFormat.Decimal)"
+                Clicked="() => SetFormat(CardNumberFormat.Decimal)"
+                Outline="@(!IsActive(CardNumberFormat.Decimal))"
+                Size="Size.ExtraSmall"
+                ElementId="format-decimal">
+            DEC
+        </Button>
+        <Button Color="@GetButtonColor(CardNumberFormat.Hexadecimal)"
+                Clicked="() => SetFormat(CardNumberFormat.Hexadecimal)"
+                Outline="@(!IsActive(CardNumberFormat.Hexadecimal))"
+                Size="Size.ExtraSmall"
+                ElementId="format-hexadecimal">
+            HEX
+        </Button>
+        <Button Color="@GetButtonColor(CardNumberFormat.Binary)"
+                Clicked="() => SetFormat(CardNumberFormat.Binary)"
+                Outline="@(!IsActive(CardNumberFormat.Binary))"
+                Size="Size.ExtraSmall"
+                ElementId="format-binary">
+            BIN
+        </Button>
+    </Buttons>
+</Buttons>
+
+@code {
+    protected override async Task OnInitializedAsync()
+    {
+        await FormatService.InitializeAsync();
+        FormatService.FormatChanged += OnFormatChanged;
+        StateHasChanged();
+    }
+
+    private void SetFormat(CardNumberFormat format)
+    {
+        FormatService.CurrentFormat = format;
+    }
+
+    private Color GetButtonColor(CardNumberFormat format)
+    {
+        return IsActive(format) ? Color.Primary : Color.Secondary;
+    }
+
+    private bool IsActive(CardNumberFormat format)
+    {
+        return FormatService.CurrentFormat == format;
+    }
+
+    private void OnFormatChanged(CardNumberFormat newFormat)
+    {
+        InvokeAsync(StateHasChanged);
+    }
+
+    public void Dispose()
+    {
+        if (FormatService != null)
+        {
+            FormatService.FormatChanged -= OnFormatChanged;
+        }
+    }
+}

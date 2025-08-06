@@ -7,6 +7,7 @@ using ApBox.Core.Services.Infrastructure;
 using Blazorise;
 using Blazorise.Bootstrap5;
 using Blazorise.Icons.FontAwesome;
+using Blazored.LocalStorage;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -28,6 +29,12 @@ builder.Services.AddSignalR();
 
 // Add ApBox services (business logic, OSDP, etc.)
 builder.Services.AddApBoxServices(builder.Configuration);
+
+// Add Blazored LocalStorage
+builder.Services.AddBlazoredLocalStorage();
+
+// Add card number format service
+builder.Services.AddScoped<CardNumberFormatService>();
 
 // Add HttpClient for Blazor components
 builder.Services.AddHttpClient();
