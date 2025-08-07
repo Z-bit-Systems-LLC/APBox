@@ -1,5 +1,6 @@
 using ApBox.Core.Models;
 using ApBox.Core.Services.Configuration;
+using ApBox.Core.Services.Core;
 using ApBox.Core.Services.Infrastructure;
 using ApBox.Core.Services.Security;
 using ApBox.Plugins;
@@ -15,6 +16,7 @@ public class OsdpCommunicationManager : IOsdpCommunicationManager
     private readonly ISerialPortService _serialPortService;
     private readonly ISecurityModeUpdateService _securityModeUpdateService;
     private readonly IFeedbackConfigurationService _feedbackConfigurationService;
+    private readonly IPinCollectionService _pinCollectionService;
     private readonly CancellationTokenSource _cancellationTokenSource = new();
     private ControlPanel? _controlPanel;
     private bool _isRunning;
@@ -24,17 +26,24 @@ public class OsdpCommunicationManager : IOsdpCommunicationManager
         ISerialPortService serialPortService,
         ISecurityModeUpdateService securityModeUpdateService,
         IFeedbackConfigurationService feedbackConfigurationService,
+        IPinCollectionService pinCollectionService,
         ILogger<OsdpCommunicationManager> logger)
     {
         _logger = logger;
         _serialPortService = serialPortService;
         _securityModeUpdateService = securityModeUpdateService;
         _feedbackConfigurationService = feedbackConfigurationService;
+        _pinCollectionService = pinCollectionService;
+        
+        // Subscribe to PIN collection events
+        _pinCollectionService.PinCollectionCompleted += OnPinCollectionCompleted;
     }
     
     public event EventHandler<CardReadEvent>? CardRead;
+    public event EventHandler<PinReadEvent>? PinRead;
     public event EventHandler<PinDigitEvent>? PinDigitReceived;
     public event EventHandler<OsdpDeviceStatusEventArgs>? DeviceStatusChanged;
+    public event EventHandler<ReaderStatusChangedEventArgs>? ReaderStatusChanged;
     
     public Task<IEnumerable<IOsdpDevice>> GetDevicesAsync()
     {
@@ -164,6 +173,9 @@ public class OsdpCommunicationManager : IOsdpCommunicationManager
         var disconnectTasks = _devices.Values.Select(d => d.DisconnectAsync());
         await Task.WhenAll(disconnectTasks);
         
+        // Unsubscribe from PIN collection events
+        _pinCollectionService.PinCollectionCompleted -= OnPinCollectionCompleted;
+        
         // Stop all connections and dispose ControlPanel
         if (_controlPanel != null)
         {
@@ -194,9 +206,19 @@ public class OsdpCommunicationManager : IOsdpCommunicationManager
         CardRead?.Invoke(this, e);
     }
     
+    
     private void OnDevicePinDigitReceived(object? sender, PinDigitEvent e)
     {
+        // Forward to our PIN collection service for processing
+        _ = Task.Run(async () => await _pinCollectionService.AddDigitAsync(e.ReaderId, e.Digit));
+        
+        // Also raise the raw event for any other subscribers
         PinDigitReceived?.Invoke(this, e);
+    }
+    
+    private void OnPinCollectionCompleted(object? sender, PinReadEvent e)
+    {
+        PinRead?.Invoke(this, e);
     }
     
     private void OnDeviceStatusChanged(object? sender, OsdpStatusChangedEventArgs e)
@@ -209,6 +231,15 @@ public class OsdpCommunicationManager : IOsdpCommunicationManager
                 IsOnline = e.IsOnline,
                 Message = e.Message,
                 Timestamp = e.Timestamp
+            });
+            
+            // Also trigger the reader status changed event
+            ReaderStatusChanged?.Invoke(this, new ReaderStatusChangedEventArgs
+            {
+                ReaderId = device.Id,
+                ReaderName = device.Name,
+                IsOnline = e.IsOnline,
+                ErrorMessage = e.IsOnline ? null : e.Message
             });
         }
     }

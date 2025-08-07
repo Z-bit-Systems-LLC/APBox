@@ -6,6 +6,7 @@ using ApBox.Core.Services.Configuration;
 using ApBox.Core.Services.Persistence;
 using ApBox.Core.Services.Infrastructure;
 using ApBox.Core.Services.Plugins;
+using ApBox.Core.Services.Events;
 using ApBox.Core.Data;
 using ApBox.Plugins;
 using ApBox.Web.ViewModels;
@@ -32,32 +33,14 @@ public static class ServiceCollectionExtensions
         // Register OSDP services
         services.AddSingleton<IOsdpCommunicationManager, OsdpCommunicationManager>();
         services.AddHostedService<OsdpStartupService>();
-        services.AddHostedService<OsdpStatusBridgeService>();
-        services.AddHostedService<CardProcessingBridgeService>();
-        services.AddHostedService<PinProcessingBridgeService>();
         
-        // Register core application services
-        services.AddSingleton<ICardProcessingService, CardProcessingService>();
-        services.AddSingleton<ICardEventPersistenceService, CardEventPersistenceService>();
-        services.AddSingleton<IReaderService, ReaderService>();
+        // Register notification services
+        services.AddSingleton<INotificationAggregator, ServerSideNotificationAggregator>();
+        services.AddHostedService<ServerSideNotificationAggregator>(provider => 
+            (ServerSideNotificationAggregator)provider.GetRequiredService<INotificationAggregator>());
         
-        // Register core event processing orchestrators
-        services.AddSingleton<CardEventProcessingOrchestrator>();
-        services.AddSingleton<PinEventProcessingOrchestrator>();
-        
-        // Register web orchestrators that handle notifications
-        services.AddSingleton<ICardProcessingOrchestrator, CardProcessingWebOrchestrator>();
-        services.AddSingleton<IPinProcessingOrchestrator, PinProcessingWebOrchestrator>();
-        
-        // Register enhanced services for SignalR integration
-        services.AddSingleton<IEnhancedCardProcessingService, SignalRCardProcessingService>();
-        
-        // Register PIN processing services
-        services.AddSingleton<IPinProcessingService, PinProcessingService>();
-        services.AddSingleton<IPinEventPersistenceService, PinEventPersistenceService>();
-        
-        // Register unified notification aggregator
-        services.AddSingleton<INotificationAggregator, SignalRNotificationAggregator>();
+        // Register SignalR event subscriber (replaces old bridge services)
+        services.AddHostedService<SignalREventSubscriber>();
         
         
         // Register ViewModels

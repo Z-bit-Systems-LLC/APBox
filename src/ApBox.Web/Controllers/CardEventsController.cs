@@ -1,8 +1,8 @@
 using ApBox.Core.Models;
 using ApBox.Core.Services.Core;
 using ApBox.Core.Services.Configuration;
+using ApBox.Core.Services.Infrastructure;
 using ApBox.Plugins;
-using ApBox.Web.Services;
 using Microsoft.AspNetCore.Mvc;
 
 namespace ApBox.Web.Controllers;
@@ -15,19 +15,19 @@ namespace ApBox.Web.Controllers;
 [Produces("application/json")]
 public class CardEventsController : ControllerBase
 {
-    private readonly ICardProcessingService _cardProcessingService;
-    private readonly IEnhancedCardProcessingService _enhancedCardProcessingService;
+    private readonly IEventProcessingPipeline _eventProcessingPipeline;
+    private readonly CardEventProcessingOrchestrator _cardEventOrchestrator;
     private readonly IFeedbackConfigurationService _feedbackConfigurationService;
     private readonly ILogger<CardEventsController> _logger;
     
     public CardEventsController(
-        ICardProcessingService cardProcessingService,
-        IEnhancedCardProcessingService enhancedCardProcessingService,
+        IEventProcessingPipeline eventProcessingPipeline,
+        CardEventProcessingOrchestrator cardEventOrchestrator,
         IFeedbackConfigurationService feedbackConfigurationService,
         ILogger<CardEventsController> logger)
     {
-        _cardProcessingService = cardProcessingService;
-        _enhancedCardProcessingService = enhancedCardProcessingService;
+        _eventProcessingPipeline = eventProcessingPipeline;
+        _cardEventOrchestrator = cardEventOrchestrator;
         _feedbackConfigurationService = feedbackConfigurationService;
         _logger = logger;
     }
@@ -59,10 +59,9 @@ public class CardEventsController : ControllerBase
             _logger.LogInformation("Processing manual card read for reader {ReaderId}, card {CardNumber}", 
                 request.ReaderId, request.CardNumber);
             
-            var result = await _cardProcessingService.ProcessCardReadAsync(cardReadEvent);
-            var feedback = result.Success 
-                ? await _feedbackConfigurationService.GetSuccessFeedbackAsync()
-                : await _feedbackConfigurationService.GetFailureFeedbackAsync();
+            var processingResult = await _cardEventOrchestrator.ProcessEventAsync(cardReadEvent);
+            var result = processingResult.PluginResult;
+            var feedback = processingResult.Feedback;
             
             var response = new CardProcessingResultDto
             {
@@ -110,11 +109,18 @@ public class CardEventsController : ControllerBase
             _logger.LogInformation("Processing real-time card read for reader {ReaderId}, card {CardNumber}", 
                 request.ReaderId, request.CardNumber);
 
-            // Use enhanced service for real-time processing and notifications
-            var result = await _enhancedCardProcessingService.ProcessCardReadWithNotificationAsync(cardReadEvent);
-            var feedback = result.Success 
-                ? await _feedbackConfigurationService.GetSuccessFeedbackAsync()
-                : await _feedbackConfigurationService.GetFailureFeedbackAsync();
+            // Use event processing pipeline for real-time processing and notifications
+            await _eventProcessingPipeline.ProcessCardEventAsync(cardReadEvent);
+            
+            // For the API response, we need to determine the result
+            // Since the pipeline is async, we'll return a success response
+            // The actual processing result will be sent via SignalR
+            var result = new CardReadResult 
+            { 
+                Success = true, 
+                Message = "Card event submitted for processing" 
+            };
+            var feedback = await _feedbackConfigurationService.GetSuccessFeedbackAsync();
 
             var response = new CardProcessingResultDto
             {

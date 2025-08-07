@@ -1,6 +1,7 @@
 using ApBox.Core.Models;
 using ApBox.Core.OSDP;
 using ApBox.Core.Services.Configuration;
+using ApBox.Core.Services.Core;
 using ApBox.Core.Services.Infrastructure;
 using ApBox.Core.Services.Security;
 using Microsoft.Extensions.Logging;
@@ -58,7 +59,8 @@ public class OsdpCommunicationTests
                                  }
                              });
         
-        _communicationManager = new OsdpCommunicationManager(_mockSerialPortService.Object, mockSecurityModeUpdateService.Object, mockFeedbackConfigurationService.Object, _logger);
+        var mockPinCollectionService = new Mock<IPinCollectionService>();
+        _communicationManager = new OsdpCommunicationManager(_mockSerialPortService.Object, mockSecurityModeUpdateService.Object, mockFeedbackConfigurationService.Object, mockPinCollectionService.Object, _logger);
     }
     
     [TearDown]

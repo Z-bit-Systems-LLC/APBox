@@ -37,7 +37,6 @@ public class ApBoxTestContext : Bunit.TestContext
     public Mock<IConfigurationExportService> MockConfigurationExportService { get; private set; }
     public Mock<ISystemRestartService> MockSystemRestartService { get; private set; }
     public Mock<ICardEventPersistenceService> MockCardEventPersistenceService { get; private set; }
-    public Mock<ICardProcessingOrchestrator> MockCardProcessingOrchestrator { get; private set; }
     public MockNotificationAggregator MockNotificationAggregator { get; private set; }
     public Mock<IReaderPluginMappingService> MockReaderPluginMappingService { get; private set; }
     public Mock<ISerialPortService> MockSerialPortService { get; private set; }
@@ -57,7 +56,6 @@ public class ApBoxTestContext : Bunit.TestContext
         MockConfigurationExportService = new Mock<IConfigurationExportService>();
         MockSystemRestartService = new Mock<ISystemRestartService>();
         MockCardEventPersistenceService = new Mock<ICardEventPersistenceService>();
-        MockCardProcessingOrchestrator = new Mock<ICardProcessingOrchestrator>();
         MockNotificationAggregator = new MockNotificationAggregator();
         MockReaderPluginMappingService = new Mock<IReaderPluginMappingService>();
         MockSerialPortService = new Mock<ISerialPortService>();
@@ -98,7 +96,6 @@ public class ApBoxTestContext : Bunit.TestContext
         Services.AddSingleton(MockConfigurationExportService.Object);
         Services.AddSingleton(MockSystemRestartService.Object);
         Services.AddSingleton(MockCardEventPersistenceService.Object);
-        Services.AddSingleton(MockCardProcessingOrchestrator.Object);
         Services.AddSingleton<INotificationAggregator>(MockNotificationAggregator);
         Services.AddSingleton(MockReaderPluginMappingService.Object);
         Services.AddSingleton(MockSerialPortService.Object);

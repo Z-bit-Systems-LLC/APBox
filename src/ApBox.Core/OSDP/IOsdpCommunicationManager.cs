@@ -12,8 +12,10 @@ public interface IOsdpCommunicationManager
     Task StopAsync();
     
     event EventHandler<CardReadEvent>? CardRead;
+    event EventHandler<PinReadEvent>? PinRead;
     event EventHandler<PinDigitEvent>? PinDigitReceived;
     event EventHandler<OsdpDeviceStatusEventArgs>? DeviceStatusChanged;
+    event EventHandler<ReaderStatusChangedEventArgs>? ReaderStatusChanged;
 }
 
 public class OsdpDeviceStatusEventArgs : EventArgs

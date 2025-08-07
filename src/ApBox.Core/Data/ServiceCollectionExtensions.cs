@@ -6,6 +6,7 @@ using ApBox.Core.Services.Core;
 using ApBox.Core.Services.Security;
 using ApBox.Core.Services.Persistence;
 using ApBox.Core.Services.Infrastructure;
+using ApBox.Core.Services.Events;
 
 namespace ApBox.Core.Data;
 
@@ -69,6 +70,30 @@ public static class ServiceCollectionExtensions
         
         // Register PIN event persistence service
         services.AddSingleton<IPinEventPersistenceService, PinEventPersistenceService>();
+        
+        // Register event publishing services
+        services.AddSingleton<IEventPublisher, InMemoryEventPublisher>();
+        
+        // Register processing services
+        services.AddSingleton<ICardProcessingService, CardProcessingService>();
+        services.AddSingleton<IPinProcessingService, PinProcessingService>();
+        services.AddSingleton<ICardEventPersistenceService, CardEventPersistenceService>();
+        
+        // Register orchestrators
+        services.AddSingleton<CardEventProcessingOrchestrator>();
+        services.AddSingleton<PinEventProcessingOrchestrator>();
+        
+        // Register pipeline and bridge service (pipeline needs repository for enrichment)
+        services.AddSingleton<IEventProcessingPipeline>(provider =>
+        {
+            var cardOrchestrator = provider.GetRequiredService<CardEventProcessingOrchestrator>();
+            var pinOrchestrator = provider.GetRequiredService<PinEventProcessingOrchestrator>();
+            var eventPublisher = provider.GetRequiredService<IEventPublisher>();
+            var readerConfigRepository = provider.GetRequiredService<IReaderConfigurationRepository>();
+            var logger = provider.GetRequiredService<ILogger<EventProcessingPipeline>>();
+            return new EventProcessingPipeline(cardOrchestrator, pinOrchestrator, eventPublisher, readerConfigRepository, logger);
+        });
+        services.AddHostedService<EventBridgeService>();
         
         return services;
     }
