@@ -9,7 +9,6 @@ using ApBox.Core.Models;
 using ApBox.Web.Services;
 using ApBox.Plugins;
 using ApBox.Core.Services.Plugins;
-using Microsoft.Extensions.Logging;
 
 namespace ApBox.Web.ViewModels;
 

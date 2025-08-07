@@ -1,21 +1,18 @@
 using ApBox.Core.Models;
 using ApBox.Core.OSDP;
 using ApBox.Plugins;
-using ApBox.Core.Services.Plugins;
 using Microsoft.Extensions.Logging;
 
 namespace ApBox.Core.Tests.OSDP;
 
 public class MockOsdpDevice : IOsdpDevice
 {
-    private readonly OsdpDeviceConfiguration _config;
     private readonly ILogger _logger;
     private readonly Timer? _simulationTimer;
     private readonly Random _random = new();
     
     public MockOsdpDevice(OsdpDeviceConfiguration config, ILogger logger)
     {
-        _config = config;
         _logger = logger;
         Id = config.Id;
         Address = config.Address;
@@ -55,7 +52,7 @@ public class MockOsdpDevice : IOsdpDevice
         
         try
         {
-            // Simulate connection process
+            // Simulate the connection process
             IsOnline = true;
             LastActivity = DateTime.UtcNow;
             

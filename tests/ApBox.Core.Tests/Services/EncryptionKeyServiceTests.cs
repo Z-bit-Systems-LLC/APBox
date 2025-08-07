@@ -1,4 +1,3 @@
-using NUnit.Framework;
 using Microsoft.Extensions.Logging;
 using Moq;
 using ApBox.Core.Services.Security;
@@ -24,7 +23,7 @@ public class EncryptionKeyServiceTests
         _mockFileSystem.Setup(x => x.GetFolderPath(Environment.SpecialFolder.CommonApplicationData))
                       .Returns(@"C:\ProgramData");
         _mockFileSystem.Setup(x => x.CombinePath(It.IsAny<string[]>()))
-                      .Returns((string[] paths) => paths != null && paths.Length > 0 ? Path.Combine(paths) : string.Empty);
+                      .Returns((string[] paths) => paths.Length > 0 ? Path.Combine(paths) : string.Empty);
         
         _keyService = new EncryptionKeyService(_mockLogger.Object, _mockFileSystem.Object);
     }
@@ -32,7 +31,7 @@ public class EncryptionKeyServiceTests
     [TearDown]
     public void TearDown()
     {
-        _keyService?.Dispose();
+        _keyService.Dispose();
     }
 
     [Test]
@@ -138,7 +137,7 @@ public class EncryptionKeyServiceTests
     }
 
     [Test]
-    public async Task GetEncryptionKeyAsync_InvalidKeyLength_ThrowsException()
+    public void GetEncryptionKeyAsync_InvalidKeyLength_ThrowsException()
     {
         // Arrange
         var invalidKeyBase64 = Convert.ToBase64String(new byte[16]); // Invalid length (should be 32)
@@ -152,7 +151,7 @@ public class EncryptionKeyServiceTests
     }
 
     [Test]
-    public async Task GetEncryptionKeyAsync_FileSystemException_ThrowsException()
+    public void GetEncryptionKeyAsync_FileSystemException_ThrowsException()
     {
         // Arrange
         _mockFileSystem.Setup(x => x.FileExists(It.IsAny<string>())).Returns(true);

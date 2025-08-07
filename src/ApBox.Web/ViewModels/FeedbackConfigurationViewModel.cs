@@ -3,7 +3,6 @@ using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using ApBox.Core.Services.Configuration;
 using ApBox.Core.Models;
-using Microsoft.Extensions.Logging;
 
 namespace ApBox.Web.ViewModels;
 

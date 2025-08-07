@@ -1,6 +1,3 @@
-using System;
-using System.Threading.Tasks;
-
 namespace ApBox.Core.Services.Persistence;
 
 public interface ICacheService

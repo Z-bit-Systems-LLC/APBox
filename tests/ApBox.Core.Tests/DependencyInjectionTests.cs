@@ -1,9 +1,7 @@
 using ApBox.Web.Services;
 using ApBox.Core.Services.Core;
 using ApBox.Core.Services.Reader;
-using ApBox.Core.Services.Configuration;
 using ApBox.Core.Services.Persistence;
-using ApBox.Plugins;
 using ApBox.Core.Services.Plugins;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;

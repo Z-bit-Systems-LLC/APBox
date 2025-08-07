@@ -1,5 +1,4 @@
 using System.Reflection;
-using Microsoft.Extensions.Logging;
 using ApBox.Plugins;
 
 namespace ApBox.Core.Services.Plugins;

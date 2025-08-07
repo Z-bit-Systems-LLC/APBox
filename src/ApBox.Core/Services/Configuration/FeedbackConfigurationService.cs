@@ -23,14 +23,7 @@ public class FeedbackConfigurationService : IFeedbackConfigurationService
     {
         try
         {
-            var configuration = await _repository.GetConfigurationAsync();
-            
-            // Ensure we have valid configurations with defaults if nothing exists
-            configuration.SuccessFeedback ??= GetDefaultSuccessFeedback();
-            configuration.FailureFeedback ??= GetDefaultFailureFeedback();
-            configuration.IdleState ??= GetDefaultIdleState();
-
-            return configuration;
+            return await _repository.GetConfigurationAsync();
         }
         catch (Exception ex)
         {

@@ -2,7 +2,6 @@ using ApBox.Core.Extensions;
 using ApBox.Core.Models;
 using ApBox.Core.Services.Security;
 using Moq;
-using NUnit.Framework;
 
 namespace ApBox.Core.Tests.Extensions;
 

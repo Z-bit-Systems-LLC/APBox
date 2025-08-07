@@ -1,4 +1,3 @@
-using ApBox.Core.Models;
 using ApBox.Core.OSDP;
 using Microsoft.Extensions.Logging;
 

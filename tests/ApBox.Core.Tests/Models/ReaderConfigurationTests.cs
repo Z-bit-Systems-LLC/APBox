@@ -1,5 +1,4 @@
 using ApBox.Core.Models;
-using NUnit.Framework;
 
 namespace ApBox.Core.Tests.Models;
 

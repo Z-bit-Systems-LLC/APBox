@@ -1,5 +1,3 @@
-using ApBox.Core.Data.Models;
-
 namespace ApBox.Core.Data.Repositories;
 
 public interface IPluginConfigurationRepository

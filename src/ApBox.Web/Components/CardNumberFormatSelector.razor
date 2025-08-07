@@ -2,25 +2,25 @@
 @inject CardNumberFormatService FormatService
 @implements IDisposable
 
-<Buttons>
-    <Buttons Size="Size.ExtraSmall">
-        <Button Clicked="() => SetFormat(CardNumberFormat.Decimal)"
-                Active="@IsActive(CardNumberFormat.Decimal)"
-                ElementId="format-decimal">
-            DEC
-        </Button>
-        <Button Clicked="() => SetFormat(CardNumberFormat.Hexadecimal)"
-                Active="@IsActive(CardNumberFormat.Hexadecimal)"
-                ElementId="format-hexadecimal">
-            HEX
-        </Button>
-        <Button Clicked="() => SetFormat(CardNumberFormat.Binary)"
-                Active="@IsActive(CardNumberFormat.Binary)"
-                ElementId="format-binary">
-            BIN
-        </Button>
-    </Buttons>
+
+<Buttons Size="Size.ExtraSmall">
+    <Button Clicked="() => SetFormat(CardNumberFormat.Decimal)"
+            Active="@IsActive(CardNumberFormat.Decimal)"
+            ElementId="format-decimal">
+        DEC
+    </Button>
+    <Button Clicked="() => SetFormat(CardNumberFormat.Hexadecimal)"
+            Active="@IsActive(CardNumberFormat.Hexadecimal)"
+            ElementId="format-hexadecimal">
+        HEX
+    </Button>
+    <Button Clicked="() => SetFormat(CardNumberFormat.Binary)"
+            Active="@IsActive(CardNumberFormat.Binary)"
+            ElementId="format-binary">
+        BIN
+    </Button>
 </Buttons>
+
 
 @code {
     protected override async Task OnInitializedAsync()

@@ -1,4 +1,3 @@
-using ApBox.Core.Data.Models;
 using ApBox.Core.Models;
 
 namespace ApBox.Core.Data.Repositories;

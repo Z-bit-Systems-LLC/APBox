@@ -1,5 +1,4 @@
 using ApBox.Core.Services.Plugins;
-using ApBox.Plugins;
 
 namespace ApBox.Core.Tests.Services.Plugins;
 

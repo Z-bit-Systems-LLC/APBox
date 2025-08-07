@@ -1,6 +1,5 @@
 using ApBox.Core.Models;
 using ApBox.Core.Services.Security;
-using NUnit.Framework;
 
 namespace ApBox.Core.Tests.Services;
 

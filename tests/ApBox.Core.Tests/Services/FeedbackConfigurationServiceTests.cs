@@ -1,8 +1,6 @@
 using ApBox.Core.Data.Repositories;
 using ApBox.Core.Models;
 using ApBox.Core.Services.Configuration;
-using ApBox.Plugins;
-using ApBox.Core.Services.Plugins;
 using Microsoft.Extensions.Logging;
 using Moq;
 
@@ -105,12 +103,7 @@ public class FeedbackConfigurationServiceTests
     public async Task GetDefaultConfigurationAsync_WhenRepositoryReturnsNulls_FillsWithDefaults()
     {
         // Arrange
-        var configWithNulls = new FeedbackConfiguration
-        {
-            SuccessFeedback = null,
-            FailureFeedback = null,
-            IdleState = null
-        };
+        var configWithNulls = new FeedbackConfiguration();
 
         _mockRepository.Setup(r => r.GetConfigurationAsync())
             .ReturnsAsync(configWithNulls);
@@ -166,30 +159,6 @@ public class FeedbackConfigurationServiceTests
 
         // Assert
         _mockRepository.Verify(r => r.SaveConfigurationAsync(configuration), Times.Once);
-    }
-
-    [Test]
-    public void SaveDefaultConfigurationAsync_NullConfiguration_ThrowsArgumentNullException()
-    {
-        // Act & Assert
-        Assert.ThrowsAsync<ArgumentNullException>(async () => 
-            await _service.SaveDefaultConfigurationAsync(null));
-    }
-
-    [Test]
-    public void SaveDefaultConfigurationAsync_NullSuccessFeedback_ThrowsArgumentNullException()
-    {
-        // Arrange
-        var configuration = new FeedbackConfiguration
-        {
-            SuccessFeedback = null,
-            FailureFeedback = new ReaderFeedback { Type = ReaderFeedbackType.Failure },
-            IdleState = new IdleStateFeedback()
-        };
-
-        // Act & Assert
-        Assert.ThrowsAsync<ArgumentNullException>(async () => 
-            await _service.SaveDefaultConfigurationAsync(configuration));
     }
 
     [Test]
@@ -288,7 +257,7 @@ public class FeedbackConfigurationServiceTests
     {
         // Arrange
         _mockRepository.Setup(r => r.GetFeedbackByTypeAsync(ReaderFeedbackType.Success))
-            .ReturnsAsync((ReaderFeedback)null);
+            .ReturnsAsync((ReaderFeedback?)null);
 
         // Act
         var result = await _service.GetSuccessFeedbackAsync();

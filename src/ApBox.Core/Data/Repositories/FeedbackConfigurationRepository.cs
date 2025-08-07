@@ -1,6 +1,5 @@
 using ApBox.Core.Data.Models;
 using ApBox.Core.Models;
-using ApBox.Plugins;
 using Dapper;
 
 namespace ApBox.Core.Data.Repositories;

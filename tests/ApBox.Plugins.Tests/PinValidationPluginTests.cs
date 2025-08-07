@@ -1,8 +1,6 @@
-using ApBox.Plugins;
-using ApBox.SamplePlugins;
 using Microsoft.Extensions.Logging;
+using ApBox.SamplePlugins;
 using Moq;
-using NUnit.Framework;
 
 namespace ApBox.Plugins.Tests;
 

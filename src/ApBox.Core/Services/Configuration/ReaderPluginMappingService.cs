@@ -1,6 +1,5 @@
 using ApBox.Core.Data.Models;
 using ApBox.Core.Data.Repositories;
-using Microsoft.Extensions.Logging;
 
 namespace ApBox.Core.Services.Configuration;
 
