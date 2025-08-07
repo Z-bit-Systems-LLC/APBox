@@ -152,6 +152,78 @@ dotnet test --filter "Category=Unit"
 dotnet-coverage collect "dotnet test" -f xml -o coverage.xml
 ```
 
+## Building Single Executable
+
+ApBox can be built as a self-contained single executable file that includes all .NET libraries, eliminating the need to install .NET runtime on target systems.
+
+### Self-Contained Single File Build
+
+Build a single executable with all dependencies included:
+
+```bash
+# Windows x64
+dotnet publish src/ApBox.Web -c Release -r win-x64 --self-contained -p:PublishSingleFile=true -o publish/win-x64
+
+# Linux x64 (for Raspberry Pi)
+dotnet publish src/ApBox.Web -c Release -r linux-x64 --self-contained -p:PublishSingleFile=true -o publish/linux-x64
+
+# Linux ARM64 (for ARM-based systems)
+dotnet publish src/ApBox.Web -c Release -r linux-arm64 --self-contained -p:PublishSingleFile=true -o publish/linux-arm64
+```
+
+### Optimized Production Build
+
+For smaller file sizes and better performance:
+
+```bash
+# Trimmed build (removes unused code)
+dotnet publish src/ApBox.Web -c Release -r win-x64 --self-contained -p:PublishSingleFile=true -p:PublishTrimmed=true -o publish/win-x64-trimmed
+
+# Ready-to-run (faster startup)
+dotnet publish src/ApBox.Web -c Release -r win-x64 --self-contained -p:PublishSingleFile=true -p:PublishReadyToRun=true -o publish/win-x64-r2r
+```
+
+### Deployment
+
+The published executable includes:
+- All .NET runtime components
+- Application code and dependencies
+- SQLite database provider
+- Web assets and static files
+
+Simply copy the executable to the target system:
+
+```bash
+# Windows
+copy publish/win-x64/ApBox.Web.exe C:\ApBox\
+C:\ApBox\ApBox.Web.exe
+
+# Linux
+cp publish/linux-x64/ApBox.Web /opt/apbox/
+/opt/apbox/ApBox.Web
+```
+
+### Runtime Identifiers (RIDs)
+
+Common runtime identifiers for ApBox deployment:
+
+| Platform | RID | Use Case |
+|----------|-----|----------|
+| `win-x64` | Windows 64-bit | Development, Windows servers |
+| `win-arm64` | Windows ARM64 | Windows on ARM devices |
+| `linux-x64` | Linux 64-bit | Ubuntu, Debian, CentOS |
+| `linux-arm` | Linux ARM32 | Raspberry Pi 3/4 (32-bit) |
+| `linux-arm64` | Linux ARM64 | Raspberry Pi 4 (64-bit), Strato Pi |
+
+### Build Options
+
+| Option | Description | Impact |
+|--------|-------------|--------|
+| `--self-contained` | Includes .NET runtime | Larger size, no runtime dependency |
+| `-p:PublishSingleFile=true` | Bundles everything into one file | Single executable |
+| `-p:PublishTrimmed=true` | Removes unused assemblies | Smaller size, faster startup |
+| `-p:PublishReadyToRun=true` | Pre-compiles to native code | Faster startup, larger size |
+
 ## Configuration
 
 ### System Configuration Export/Import
