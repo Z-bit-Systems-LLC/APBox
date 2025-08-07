@@ -183,6 +183,35 @@ dotnet publish src/ApBox.Web -c Release -r win-x64 --self-contained -p:PublishSi
 dotnet publish src/ApBox.Web -c Release -r win-x64 --self-contained -p:PublishSingleFile=true -p:PublishReadyToRun=true -o publish/win-x64-r2r
 ```
 
+### Plugin Handling
+
+The single-file executable **does not automatically include plugin DLLs** since they are loaded dynamically at runtime. You have two options:
+
+#### Option 1: Deploy Plugins Separately (Recommended)
+```bash
+# Build and publish main application
+dotnet publish src/ApBox.Web -c Release -r win-x64 --self-contained -p:PublishSingleFile=true -o publish/win-x64
+
+# Build plugins separately
+dotnet build src/ApBox.SamplePlugins -c Release -o publish/win-x64/plugins
+
+# Deploy both executable and plugins folder
+copy publish/win-x64/ApBox.Web.exe C:\ApBox\
+xcopy publish/win-x64/plugins C:\ApBox\plugins\ /E /I
+```
+
+#### Option 2: Include Plugins in Build
+Add plugin projects as dependencies to force inclusion:
+
+```xml
+<!-- Add to src/ApBox.Web/ApBox.Web.csproj -->
+<ItemGroup>
+  <ProjectReference Include="../ApBox.SamplePlugins/ApBox.SamplePlugins.csproj" />
+</ItemGroup>
+```
+
+Then publish normally - plugins will be embedded in the executable.
+
 ### Deployment
 
 The published executable includes:
@@ -190,16 +219,19 @@ The published executable includes:
 - Application code and dependencies
 - SQLite database provider
 - Web assets and static files
+- **Plugin DLLs** (only if using Option 2 above)
 
-Simply copy the executable to the target system:
+Deployment examples:
 
 ```bash
-# Windows
+# Windows (with separate plugins)
 copy publish/win-x64/ApBox.Web.exe C:\ApBox\
+xcopy publish/win-x64/plugins C:\ApBox\plugins\ /E /I
 C:\ApBox\ApBox.Web.exe
 
-# Linux
+# Linux (with separate plugins)
 cp publish/linux-x64/ApBox.Web /opt/apbox/
+cp -r publish/linux-x64/plugins /opt/apbox/
 /opt/apbox/ApBox.Web
 ```
 
