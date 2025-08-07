@@ -1,4 +1,5 @@
 using ApBox.Core.Models;
+using ApBox.Core.Services.Configuration;
 using ApBox.Core.Services.Core;
 using ApBox.Core.Services.Persistence;
 using ApBox.Core.Services.Reader;
@@ -26,6 +27,7 @@ public class CardProcessingWebOrchestratorTests
             Mock.Of<ICardProcessingService>(),
             Mock.Of<ICardEventPersistenceService>(),
             Mock.Of<IReaderService>(),
+            Mock.Of<IFeedbackConfigurationService>(),
             Mock.Of<ILogger<CardEventProcessingOrchestrator>>());
         _mockNotificationAggregator = new MockNotificationAggregator();
         _mockLogger = new Mock<ILogger<CardProcessingWebOrchestrator>>();

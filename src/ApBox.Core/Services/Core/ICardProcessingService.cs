@@ -16,11 +16,4 @@ public interface ICardProcessingService
     /// <returns>The result of processing the card read through the plugin system</returns>
     Task<CardReadResult> ProcessCardReadAsync(CardReadEvent cardRead);
     
-    /// <summary>
-    /// Generate appropriate reader feedback based on the card processing result.
-    /// </summary>
-    /// <param name="readerId">The ID of the reader to provide feedback to</param>
-    /// <param name="result">The result of card processing</param>
-    /// <returns>The feedback configuration to send to the reader</returns>
-    Task<ReaderFeedback> GetFeedbackAsync(Guid readerId, CardReadResult result);
 }

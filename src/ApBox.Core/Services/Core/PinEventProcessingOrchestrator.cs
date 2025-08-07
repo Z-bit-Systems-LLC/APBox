@@ -1,4 +1,5 @@
 using ApBox.Core.Models;
+using ApBox.Core.Services.Configuration;
 using ApBox.Core.Services.Persistence;
 using ApBox.Core.Services.Reader;
 using ApBox.Plugins;
@@ -13,9 +14,10 @@ public class PinEventProcessingOrchestrator(
     IPinProcessingService pinProcessingService,
     IPinEventPersistenceService persistenceService,
     IReaderService readerService,
+    IFeedbackConfigurationService feedbackConfigurationService,
     ILogger<PinEventProcessingOrchestrator> logger)
     : BaseEventProcessingOrchestrator<PinReadEvent, PinReadResult, IPinProcessingService, IPinEventPersistenceService>(
-        pinProcessingService, persistenceService, readerService, logger)
+        pinProcessingService, persistenceService, readerService, feedbackConfigurationService, logger)
 {
     protected override void LogProcessingStart(PinReadEvent eventData)
     {
@@ -56,10 +58,6 @@ public class PinEventProcessingOrchestrator(
         return await ProcessingService.ProcessPinReadAsync(eventData);
     }
 
-    protected override async Task<ReaderFeedback> GetFeedbackAsync(Guid readerId, PinReadResult result)
-    {
-        return await ProcessingService.GetFeedbackAsync(readerId, result);
-    }
 
     protected override async Task<bool> PersistSuccessEventAsync(PinReadEvent eventData, PinReadResult result)
     {

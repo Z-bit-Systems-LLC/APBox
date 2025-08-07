@@ -136,27 +136,4 @@ public class PinProcessingService : IPinProcessingService
         }
     }
 
-    public async Task<ReaderFeedback> GetFeedbackAsync(Guid readerId, PinReadResult result)
-    {
-        try
-        {
-            // Get appropriate feedback based on result
-            if (result.Success)
-            {
-                return await _feedbackService.GetSuccessFeedbackAsync();
-            }
-            else
-            {
-                return await _feedbackService.GetFailureFeedbackAsync();
-            }
-        }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, "Error resolving feedback for reader {ReaderId}", readerId);
-            return new ReaderFeedback
-            {
-                Type = result.Success ? ReaderFeedbackType.Success : ReaderFeedbackType.Failure
-            };
-        }
-    }
 }

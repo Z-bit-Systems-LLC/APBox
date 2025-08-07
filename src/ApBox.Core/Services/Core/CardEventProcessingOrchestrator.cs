@@ -1,4 +1,5 @@
 using ApBox.Core.Models;
+using ApBox.Core.Services.Configuration;
 using ApBox.Core.Services.Persistence;
 using ApBox.Core.Services.Reader;
 using ApBox.Plugins;
@@ -13,9 +14,10 @@ public class CardEventProcessingOrchestrator(
     ICardProcessingService cardProcessingService,
     ICardEventPersistenceService persistenceService,
     IReaderService readerService,
+    IFeedbackConfigurationService feedbackConfigurationService,
     ILogger<CardEventProcessingOrchestrator> logger)
     : BaseEventProcessingOrchestrator<CardReadEvent, CardReadResult, ICardProcessingService, ICardEventPersistenceService>(
-        cardProcessingService, persistenceService, readerService, logger)
+        cardProcessingService, persistenceService, readerService, feedbackConfigurationService, logger)
 {
     protected override void LogProcessingStart(CardReadEvent eventData)
     {
@@ -58,10 +60,6 @@ public class CardEventProcessingOrchestrator(
         return await ProcessingService.ProcessCardReadAsync(eventData);
     }
 
-    protected override async Task<ReaderFeedback> GetFeedbackAsync(Guid readerId, CardReadResult result)
-    {
-        return await ProcessingService.GetFeedbackAsync(readerId, result);
-    }
 
     protected override async Task<bool> PersistSuccessEventAsync(CardReadEvent eventData, CardReadResult result)
     {

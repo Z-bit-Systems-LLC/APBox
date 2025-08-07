@@ -1,4 +1,5 @@
 using ApBox.Core.Models;
+using ApBox.Core.Services.Configuration;
 using ApBox.Core.Services.Reader;
 using ApBox.Plugins;
 using Microsoft.Extensions.Logging;
@@ -16,6 +17,7 @@ public abstract class BaseEventProcessingOrchestrator<TEvent, TResult, TProcessi
     TProcessingService processingService,
     TPersistenceService persistenceService,
     IReaderService readerService,
+    IFeedbackConfigurationService feedbackConfigurationService,
     ILogger logger)
     where TEvent : class
     where TResult : class, IProcessingResult, new()
@@ -23,6 +25,7 @@ public abstract class BaseEventProcessingOrchestrator<TEvent, TResult, TProcessi
     protected readonly TProcessingService ProcessingService = processingService;
     protected readonly TPersistenceService PersistenceService = persistenceService;
     protected readonly IReaderService ReaderService = readerService;
+    protected readonly IFeedbackConfigurationService FeedbackConfigurationService = feedbackConfigurationService;
     protected readonly ILogger Logger = logger;
 
     /// <summary>
@@ -48,7 +51,9 @@ public abstract class BaseEventProcessingOrchestrator<TEvent, TResult, TProcessi
             LogPluginProcessingComplete(eventData, pluginResult);
 
             // Step 2: Determine feedback
-            feedback = await GetFeedbackAsync(readerId, pluginResult);
+            feedback = pluginResult.Success 
+                ? await FeedbackConfigurationService.GetSuccessFeedbackAsync()
+                : await FeedbackConfigurationService.GetFailureFeedbackAsync();
             Logger.LogDebug("Feedback determined for reader {ReaderId}: {FeedbackType}", 
                 readerId, feedback.Type);
         }
@@ -112,7 +117,6 @@ public abstract class BaseEventProcessingOrchestrator<TEvent, TResult, TProcessi
     protected abstract void LogProcessingComplete(TEvent eventData, TResult result, bool persistenceSuccessful, bool feedbackDeliverySuccessful);
     protected abstract Guid GetReaderId(TEvent eventData);
     protected abstract Task<TResult> ProcessThroughPluginsAsync(TEvent eventData);
-    protected abstract Task<ReaderFeedback> GetFeedbackAsync(Guid readerId, TResult result);
     protected abstract Task<bool> PersistSuccessEventAsync(TEvent eventData, TResult result);
     protected abstract Task PersistErrorEventAsync(TEvent eventData, string errorMessage);
 

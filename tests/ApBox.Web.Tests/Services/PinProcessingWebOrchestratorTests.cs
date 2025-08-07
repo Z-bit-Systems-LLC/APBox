@@ -1,4 +1,5 @@
 using ApBox.Core.Models;
+using ApBox.Core.Services.Configuration;
 using ApBox.Core.Services.Core;
 using ApBox.Core.Services.Persistence;
 using ApBox.Core.Services.Reader;
@@ -26,6 +27,7 @@ public class PinProcessingWebOrchestratorTests
             Mock.Of<IPinProcessingService>(),
             Mock.Of<IPinEventPersistenceService>(),
             Mock.Of<IReaderService>(),
+            Mock.Of<IFeedbackConfigurationService>(),
             Mock.Of<ILogger<PinEventProcessingOrchestrator>>());
         _mockNotificationAggregator = new MockNotificationAggregator();
         _mockLogger = new Mock<ILogger<PinProcessingWebOrchestrator>>();

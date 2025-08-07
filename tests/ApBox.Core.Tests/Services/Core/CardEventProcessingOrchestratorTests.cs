@@ -1,4 +1,5 @@
 using ApBox.Core.Models;
+using ApBox.Core.Services.Configuration;
 using ApBox.Core.Services.Core;
 using ApBox.Core.Services.Persistence;
 using ApBox.Core.Services.Reader;
@@ -14,6 +15,7 @@ public class CardEventProcessingOrchestratorTests
     private Mock<ICardProcessingService> _mockCardProcessingService;
     private Mock<ICardEventPersistenceService> _mockPersistenceService;
     private Mock<IReaderService> _mockReaderService;
+    private Mock<IFeedbackConfigurationService> _mockFeedbackConfigurationService;
     private Mock<ILogger<CardEventProcessingOrchestrator>> _mockLogger;
     private CardEventProcessingOrchestrator _orchestrator;
 
@@ -23,12 +25,14 @@ public class CardEventProcessingOrchestratorTests
         _mockCardProcessingService = new Mock<ICardProcessingService>();
         _mockPersistenceService = new Mock<ICardEventPersistenceService>();
         _mockReaderService = new Mock<IReaderService>();
+        _mockFeedbackConfigurationService = new Mock<IFeedbackConfigurationService>();
         _mockLogger = new Mock<ILogger<CardEventProcessingOrchestrator>>();
 
         _orchestrator = new CardEventProcessingOrchestrator(
             _mockCardProcessingService.Object,
             _mockPersistenceService.Object,
             _mockReaderService.Object,
+            _mockFeedbackConfigurationService.Object,
             _mockLogger.Object);
     }
 
@@ -60,8 +64,8 @@ public class CardEventProcessingOrchestratorTests
             .Setup(x => x.ProcessCardReadAsync(cardRead))
             .ReturnsAsync(expectedPluginResult);
 
-        _mockCardProcessingService
-            .Setup(x => x.GetFeedbackAsync(cardRead.ReaderId, expectedPluginResult))
+        _mockFeedbackConfigurationService
+            .Setup(x => x.GetSuccessFeedbackAsync())
             .ReturnsAsync(expectedFeedback);
 
         _mockPersistenceService
@@ -79,7 +83,7 @@ public class CardEventProcessingOrchestratorTests
 
         // Verify all services were called
         _mockCardProcessingService.Verify(x => x.ProcessCardReadAsync(cardRead), Times.Once);
-        _mockCardProcessingService.Verify(x => x.GetFeedbackAsync(cardRead.ReaderId, expectedPluginResult), Times.Once);
+        _mockFeedbackConfigurationService.Verify(x => x.GetSuccessFeedbackAsync(), Times.Once);
         _mockPersistenceService.Verify(x => x.PersistCardEventAsync(cardRead, expectedPluginResult), Times.Once);
         _mockReaderService.Verify(x => x.SendFeedbackAsync(cardRead.ReaderId, expectedFeedback), Times.Once);
     }
@@ -129,8 +133,8 @@ public class CardEventProcessingOrchestratorTests
             .Setup(x => x.ProcessCardReadAsync(cardRead))
             .ReturnsAsync(pluginResult);
 
-        _mockCardProcessingService
-            .Setup(x => x.GetFeedbackAsync(cardRead.ReaderId, pluginResult))
+        _mockFeedbackConfigurationService
+            .Setup(x => x.GetSuccessFeedbackAsync())
             .ReturnsAsync(feedback);
 
         _mockPersistenceService
@@ -167,8 +171,8 @@ public class CardEventProcessingOrchestratorTests
             .Setup(x => x.ProcessCardReadAsync(cardRead))
             .ReturnsAsync(pluginResult);
 
-        _mockCardProcessingService
-            .Setup(x => x.GetFeedbackAsync(cardRead.ReaderId, pluginResult))
+        _mockFeedbackConfigurationService
+            .Setup(x => x.GetSuccessFeedbackAsync())
             .ReturnsAsync(feedback);
 
         _mockPersistenceService
@@ -215,8 +219,8 @@ public class CardEventProcessingOrchestratorTests
             .Setup(x => x.ProcessCardReadAsync(cardRead))
             .ReturnsAsync(failedResult);
 
-        _mockCardProcessingService
-            .Setup(x => x.GetFeedbackAsync(cardRead.ReaderId, failedResult))
+        _mockFeedbackConfigurationService
+            .Setup(x => x.GetFailureFeedbackAsync())
             .ReturnsAsync(errorFeedback);
 
         // Act

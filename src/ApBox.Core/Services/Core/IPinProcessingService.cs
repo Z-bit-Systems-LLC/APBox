@@ -15,13 +15,6 @@ public interface IPinProcessingService
     /// <returns>Processing result</returns>
     Task<PinReadResult> ProcessPinReadAsync(PinReadEvent pinRead);
     
-    /// <summary>
-    /// Get reader feedback based on PIN processing result
-    /// </summary>
-    /// <param name="readerId">Reader ID</param>
-    /// <param name="result">PIN processing result</param>
-    /// <returns>Feedback to send to reader</returns>
-    Task<ReaderFeedback> GetFeedbackAsync(Guid readerId, PinReadResult result);
 }
 
 /// <summary>

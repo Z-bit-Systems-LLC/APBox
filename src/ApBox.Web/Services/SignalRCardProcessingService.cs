@@ -46,10 +46,6 @@ public class SignalRCardProcessingService(
         }
     }
 
-    public async Task<ReaderFeedback> GetFeedbackAsync(Guid readerId, CardReadResult result)
-    {
-        return await coreProcessingService.GetFeedbackAsync(readerId, result);
-    }
 
     public async Task<CardReadResult> ProcessCardReadWithNotificationAsync(CardReadEvent cardRead)
     {

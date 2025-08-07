@@ -135,27 +135,4 @@ public class CardProcessingService : ICardProcessingService
         }
     }
     
-    public async Task<ReaderFeedback> GetFeedbackAsync(Guid readerId, CardReadResult result)
-    {
-        try
-        {
-            // Get appropriate feedback based on result
-            if (result.Success)
-            {
-                return await _feedbackConfigurationService.GetSuccessFeedbackAsync();
-            }
-            else
-            {
-                return await _feedbackConfigurationService.GetFailureFeedbackAsync();
-            }
-        }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, "Error resolving feedback for reader {ReaderId}", readerId);
-            return new ReaderFeedback
-            {
-                Type = result.Success ? ReaderFeedbackType.Success : ReaderFeedbackType.Failure
-            };
-        }
-    }
 }

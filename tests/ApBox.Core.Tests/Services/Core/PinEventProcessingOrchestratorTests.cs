@@ -1,4 +1,5 @@
 using ApBox.Core.Models;
+using ApBox.Core.Services.Configuration;
 using ApBox.Core.Services.Core;
 using ApBox.Core.Services.Persistence;
 using ApBox.Core.Services.Reader;
@@ -14,6 +15,7 @@ public class PinEventProcessingOrchestratorTests
     private Mock<IPinProcessingService> _mockPinProcessingService;
     private Mock<IPinEventPersistenceService> _mockPersistenceService;
     private Mock<IReaderService> _mockReaderService;
+    private Mock<IFeedbackConfigurationService> _mockFeedbackConfigurationService;
     private Mock<ILogger<PinEventProcessingOrchestrator>> _mockLogger;
     private PinEventProcessingOrchestrator _orchestrator;
 
@@ -23,12 +25,14 @@ public class PinEventProcessingOrchestratorTests
         _mockPinProcessingService = new Mock<IPinProcessingService>();
         _mockPersistenceService = new Mock<IPinEventPersistenceService>();
         _mockReaderService = new Mock<IReaderService>();
+        _mockFeedbackConfigurationService = new Mock<IFeedbackConfigurationService>();
         _mockLogger = new Mock<ILogger<PinEventProcessingOrchestrator>>();
 
         _orchestrator = new PinEventProcessingOrchestrator(
             _mockPinProcessingService.Object,
             _mockPersistenceService.Object,
             _mockReaderService.Object,
+            _mockFeedbackConfigurationService.Object,
             _mockLogger.Object);
     }
 
@@ -61,8 +65,8 @@ public class PinEventProcessingOrchestratorTests
             .Setup(x => x.ProcessPinReadAsync(pinRead))
             .ReturnsAsync(expectedPluginResult);
 
-        _mockPinProcessingService
-            .Setup(x => x.GetFeedbackAsync(pinRead.ReaderId, expectedPluginResult))
+        _mockFeedbackConfigurationService
+            .Setup(x => x.GetSuccessFeedbackAsync())
             .ReturnsAsync(expectedFeedback);
 
         _mockPersistenceService
@@ -80,7 +84,7 @@ public class PinEventProcessingOrchestratorTests
 
         // Verify all services were called
         _mockPinProcessingService.Verify(x => x.ProcessPinReadAsync(pinRead), Times.Once);
-        _mockPinProcessingService.Verify(x => x.GetFeedbackAsync(pinRead.ReaderId, expectedPluginResult), Times.Once);
+        _mockFeedbackConfigurationService.Verify(x => x.GetSuccessFeedbackAsync(), Times.Once);
         _mockPersistenceService.Verify(x => x.PersistPinEventAsync(pinRead, expectedPluginResult), Times.Once);
         _mockReaderService.Verify(x => x.SendFeedbackAsync(pinRead.ReaderId, expectedFeedback), Times.Once);
     }
@@ -132,8 +136,8 @@ public class PinEventProcessingOrchestratorTests
             .Setup(x => x.ProcessPinReadAsync(pinRead))
             .ReturnsAsync(pluginResult);
 
-        _mockPinProcessingService
-            .Setup(x => x.GetFeedbackAsync(pinRead.ReaderId, pluginResult))
+        _mockFeedbackConfigurationService
+            .Setup(x => x.GetSuccessFeedbackAsync())
             .ReturnsAsync(feedback);
 
         _mockPersistenceService
@@ -171,8 +175,8 @@ public class PinEventProcessingOrchestratorTests
             .Setup(x => x.ProcessPinReadAsync(pinRead))
             .ReturnsAsync(pluginResult);
 
-        _mockPinProcessingService
-            .Setup(x => x.GetFeedbackAsync(pinRead.ReaderId, pluginResult))
+        _mockFeedbackConfigurationService
+            .Setup(x => x.GetSuccessFeedbackAsync())
             .ReturnsAsync(feedback);
 
         _mockPersistenceService
@@ -220,8 +224,8 @@ public class PinEventProcessingOrchestratorTests
             .Setup(x => x.ProcessPinReadAsync(pinRead))
             .ReturnsAsync(failedResult);
 
-        _mockPinProcessingService
-            .Setup(x => x.GetFeedbackAsync(pinRead.ReaderId, failedResult))
+        _mockFeedbackConfigurationService
+            .Setup(x => x.GetFailureFeedbackAsync())
             .ReturnsAsync(errorFeedback);
 
         // Act

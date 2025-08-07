@@ -1,5 +1,6 @@
 using ApBox.Core.Models;
 using ApBox.Core.Services.Core;
+using ApBox.Core.Services.Configuration;
 using ApBox.Plugins;
 using ApBox.Web.Services;
 using Microsoft.AspNetCore.Mvc;
@@ -16,15 +17,18 @@ public class CardEventsController : ControllerBase
 {
     private readonly ICardProcessingService _cardProcessingService;
     private readonly IEnhancedCardProcessingService _enhancedCardProcessingService;
+    private readonly IFeedbackConfigurationService _feedbackConfigurationService;
     private readonly ILogger<CardEventsController> _logger;
     
     public CardEventsController(
         ICardProcessingService cardProcessingService,
         IEnhancedCardProcessingService enhancedCardProcessingService,
+        IFeedbackConfigurationService feedbackConfigurationService,
         ILogger<CardEventsController> logger)
     {
         _cardProcessingService = cardProcessingService;
         _enhancedCardProcessingService = enhancedCardProcessingService;
+        _feedbackConfigurationService = feedbackConfigurationService;
         _logger = logger;
     }
     
@@ -56,7 +60,9 @@ public class CardEventsController : ControllerBase
                 request.ReaderId, request.CardNumber);
             
             var result = await _cardProcessingService.ProcessCardReadAsync(cardReadEvent);
-            var feedback = await _cardProcessingService.GetFeedbackAsync(request.ReaderId, result);
+            var feedback = result.Success 
+                ? await _feedbackConfigurationService.GetSuccessFeedbackAsync()
+                : await _feedbackConfigurationService.GetFailureFeedbackAsync();
             
             var response = new CardProcessingResultDto
             {
@@ -106,7 +112,9 @@ public class CardEventsController : ControllerBase
 
             // Use enhanced service for real-time processing and notifications
             var result = await _enhancedCardProcessingService.ProcessCardReadWithNotificationAsync(cardReadEvent);
-            var feedback = await _enhancedCardProcessingService.GetFeedbackAsync(request.ReaderId, result);
+            var feedback = result.Success 
+                ? await _feedbackConfigurationService.GetSuccessFeedbackAsync()
+                : await _feedbackConfigurationService.GetFailureFeedbackAsync();
 
             var response = new CardProcessingResultDto
             {
