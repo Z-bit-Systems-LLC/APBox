@@ -13,6 +13,7 @@ using ApBox.Core.Services.Plugins;
 using ApBox.Web.Services;
 using ApBox.Web.ViewModels;
 using ApBox.Web.Tests.Services;
+using ApBox.Web.Services.Notifications;
 using Blazorise.Bootstrap5;
 using Blazorise.Icons.FontAwesome;
 using Blazorise.Tests.bUnit;
@@ -37,8 +38,7 @@ public class ApBoxTestContext : Bunit.TestContext
     public Mock<ISystemRestartService> MockSystemRestartService { get; private set; }
     public Mock<ICardEventPersistenceService> MockCardEventPersistenceService { get; private set; }
     public Mock<ICardProcessingOrchestrator> MockCardProcessingOrchestrator { get; private set; }
-    public MockCardEventNotificationService MockCardEventNotificationService { get; private set; }
-    public MockPinEventNotificationService MockPinEventNotificationService { get; private set; }
+    public MockNotificationAggregator MockNotificationAggregator { get; private set; }
     public Mock<IReaderPluginMappingService> MockReaderPluginMappingService { get; private set; }
     public Mock<ISerialPortService> MockSerialPortService { get; private set; }
     public Mock<ILocalStorageService> MockLocalStorageService { get; private set; }
@@ -58,8 +58,7 @@ public class ApBoxTestContext : Bunit.TestContext
         MockSystemRestartService = new Mock<ISystemRestartService>();
         MockCardEventPersistenceService = new Mock<ICardEventPersistenceService>();
         MockCardProcessingOrchestrator = new Mock<ICardProcessingOrchestrator>();
-        MockCardEventNotificationService = new MockCardEventNotificationService();
-        MockPinEventNotificationService = new MockPinEventNotificationService();
+        MockNotificationAggregator = new MockNotificationAggregator();
         MockReaderPluginMappingService = new Mock<IReaderPluginMappingService>();
         MockSerialPortService = new Mock<ISerialPortService>();
         MockLocalStorageService = new Mock<ILocalStorageService>();
@@ -100,8 +99,7 @@ public class ApBoxTestContext : Bunit.TestContext
         Services.AddSingleton(MockSystemRestartService.Object);
         Services.AddSingleton(MockCardEventPersistenceService.Object);
         Services.AddSingleton(MockCardProcessingOrchestrator.Object);
-        Services.AddSingleton<ICardEventNotificationService>(MockCardEventNotificationService);
-        Services.AddSingleton<IPinEventNotificationService>(MockPinEventNotificationService);
+        Services.AddSingleton<INotificationAggregator>(MockNotificationAggregator);
         Services.AddSingleton(MockReaderPluginMappingService.Object);
         Services.AddSingleton(MockSerialPortService.Object);
         

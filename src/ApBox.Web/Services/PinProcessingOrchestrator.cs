@@ -2,6 +2,8 @@ using ApBox.Core.Services.Core;
 using ApBox.Core.Services.Reader;
 using ApBox.Core.Services.Persistence;
 using ApBox.Plugins;
+using ApBox.Web.Services.Notifications;
+using ApBox.Web.Models.Notifications;
 
 namespace ApBox.Web.Services;
 
@@ -12,7 +14,7 @@ public class PinProcessingOrchestrator(
     IPinProcessingService pinProcessingService,
     IPinEventPersistenceService persistenceService,
     IReaderService readerService,
-    IPinEventNotificationService notificationService,
+    INotificationAggregator notificationAggregator,
     ILogger<PinProcessingOrchestrator> logger)
     : IPinProcessingOrchestrator
 {
@@ -57,7 +59,18 @@ public class PinProcessingOrchestrator(
             // Step 5: Broadcast notification (non-critical)
             try
             {
-                await notificationService.BroadcastPinEventAsync(pinRead, result, feedback);
+                var notification = new PinEventNotification
+                {
+                    ReaderId = pinRead.ReaderId,
+                    ReaderName = pinRead.ReaderName,
+                    PinLength = pinRead.Pin.Length,
+                    CompletionReason = pinRead.CompletionReason,
+                    Timestamp = pinRead.Timestamp,
+                    Success = result.Success,
+                    Message = result.Message,
+                    Feedback = feedback
+                };
+                await notificationAggregator.BroadcastAsync(notification);
             }
             catch (Exception notificationEx)
             {
@@ -94,7 +107,17 @@ public class PinProcessingOrchestrator(
             // Try to notify about the error
             try
             {
-                await notificationService.BroadcastPinEventAsync(pinRead, result);
+                var notification = new PinEventNotification
+                {
+                    ReaderId = pinRead.ReaderId,
+                    ReaderName = pinRead.ReaderName,
+                    PinLength = pinRead.Pin.Length,
+                    CompletionReason = pinRead.CompletionReason,
+                    Timestamp = pinRead.Timestamp,
+                    Success = result.Success,
+                    Message = result.Message
+                };
+                await notificationAggregator.BroadcastAsync(notification);
             }
             catch (Exception notificationEx)
             {

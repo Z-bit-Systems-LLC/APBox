@@ -4,6 +4,8 @@ using ApBox.Plugins;
 using ApBox.Web.Hubs;
 using ApBox.Web.ViewModels;
 using ApBox.Web.Tests.Services;
+using ApBox.Web.Models.Notifications;
+using ApBox.Web.Services.Notifications;
 
 namespace ApBox.Web.Tests.ViewModels;
 
@@ -14,8 +16,7 @@ namespace ApBox.Web.Tests.ViewModels;
 [Category("Unit")]
 public class DashboardViewModelTests : ApBoxTestContext
 {
-    private MockCardEventNotificationService _mockCardEventNotificationService;
-    private MockPinEventNotificationService _mockPinEventNotificationService;
+    private MockNotificationAggregator _mockNotificationAggregator;
     private DashboardViewModel _viewModel;
 
     [SetUp]
@@ -35,18 +36,16 @@ public class DashboardViewModelTests : ApBoxTestContext
         MockCardEventRepository.Setup(x => x.GetByDateRangeAsync(It.IsAny<DateTime>(), It.IsAny<DateTime>(), It.IsAny<int>()))
             .ReturnsAsync(new List<CardEventEntity>());
         
-        // Create mock notification services for this test
-        _mockCardEventNotificationService = new MockCardEventNotificationService();
-        _mockPinEventNotificationService = new MockPinEventNotificationService();
+        // Create mock notification aggregator for this test
+        _mockNotificationAggregator = new MockNotificationAggregator();
 
-        // Create ViewModel with mocked notification services
+        // Create ViewModel with mock notification aggregator
         _viewModel = new DashboardViewModel(
             MockReaderService.Object,
             MockPluginLoader.Object,
             MockCardEventRepository.Object,
             MockPinEventRepository.Object,
-            _mockCardEventNotificationService,
-            _mockPinEventNotificationService);
+            _mockNotificationAggregator);
             
         // Set up UI callbacks
         _viewModel.StateHasChanged = () => { };
@@ -90,7 +89,7 @@ public class DashboardViewModelTests : ApBoxTestContext
         };
 
         // Act
-        _mockCardEventNotificationService.SimulateCardEventProcessed(cardEvent);
+        await _mockNotificationAggregator.BroadcastAsync(cardEvent);
 
         // Assert
         Assert.That(_viewModel.RecentEvents.Count, Is.EqualTo(1), "Should have exactly one event after processing");
@@ -121,7 +120,7 @@ public class DashboardViewModelTests : ApBoxTestContext
         };
 
         // Act
-        _mockCardEventNotificationService.SimulateCardEventProcessed(cardEvent);
+        await _mockNotificationAggregator.BroadcastAsync(cardEvent);
 
         // Assert
         Assert.That(_viewModel.TotalEvents, Is.EqualTo(initialCount + 1));
@@ -146,7 +145,7 @@ public class DashboardViewModelTests : ApBoxTestContext
             };
 
             // Act
-            _mockCardEventNotificationService.SimulateCardEventProcessed(cardEvent);
+            await _mockNotificationAggregator.BroadcastAsync(cardEvent);
         }
 
         // Assert
@@ -182,8 +181,8 @@ public class DashboardViewModelTests : ApBoxTestContext
         };
 
         // Act
-        _mockCardEventNotificationService.SimulateCardEventProcessed(event1);
-        _mockCardEventNotificationService.SimulateCardEventProcessed(event2);
+        await _mockNotificationAggregator.BroadcastAsync(event1);
+        await _mockNotificationAggregator.BroadcastAsync(event2);
 
         // Assert
         Assert.That(_viewModel.RecentEvents.Count, Is.EqualTo(2), "Should have exactly two events after processing both");
@@ -213,7 +212,7 @@ public class DashboardViewModelTests : ApBoxTestContext
         };
 
         // Act
-        _mockCardEventNotificationService.SimulateReaderStatusChanged(statusNotification);
+        await _mockNotificationAggregator.BroadcastAsync(statusNotification);
 
         // Assert
         Assert.That(_viewModel.ReaderStatuses.ContainsKey(readerId), Is.True);
@@ -234,7 +233,7 @@ public class DashboardViewModelTests : ApBoxTestContext
             ReaderName = "Test Reader",
             IsOnline = true
         };
-        _mockCardEventNotificationService.SimulateReaderStatusChanged(onlineNotification);
+        await _mockNotificationAggregator.BroadcastAsync(onlineNotification);
         
         // Then set reader offline
         var offlineNotification = new ReaderStatusNotification
@@ -245,7 +244,7 @@ public class DashboardViewModelTests : ApBoxTestContext
         };
 
         // Act
-        _mockCardEventNotificationService.SimulateReaderStatusChanged(offlineNotification);
+        await _mockNotificationAggregator.BroadcastAsync(offlineNotification);
 
         // Assert
         Assert.That(_viewModel.ReaderStatuses.ContainsKey(readerId), Is.True);
@@ -275,8 +274,8 @@ public class DashboardViewModelTests : ApBoxTestContext
         };
 
         // Act
-        _mockCardEventNotificationService.SimulateReaderStatusChanged(reader1Notification);
-        _mockCardEventNotificationService.SimulateReaderStatusChanged(reader2Notification);
+        await _mockNotificationAggregator.BroadcastAsync(reader1Notification);
+        await _mockNotificationAggregator.BroadcastAsync(reader2Notification);
 
         // Assert
         Assert.That(_viewModel.ReaderStatuses.Count, Is.EqualTo(2));
@@ -315,7 +314,7 @@ public class DashboardViewModelTests : ApBoxTestContext
         };
 
         // Act
-        _mockCardEventNotificationService.SimulateCardEventProcessed(cardEvent);
+        await _mockNotificationAggregator.BroadcastAsync(cardEvent);
 
         // Assert
         Assert.That(stateChangedCalled, Is.True, "StateHasChanged should be called to update UI");
@@ -337,7 +336,7 @@ public class DashboardViewModelTests : ApBoxTestContext
         };
 
         // Act
-        _mockCardEventNotificationService.SimulateReaderStatusChanged(statusNotification);
+        await _mockNotificationAggregator.BroadcastAsync(statusNotification);
 
         // Assert
         Assert.That(stateChangedCalled, Is.True, "StateHasChanged should be called to update UI");
@@ -365,7 +364,7 @@ public class DashboardViewModelTests : ApBoxTestContext
         };
 
         // Act
-        _mockCardEventNotificationService.SimulateCardEventProcessed(cardEvent);
+        await _mockNotificationAggregator.BroadcastAsync(cardEvent);
 
         // Assert
         Assert.That(invokeAsyncCalled, Is.True, "InvokeAsync should be called for thread safety");

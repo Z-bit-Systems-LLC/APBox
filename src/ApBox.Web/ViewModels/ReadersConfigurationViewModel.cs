@@ -9,6 +9,8 @@ using ApBox.Core.Models;
 using ApBox.Web.Services;
 using ApBox.Plugins;
 using ApBox.Core.Services.Plugins;
+using ApBox.Web.Services.Notifications;
+using ApBox.Web.Models.Notifications;
 
 namespace ApBox.Web.ViewModels;
 
@@ -23,7 +25,7 @@ public partial class ReadersConfigurationViewModel : ObservableValidator, IDispo
     private readonly IPluginLoader _pluginLoader;
     private readonly IReaderPluginMappingService _readerPluginMappingService;
     private readonly ILogger<ReadersConfigurationViewModel> _logger;
-    private readonly ICardEventNotificationService _cardEventNotificationService;
+    private readonly INotificationAggregator _notificationAggregator;
 
     public ReadersConfigurationViewModel(
         IReaderConfigurationService readerConfigurationService,
@@ -32,7 +34,7 @@ public partial class ReadersConfigurationViewModel : ObservableValidator, IDispo
         IPluginLoader pluginLoader,
         IReaderPluginMappingService readerPluginMappingService,
         ILogger<ReadersConfigurationViewModel> logger,
-        ICardEventNotificationService cardEventNotificationService)
+        INotificationAggregator notificationAggregator)
     {
         _readerConfigurationService = readerConfigurationService;
         _readerService = readerService;
@@ -40,7 +42,7 @@ public partial class ReadersConfigurationViewModel : ObservableValidator, IDispo
         _pluginLoader = pluginLoader;
         _readerPluginMappingService = readerPluginMappingService;
         _logger = logger;
-        _cardEventNotificationService = cardEventNotificationService;
+        _notificationAggregator = notificationAggregator;
     }
 
     [ObservableProperty]
@@ -387,7 +389,7 @@ public partial class ReadersConfigurationViewModel : ObservableValidator, IDispo
     private void InitializeSignalRHandlers()
     {
         // Register event handlers for real-time updates
-        _cardEventNotificationService.OnReaderStatusChanged += OnReaderStatusChanged;
+        _notificationAggregator.Subscribe<ReaderStatusNotification>(OnReaderStatusChanged);
     }
 
     private void OnReaderStatusChanged(ReaderStatusNotification notification)
@@ -412,6 +414,6 @@ public partial class ReadersConfigurationViewModel : ObservableValidator, IDispo
     public void Dispose()
     {
         // Unsubscribe from events
-        _cardEventNotificationService.OnReaderStatusChanged -= OnReaderStatusChanged;
+        _notificationAggregator.Unsubscribe<ReaderStatusNotification>(OnReaderStatusChanged);
     }
 }

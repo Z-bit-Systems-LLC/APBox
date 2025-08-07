@@ -2,6 +2,8 @@ using ApBox.Core.Services.Core;
 using ApBox.Core.Services.Reader;
 using ApBox.Core.Services.Persistence;
 using ApBox.Plugins;
+using ApBox.Web.Services.Notifications;
+using ApBox.Web.Models.Notifications;
 
 namespace ApBox.Web.Services;
 
@@ -12,7 +14,7 @@ public class CardProcessingOrchestrator(
     ICardProcessingService cardProcessingService,
     ICardEventPersistenceService persistenceService,
     IReaderService readerService,
-    ICardEventNotificationService notificationService,
+    INotificationAggregator notificationAggregator,
     ILogger<CardProcessingOrchestrator> logger)
     : ICardProcessingOrchestrator
 {
@@ -49,7 +51,18 @@ public class CardProcessingOrchestrator(
             // Step 5: Broadcast notification (non-critical)
             try
             {
-                await notificationService.BroadcastCardEventAsync(cardRead, result, feedback);
+                var notification = new CardEventNotification
+                {
+                    ReaderId = cardRead.ReaderId,
+                    ReaderName = cardRead.ReaderName,
+                    CardNumber = cardRead.CardNumber,
+                    BitLength = cardRead.BitLength,
+                    Timestamp = cardRead.Timestamp,
+                    Success = result.Success,
+                    Message = result.Message,
+                    Feedback = feedback
+                };
+                await notificationAggregator.BroadcastAsync(notification);
             }
             catch (Exception notificationEx)
             {
@@ -79,7 +92,17 @@ public class CardProcessingOrchestrator(
             // Try to notify about the error
             try
             {
-                await notificationService.BroadcastCardEventAsync(cardRead, result);
+                var notification = new CardEventNotification
+                {
+                    ReaderId = cardRead.ReaderId,
+                    ReaderName = cardRead.ReaderName,
+                    CardNumber = cardRead.CardNumber,
+                    BitLength = cardRead.BitLength,
+                    Timestamp = cardRead.Timestamp,
+                    Success = result.Success,
+                    Message = result.Message
+                };
+                await notificationAggregator.BroadcastAsync(notification);
             }
             catch (Exception notificationEx)
             {

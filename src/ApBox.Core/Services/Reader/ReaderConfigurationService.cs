@@ -1,6 +1,5 @@
 using ApBox.Core.Data.Repositories;
 using ApBox.Core.Models;
-using ApBox.Core.Services.Infrastructure;
 
 namespace ApBox.Core.Services.Reader;
 
@@ -9,18 +8,15 @@ public class ReaderConfigurationService : IReaderConfigurationService
     private readonly IReaderConfigurationRepository _repository;
     private readonly ILogger<ReaderConfigurationService> _logger;
     private readonly Lazy<IReaderService> _readerService;
-    private readonly INotificationService? _notificationService;
     
     public ReaderConfigurationService(
         IReaderConfigurationRepository repository,
         ILogger<ReaderConfigurationService> logger,
-        Lazy<IReaderService> readerService,
-        INotificationService? notificationService = null)
+        Lazy<IReaderService> readerService)
     {
         _repository = repository;
         _logger = logger;
         _readerService = readerService;
-        _notificationService = notificationService;
     }
     
     public async Task<IEnumerable<ReaderConfiguration>> GetAllReadersAsync()
@@ -61,22 +57,14 @@ public class ReaderConfigurationService : IReaderConfigurationService
                 await _repository.UpdateAsync(reader);
                 _logger.LogInformation("Updated reader configuration for {ReaderId}", reader.ReaderId);
                 
-                // Broadcast configuration change
-                if (_notificationService != null)
-                {
-                    await _notificationService.BroadcastReaderConfigurationAsync(reader, "Updated");
-                }
+                // Note: Configuration change notifications are handled at the Web layer
             }
             else
             {
                 await _repository.CreateAsync(reader);
                 _logger.LogInformation("Created new reader configuration for {ReaderId}", reader.ReaderId);
                 
-                // Broadcast configuration change
-                if (_notificationService != null)
-                {
-                    await _notificationService.BroadcastReaderConfigurationAsync(reader, "Created");
-                }
+                // Note: Configuration change notifications are handled at the Web layer
             }
 
             // Handle connection management
@@ -124,11 +112,7 @@ public class ReaderConfigurationService : IReaderConfigurationService
             {
                 _logger.LogInformation("Deleted reader configuration for {ReaderId}", readerId);
                 
-                // Broadcast configuration change
-                if (_notificationService != null && readerToDelete != null)
-                {
-                    await _notificationService.BroadcastReaderConfigurationAsync(readerToDelete, "Deleted");
-                }
+                // Note: Configuration change notifications are handled at the Web layer
             }
             else
             {

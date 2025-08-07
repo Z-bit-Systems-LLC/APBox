@@ -7,6 +7,8 @@ using ApBox.Core.Models;
 using ApBox.Core.Services.Plugins;
 using ApBox.Web.Hubs;
 using ApBox.Web.Services;
+using ApBox.Web.Services.Notifications;
+using ApBox.Web.Models.Notifications;
 
 namespace ApBox.Web.ViewModels;
 
@@ -18,12 +20,10 @@ public partial class DashboardViewModel(
     IPluginLoader pluginLoader,
     ICardEventRepository cardEventRepository,
     IPinEventRepository pinEventRepository,
-    ICardEventNotificationService cardEventNotificationService,
-    IPinEventNotificationService pinEventNotificationService)
+    INotificationAggregator notificationAggregator)
     : ObservableObject, IDisposable
 {
-    private readonly ICardEventNotificationService _cardEventNotificationService = cardEventNotificationService;
-    private readonly IPinEventNotificationService _pinEventNotificationService = pinEventNotificationService;
+    private readonly INotificationAggregator _notificationAggregator = notificationAggregator;
 
     [ObservableProperty]
     private int _configuredReaders;
@@ -190,10 +190,10 @@ public partial class DashboardViewModel(
     /// </summary>
     private void InitializeSignalRHandlers()
     {
-        // Register event handlers
-        _cardEventNotificationService.OnCardEventProcessed += OnCardEventProcessed;
-        _pinEventNotificationService.OnPinEventProcessed += OnPinEventProcessed;
-        _cardEventNotificationService.OnReaderStatusChanged += OnReaderStatusChanged;
+        // Register event handlers with the notification aggregator
+        _notificationAggregator.Subscribe<CardEventNotification>(OnCardEventProcessed);
+        _notificationAggregator.Subscribe<PinEventNotification>(OnPinEventProcessed);
+        _notificationAggregator.Subscribe<ReaderStatusNotification>(OnReaderStatusChanged);
     }
 
     /// <summary>
@@ -323,8 +323,8 @@ public partial class DashboardViewModel(
     public void Dispose()
     {
         // Unsubscribe from events
-        _cardEventNotificationService.OnCardEventProcessed -= OnCardEventProcessed;
-        _pinEventNotificationService.OnPinEventProcessed -= OnPinEventProcessed;
-        _cardEventNotificationService.OnReaderStatusChanged -= OnReaderStatusChanged;
+        _notificationAggregator.Unsubscribe<CardEventNotification>(OnCardEventProcessed);
+        _notificationAggregator.Unsubscribe<PinEventNotification>(OnPinEventProcessed);
+        _notificationAggregator.Unsubscribe<ReaderStatusNotification>(OnReaderStatusChanged);
     }
 }

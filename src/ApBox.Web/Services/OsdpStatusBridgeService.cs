@@ -1,6 +1,8 @@
 using ApBox.Core.OSDP;
 using ApBox.Core.Models;
 using ApBox.Core.Data.Repositories;
+using ApBox.Web.Services.Notifications;
+using ApBox.Web.Models.Notifications;
 
 namespace ApBox.Web.Services;
 
@@ -10,18 +12,18 @@ namespace ApBox.Web.Services;
 public class OsdpStatusBridgeService : IHostedService
 {
     private readonly IOsdpCommunicationManager _osdpManager;
-    private readonly ICardEventNotificationService _notificationService;
+    private readonly INotificationAggregator _notificationAggregator;
     private readonly IReaderConfigurationRepository _readerConfigRepository;
     private readonly ILogger<OsdpStatusBridgeService> _logger;
 
     public OsdpStatusBridgeService(
         IOsdpCommunicationManager osdpManager,
-        ICardEventNotificationService notificationService,
+        INotificationAggregator notificationAggregator,
         IReaderConfigurationRepository readerConfigRepository,
         ILogger<OsdpStatusBridgeService> logger)
     {
         _osdpManager = osdpManager;
-        _notificationService = notificationService;
+        _notificationAggregator = notificationAggregator;
         _readerConfigRepository = readerConfigRepository;
         _logger = logger;
     }
@@ -73,13 +75,18 @@ public class OsdpStatusBridgeService : IHostedService
                 securityMode = reader.SecurityMode;
             }
             
-            await _notificationService.BroadcastReaderStatusAsync(
-                e.DeviceId,
-                readerName,
-                e.IsOnline,
-                isEnabled,
-                securityMode,
-                e.Timestamp);
+            var notification = new ReaderStatusNotification
+            {
+                ReaderId = e.DeviceId,
+                ReaderName = readerName,
+                IsOnline = e.IsOnline,
+                IsEnabled = isEnabled,
+                SecurityMode = securityMode,
+                LastActivity = e.Timestamp,
+                Status = e.IsOnline ? "Online" : "Offline"
+            };
+            
+            await _notificationAggregator.BroadcastAsync(notification);
         }
         catch (Exception ex)
         {

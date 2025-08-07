@@ -6,6 +6,8 @@ using ApBox.Core.Data.Repositories;
 using ApBox.Core.Models;
 using ApBox.Web.Hubs;
 using ApBox.Web.Services;
+using ApBox.Web.Services.Notifications;
+using ApBox.Web.Models.Notifications;
 
 namespace ApBox.Web.ViewModels;
 
@@ -15,11 +17,9 @@ namespace ApBox.Web.ViewModels;
 public partial class CardEventsViewModel(
     IReaderService readerService,
     ICardEventRepository cardEventRepository,
-    ICardEventNotificationService cardEventNotificationService)
+    INotificationAggregator notificationAggregator)
     : ObservableObject, IDisposable
 {
-    private readonly ICardEventNotificationService _cardEventNotificationService = cardEventNotificationService;
-
     [ObservableProperty]
     private ObservableCollection<CardEventDisplay> _allEvents = new();
 
@@ -178,8 +178,8 @@ public partial class CardEventsViewModel(
     /// </summary>
     private void InitializeSignalRHandlers()
     {
-        // Register event handler
-        _cardEventNotificationService.OnCardEventProcessed += OnCardEventProcessed;
+        // Register event handler with the notification aggregator
+        notificationAggregator.Subscribe<CardEventNotification>(OnCardEventProcessed);
     }
 
     /// <summary>
@@ -233,6 +233,6 @@ public partial class CardEventsViewModel(
     public void Dispose()
     {
         // Unsubscribe from events
-        _cardEventNotificationService.OnCardEventProcessed -= OnCardEventProcessed;
+        notificationAggregator.Unsubscribe<CardEventNotification>(OnCardEventProcessed);
     }
 }
