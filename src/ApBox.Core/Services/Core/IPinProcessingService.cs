@@ -27,7 +27,7 @@ public interface IPinProcessingService
 /// <summary>
 /// Result of PIN processing
 /// </summary>
-public class PinReadResult
+public class PinReadResult : IProcessingResult
 {
     /// <summary>
     /// Whether PIN processing was successful

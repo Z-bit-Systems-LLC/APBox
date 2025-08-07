@@ -169,42 +169,42 @@ public class ReadersConfigurationTests : ApBoxTestContext
     #region CRUD Operation Tests
 
     [Test]
-    public void ReadersConfiguration_CreateReader_ValidInput_CallsService()
+    public async Task ReadersConfiguration_CreateReader_ValidInput_CallsService()
     {
         // Arrange
         var component = RenderComponent<ApBox.Web.Components.Configuration.ReadersConfiguration>();
         var addButton = component.Find("#add-reader-button");
-        addButton.Click();
+        await addButton.ClickAsync(new MouseEventArgs());
 
         var nameInput = component.Find("#reader-name-input");
         var saveButton = component.Find("#save-reader-button");
 
         // Act
         nameInput.Input("New Test Reader");
-        saveButton.Click();
+        await saveButton.ClickAsync(new MouseEventArgs());
 
         // Assert - Just verify the service was called, even if async timing varies
         MockReaderConfigurationService.Verify(x => x.SaveReaderAsync(It.IsAny<ReaderConfiguration>()), Times.AtLeastOnce);
     }
 
     [Test]
-    public void ReadersConfiguration_CreateReader_EmptyName_ShowsValidationError()
+    public async Task ReadersConfiguration_CreateReader_EmptyName_ShowsValidationError()
     {
         // Arrange
         var component = RenderComponent<ApBox.Web.Components.Configuration.ReadersConfiguration>();
         var addButton = component.Find("#add-reader-button");
-        addButton.Click();
+        await addButton.ClickAsync(new MouseEventArgs());
 
         var saveButton = component.Find("#save-reader-button");
 
         // Act
-        saveButton.Click();
+        await saveButton.ClickAsync(new MouseEventArgs());
 
         // Assert
-        // Should not call the service with empty name
+        // Should not call the service with the empty name
         MockReaderConfigurationService.Verify(x => x.SaveReaderAsync(It.IsAny<ReaderConfiguration>()), Times.Never);
         
-        // Snackbar should show error (we can't easily test the snackbar content, but we can verify service wasn't called)
+        // Snackbar should show the error (we can't easily test the snackbar content, but we can verify service wasn't called)
     }
 
     [Test]

@@ -7,6 +7,7 @@ using ApBox.Core.Services.Persistence;
 using ApBox.Core.Services.Infrastructure;
 using ApBox.Core.Services.Plugins;
 using ApBox.Core.Data;
+using ApBox.Plugins;
 using ApBox.Web.ViewModels;
 using ApBox.Web.Services.Notifications;
 
@@ -38,14 +39,22 @@ public static class ServiceCollectionExtensions
         // Register core application services
         services.AddSingleton<ICardProcessingService, CardProcessingService>();
         services.AddSingleton<ICardEventPersistenceService, CardEventPersistenceService>();
-        services.AddSingleton<ICardProcessingOrchestrator, CardProcessingOrchestrator>();
-        services.AddSingleton<IEnhancedCardProcessingService, SignalRCardProcessingService>();
         services.AddSingleton<IReaderService, ReaderService>();
+        
+        // Register core event processing orchestrators
+        services.AddSingleton<CardEventProcessingOrchestrator>();
+        services.AddSingleton<PinEventProcessingOrchestrator>();
+        
+        // Register web orchestrators that handle notifications
+        services.AddSingleton<ICardProcessingOrchestrator, CardProcessingWebOrchestrator>();
+        services.AddSingleton<IPinProcessingOrchestrator, PinProcessingWebOrchestrator>();
+        
+        // Register enhanced services for SignalR integration
+        services.AddSingleton<IEnhancedCardProcessingService, SignalRCardProcessingService>();
         
         // Register PIN processing services
         services.AddSingleton<IPinProcessingService, PinProcessingService>();
         services.AddSingleton<IPinEventPersistenceService, PinEventPersistenceService>();
-        services.AddSingleton<IPinProcessingOrchestrator, PinProcessingOrchestrator>();
         
         // Register unified notification aggregator
         services.AddSingleton<INotificationAggregator, SignalRNotificationAggregator>();

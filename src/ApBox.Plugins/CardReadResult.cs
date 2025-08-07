@@ -4,7 +4,7 @@ namespace ApBox.Plugins;
 /// Represents the result of processing a card read event through the plugin system.
 /// Contains status information and any data returned by plugins.
 /// </summary>
-public class CardReadResult
+public class CardReadResult : IProcessingResult
 {
     /// <summary>
     /// Indicates whether the card read was processed successfully by at least one plugin
