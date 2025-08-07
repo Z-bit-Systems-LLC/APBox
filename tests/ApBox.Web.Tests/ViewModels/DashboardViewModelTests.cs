@@ -3,9 +3,9 @@ using ApBox.Core.Models;
 using ApBox.Plugins;
 using ApBox.Web.Hubs;
 using ApBox.Web.ViewModels;
-using ApBox.Web.Tests.Services;
 using ApBox.Web.Models.Notifications;
 using ApBox.Web.Services.Notifications;
+using Moq;
 
 namespace ApBox.Web.Tests.ViewModels;
 
@@ -16,8 +16,11 @@ namespace ApBox.Web.Tests.ViewModels;
 [Category("Unit")]
 public class DashboardViewModelTests : ApBoxTestContext
 {
-    private MockNotificationAggregator _mockNotificationAggregator;
+    private Mock<INotificationAggregator> _mockNotificationAggregator;
     private DashboardViewModel _viewModel;
+    private Action<CardEventNotification>? _cardEventHandler;
+    private Action<PinEventNotification>? _pinEventHandler;
+    private Action<ReaderStatusNotification>? _readerStatusHandler;
 
     [SetUp]
     public void Setup()
@@ -37,7 +40,20 @@ public class DashboardViewModelTests : ApBoxTestContext
             .ReturnsAsync(new List<CardEventEntity>());
         
         // Create mock notification aggregator for this test
-        _mockNotificationAggregator = new MockNotificationAggregator();
+        _mockNotificationAggregator = new Mock<INotificationAggregator>();
+        
+        // Capture subscription handlers
+        _mockNotificationAggregator
+            .Setup(x => x.Subscribe<CardEventNotification>(It.IsAny<Action<CardEventNotification>>()))
+            .Callback<Action<CardEventNotification>>(handler => _cardEventHandler = handler);
+        
+        _mockNotificationAggregator
+            .Setup(x => x.Subscribe<PinEventNotification>(It.IsAny<Action<PinEventNotification>>()))
+            .Callback<Action<PinEventNotification>>(handler => _pinEventHandler = handler);
+            
+        _mockNotificationAggregator
+            .Setup(x => x.Subscribe<ReaderStatusNotification>(It.IsAny<Action<ReaderStatusNotification>>()))
+            .Callback<Action<ReaderStatusNotification>>(handler => _readerStatusHandler = handler);
 
         // Create ViewModel with mock notification aggregator
         _viewModel = new DashboardViewModel(
@@ -45,7 +61,7 @@ public class DashboardViewModelTests : ApBoxTestContext
             MockPluginLoader.Object,
             MockCardEventRepository.Object,
             MockPinEventRepository.Object,
-            _mockNotificationAggregator);
+            _mockNotificationAggregator.Object);
             
         // Set up UI callbacks
         _viewModel.StateHasChanged = () => { };
@@ -89,7 +105,7 @@ public class DashboardViewModelTests : ApBoxTestContext
         };
 
         // Act
-        await _mockNotificationAggregator.BroadcastAsync(cardEvent);
+        _cardEventHandler?.Invoke(cardEvent);
 
         // Assert
         Assert.That(_viewModel.RecentEvents.Count, Is.EqualTo(1), "Should have exactly one event after processing");
@@ -120,7 +136,7 @@ public class DashboardViewModelTests : ApBoxTestContext
         };
 
         // Act
-        await _mockNotificationAggregator.BroadcastAsync(cardEvent);
+        _cardEventHandler?.Invoke(cardEvent);
 
         // Assert
         Assert.That(_viewModel.TotalEvents, Is.EqualTo(initialCount + 1));
@@ -145,7 +161,7 @@ public class DashboardViewModelTests : ApBoxTestContext
             };
 
             // Act
-            await _mockNotificationAggregator.BroadcastAsync(cardEvent);
+            _cardEventHandler?.Invoke(cardEvent);
         }
 
         // Assert
@@ -181,8 +197,8 @@ public class DashboardViewModelTests : ApBoxTestContext
         };
 
         // Act
-        await _mockNotificationAggregator.BroadcastAsync(event1);
-        await _mockNotificationAggregator.BroadcastAsync(event2);
+        _cardEventHandler?.Invoke(event1);
+        _cardEventHandler?.Invoke(event2);
 
         // Assert
         Assert.That(_viewModel.RecentEvents.Count, Is.EqualTo(2), "Should have exactly two events after processing both");
@@ -212,7 +228,7 @@ public class DashboardViewModelTests : ApBoxTestContext
         };
 
         // Act
-        await _mockNotificationAggregator.BroadcastAsync(statusNotification);
+        _readerStatusHandler?.Invoke(statusNotification);
 
         // Assert
         Assert.That(_viewModel.ReaderStatuses.ContainsKey(readerId), Is.True);
@@ -233,7 +249,7 @@ public class DashboardViewModelTests : ApBoxTestContext
             ReaderName = "Test Reader",
             IsOnline = true
         };
-        await _mockNotificationAggregator.BroadcastAsync(onlineNotification);
+        _readerStatusHandler?.Invoke(onlineNotification);
         
         // Then set reader offline
         var offlineNotification = new ReaderStatusNotification
@@ -244,7 +260,7 @@ public class DashboardViewModelTests : ApBoxTestContext
         };
 
         // Act
-        await _mockNotificationAggregator.BroadcastAsync(offlineNotification);
+        _readerStatusHandler?.Invoke(offlineNotification);
 
         // Assert
         Assert.That(_viewModel.ReaderStatuses.ContainsKey(readerId), Is.True);
@@ -274,8 +290,8 @@ public class DashboardViewModelTests : ApBoxTestContext
         };
 
         // Act
-        await _mockNotificationAggregator.BroadcastAsync(reader1Notification);
-        await _mockNotificationAggregator.BroadcastAsync(reader2Notification);
+        _readerStatusHandler?.Invoke(reader1Notification);
+        _readerStatusHandler?.Invoke(reader2Notification);
 
         // Assert
         Assert.That(_viewModel.ReaderStatuses.Count, Is.EqualTo(2));
@@ -314,7 +330,7 @@ public class DashboardViewModelTests : ApBoxTestContext
         };
 
         // Act
-        await _mockNotificationAggregator.BroadcastAsync(cardEvent);
+        _cardEventHandler?.Invoke(cardEvent);
 
         // Assert
         Assert.That(stateChangedCalled, Is.True, "StateHasChanged should be called to update UI");
@@ -336,7 +352,7 @@ public class DashboardViewModelTests : ApBoxTestContext
         };
 
         // Act
-        await _mockNotificationAggregator.BroadcastAsync(statusNotification);
+        _readerStatusHandler?.Invoke(statusNotification);
 
         // Assert
         Assert.That(stateChangedCalled, Is.True, "StateHasChanged should be called to update UI");
@@ -364,7 +380,7 @@ public class DashboardViewModelTests : ApBoxTestContext
         };
 
         // Act
-        await _mockNotificationAggregator.BroadcastAsync(cardEvent);
+        _cardEventHandler?.Invoke(cardEvent);
 
         // Assert
         Assert.That(invokeAsyncCalled, Is.True, "InvokeAsync should be called for thread safety");

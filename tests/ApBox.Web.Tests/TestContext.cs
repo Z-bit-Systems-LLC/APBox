@@ -37,7 +37,7 @@ public class ApBoxTestContext : Bunit.TestContext
     public Mock<IConfigurationExportService> MockConfigurationExportService { get; private set; }
     public Mock<ISystemRestartService> MockSystemRestartService { get; private set; }
     public Mock<ICardEventPersistenceService> MockCardEventPersistenceService { get; private set; }
-    public MockNotificationAggregator MockNotificationAggregator { get; private set; }
+    public Mock<INotificationAggregator> MockNotificationAggregator { get; private set; }
     public Mock<IReaderPluginMappingService> MockReaderPluginMappingService { get; private set; }
     public Mock<ISerialPortService> MockSerialPortService { get; private set; }
     public Mock<ILocalStorageService> MockLocalStorageService { get; private set; }
@@ -56,7 +56,7 @@ public class ApBoxTestContext : Bunit.TestContext
         MockConfigurationExportService = new Mock<IConfigurationExportService>();
         MockSystemRestartService = new Mock<ISystemRestartService>();
         MockCardEventPersistenceService = new Mock<ICardEventPersistenceService>();
-        MockNotificationAggregator = new MockNotificationAggregator();
+        MockNotificationAggregator = new Mock<INotificationAggregator>();
         MockReaderPluginMappingService = new Mock<IReaderPluginMappingService>();
         MockSerialPortService = new Mock<ISerialPortService>();
         MockLocalStorageService = new Mock<ILocalStorageService>();
@@ -96,7 +96,7 @@ public class ApBoxTestContext : Bunit.TestContext
         Services.AddSingleton(MockConfigurationExportService.Object);
         Services.AddSingleton(MockSystemRestartService.Object);
         Services.AddSingleton(MockCardEventPersistenceService.Object);
-        Services.AddSingleton<INotificationAggregator>(MockNotificationAggregator);
+        Services.AddSingleton(MockNotificationAggregator.Object);
         Services.AddSingleton(MockReaderPluginMappingService.Object);
         Services.AddSingleton(MockSerialPortService.Object);
         
@@ -135,6 +135,7 @@ public class ApBoxTestContext : Bunit.TestContext
         MockLogService.Reset();
         MockConfigurationExportService.Reset();
         MockSystemRestartService.Reset();
+        MockNotificationAggregator.Reset();
         MockReaderPluginMappingService.Reset();
         MockSerialPortService.Reset();
         MockLocalStorageService.Reset();

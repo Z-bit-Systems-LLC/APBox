@@ -34,13 +34,12 @@ public static class ServiceCollectionExtensions
         services.AddSingleton<IOsdpCommunicationManager, OsdpCommunicationManager>();
         services.AddHostedService<OsdpStartupService>();
         
-        // Register notification services
-        services.AddSingleton<INotificationAggregator, ServerSideNotificationAggregator>();
-        services.AddHostedService<ServerSideNotificationAggregator>(provider => 
-            (ServerSideNotificationAggregator)provider.GetRequiredService<INotificationAggregator>());
-        
-        // Register SignalR event subscriber (replaces old bridge services)
-        services.AddHostedService<SignalREventSubscriber>();
+        // Register unified notification service (combines server-side and SignalR notifications)
+        services.AddSingleton<UnifiedNotificationService>();
+        services.AddSingleton<INotificationAggregator>(provider => 
+            provider.GetRequiredService<UnifiedNotificationService>());
+        services.AddHostedService<UnifiedNotificationService>(provider => 
+            provider.GetRequiredService<UnifiedNotificationService>());
         
         
         // Register ViewModels
