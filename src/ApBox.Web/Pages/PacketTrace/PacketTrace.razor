@@ -123,10 +123,6 @@
                 <!-- Packet Trace Grid -->
                 <Card ElementId="packet-traces-card">
                     <CardHeader>
-                        <CardTitle>
-                            <Icon Name="IconName.List" Margin="Margin.Is2.FromEnd" />
-                            Packet Traces
-                        </CardTitle>
                     <CardActions>
                         <Buttons>
                             <Button Color="Color.Success" 
@@ -141,18 +137,14 @@
                                     Size="Size.Small">
                                 <Icon Name="IconName.Stop" /> Stop
                             </Button>
-                            <Button Color="Color.Warning" 
-                                    Clicked="@ClearAllTraces"
-                                    Size="Size.Small">
-                                <Icon Name="IconName.Clear" /> Clear
-                            </Button>
-                            <Button Color="Color.Info" 
-                                    Clicked="@ExportToOsdpCap"
-                                    Size="Size.Small"
-                                    Disabled="@(ViewModel.TotalPackets == 0)">
-                                <Icon Name="IconName.Download" /> Export
-                            </Button>
                         </Buttons>
+                        <Button Color="Color.Info" 
+                                Clicked="@ExportToOsdpCap"
+                                Size="Size.Small"
+                                Float="Float.End"
+                                Disabled="@(ViewModel.TotalPackets == 0)">
+                            <Icon Name="IconName.Download" /> Export
+                        </Button>
                     </CardActions>
                 </CardHeader>
                     <CardBody>
@@ -355,10 +347,6 @@
         ViewModel.StopTracingCommand.Execute(null);
     }
     
-    private void ClearAllTraces()
-    {
-        ViewModel.ClearAllTracesCommand.Execute(null);
-    }
     
     private async Task ExportToOsdpCap()
     {

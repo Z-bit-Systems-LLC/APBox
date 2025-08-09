@@ -120,30 +120,6 @@ public class PacketTraceViewModelTests
         Assert.That(_viewModel.TracingEnabled, Is.False);
     }
 
-    [Test]
-    public void ClearAllTraces_CallsServiceClearAndUpdatesUI()
-    {
-        // Arrange
-        // Arrange - Skip adding test packets since they can't be created easily
-
-        var mockStats = new TracingStatistics
-        {
-            TotalPackets = 0,
-            FilteredPackets = 0,
-            MemoryUsageBytes = 0
-        };
-
-        _mockPacketTraceService.Setup(s => s.GetStatistics())
-                              .Returns(mockStats);
-
-        // Act
-        _viewModel.ClearAllTracesCommand.Execute(null);
-
-        // Assert
-        _mockPacketTraceService.Verify(s => s.ClearTraces(null), Times.Once);
-        Assert.That(_viewModel.Packets.Count, Is.EqualTo(0));
-        Assert.That(_viewModel.TotalPackets, Is.EqualTo(0));
-    }
 
     [Test]
     public async Task InitializeWithJavaScriptAsync_LoadsSettingsFromLocalStorage()
@@ -193,7 +169,6 @@ public class PacketTraceViewModelTests
         // Test basic command functionality
         Assert.That(_viewModel.StartTracingCommand, Is.Not.Null);
         Assert.That(_viewModel.StopTracingCommand, Is.Not.Null);
-        Assert.That(_viewModel.ClearAllTracesCommand, Is.Not.Null);
     }
 
     [Test]

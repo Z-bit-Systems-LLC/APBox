@@ -176,13 +176,6 @@ namespace ApBox.Web.ViewModels
             TracingEnabled = false;
         }
         
-        [RelayCommand]
-        private void ClearAllTraces()
-        {
-            _traceService.ClearTraces();
-            Packets.Clear();
-            UpdateStatistics();
-        }
         
         [RelayCommand]
         private void RefreshDisplay()
