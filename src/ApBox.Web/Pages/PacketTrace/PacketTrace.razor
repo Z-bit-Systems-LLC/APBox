@@ -58,7 +58,8 @@
                     
                     <!-- Filters -->
                     <Field>
-                        <FieldLabel>Packet Filters</FieldLabel>
+                        <FieldLabel>Display Filters</FieldLabel>
+                        <FieldHelp>Filters only affect display. All packets are captured in memory.</FieldHelp>
                         <Check @bind-Checked="@ViewModel.FilterPollCommands">
                             Hide Poll Commands
                         </Check>
@@ -72,6 +73,14 @@
                             Clicked="@ApplySettings" 
                             Block>
                         <Icon Name="IconName.Save" /> Apply Settings
+                    </Button>
+                    
+                    <!-- Refresh Button -->
+                    <Button Color="Color.Light" 
+                            Clicked="@RefreshDisplay" 
+                            Block
+                            Margin="Margin.Is2.FromTop">
+                        <Icon Name="IconName.Sync" /> Refresh Display
                     </Button>
                 </CardBody>
             </Card>
@@ -91,12 +100,17 @@
                     </Field>
                     
                     <Field>
-                        <FieldLabel>Total Packets</FieldLabel>
+                        <FieldLabel>Total Captured</FieldLabel>
                         <Badge Color="Color.Primary">@ViewModel.TotalPackets</Badge>
                     </Field>
                     
                     <Field>
-                        <FieldLabel>Filtered</FieldLabel>
+                        <FieldLabel>Displayed</FieldLabel>
+                        <Badge Color="Color.Success">@(ViewModel.TotalPackets - ViewModel.FilteredPackets)</Badge>
+                    </Field>
+                    
+                    <Field>
+                        <FieldLabel>Filtered Out</FieldLabel>
                         <Badge Color="Color.Warning">@ViewModel.FilteredPackets</Badge>
                     </Field>
                     
@@ -359,6 +373,11 @@
     private async Task ExportToOsdpCap()
     {
         await ViewModel.ExportToOsdpCapCommand.ExecuteAsync(null);
+    }
+    
+    private void RefreshDisplay()
+    {
+        ViewModel.RefreshDisplayCommand.Execute(null);
     }
     
     private void OnSelectedTabChanged(string name)

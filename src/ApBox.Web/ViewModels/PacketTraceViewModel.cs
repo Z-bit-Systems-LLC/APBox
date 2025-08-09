@@ -142,6 +142,13 @@ namespace ApBox.Web.ViewModels
             UpdateStatistics();
         }
         
+        [RelayCommand]
+        private void RefreshDisplay()
+        {
+            RefreshPacketList();
+            UpdateStatistics();
+        }
+        
         
         [RelayCommand]
         private async Task ExportToOsdpCapAsync()
@@ -155,16 +162,31 @@ namespace ApBox.Web.ViewModels
         
         private void OnPacketCaptured(object? sender, PacketTraceEntry e)
         {
-            // Add to UI collection (limit to recent 100 for performance)
-            Packets.Insert(0, e);
-            if (Packets.Count > 100)
+            // Check if packet should be displayed based on current filters
+            bool shouldDisplay = true;
+            if (e.RawData != null)
             {
-                Packets.RemoveAt(Packets.Count - 1);
+                if (FilterPollCommands && IsPollCommand(e.RawData))
+                    shouldDisplay = false;
+                if (FilterAckCommands && IsAckReply(e.RawData))
+                    shouldDisplay = false;
             }
-            UpdateStatistics();
             
-            // Notify that the collection has changed
-            OnPropertyChanged(nameof(Packets));
+            if (shouldDisplay)
+            {
+                // Add to UI collection (limit to recent 100 for performance)
+                Packets.Insert(0, e);
+                if (Packets.Count > 100)
+                {
+                    Packets.RemoveAt(Packets.Count - 1);
+                }
+                
+                // Notify that the collection has changed
+                OnPropertyChanged(nameof(Packets));
+            }
+            
+            // Always update statistics (they show total and filtered counts)
+            UpdateStatistics();
             
             // Update UI on the main thread
             InvokeAsync?.Invoke(() => { StateHasChanged(); return Task.CompletedTask; });
@@ -172,7 +194,11 @@ namespace ApBox.Web.ViewModels
         
         private void RefreshPacketList()
         {
-            var traces = _traceService.GetTraces(limit: 100);
+            var traces = _traceService.GetTraces(
+                readerId: null, 
+                limit: 100, 
+                filterPollCommands: FilterPollCommands, 
+                filterAckCommands: FilterAckCommands);
             Packets.Clear();
             foreach (var trace in traces)
             {
@@ -212,5 +238,29 @@ namespace ApBox.Web.ViewModels
         /// Placeholder for InvokeAsync - will be set by the component
         /// </summary>
         public Func<Func<Task>, Task>? InvokeAsync { get; set; }
+        
+        private bool IsPollCommand(byte[] data)
+        {
+            // Check if packet is OSDP Poll command (0x60)
+            if (data.Length < 6) return false;
+            
+            // Look for OSDP SOM (Start of Message)
+            if (data[0] != 0x53) return false;
+            
+            // Check for Poll command (0x60) in the data portion
+            return data.Length > 4 && data[4] == 0x60;
+        }
+        
+        private bool IsAckReply(byte[] data)
+        {
+            // Check if packet is OSDP ACK reply (0x40)
+            if (data.Length < 6) return false;
+            
+            // Look for OSDP SOM (Start of Message)
+            if (data[0] != 0x53) return false;
+            
+            // Check for ACK reply (0x40) in the data portion
+            return data.Length > 4 && data[4] == 0x40;
+        }
     }
 }

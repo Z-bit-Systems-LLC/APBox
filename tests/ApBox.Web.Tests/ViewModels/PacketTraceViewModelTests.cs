@@ -42,7 +42,7 @@ public class PacketTraceViewModelTests
             CreateTestPacketTrace("Reader2", PacketDirection.Outgoing)
         };
 
-        _mockPacketTraceService.Setup(s => s.GetTraces(null, 100))
+        _mockPacketTraceService.Setup(s => s.GetTraces(null, 100, true, false))
                               .Returns(existingTraces);
 
         var mockStats = new TracingStatistics

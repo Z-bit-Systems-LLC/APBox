@@ -13,7 +13,7 @@ namespace ApBox.Core.PacketTracing.Services
         void StopTracingAll();
         void ClearTraces(string? readerId = null);
         
-        IEnumerable<PacketTraceEntry> GetTraces(string? readerId = null, int? limit = null);
+        IEnumerable<PacketTraceEntry> GetTraces(string? readerId = null, int? limit = null, bool filterPollCommands = false, bool filterAckCommands = false);
         
         void UpdateSettings(PacketTraceSettings settings);
         PacketTraceSettings GetCurrentSettings();

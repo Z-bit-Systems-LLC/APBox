@@ -10,7 +10,6 @@ namespace ApBox.Core.PacketTracing.Services
         private readonly HashSet<string> _activeReaders = new();
         private PacketTraceSettings _settings = new();
         private DateTime? _tracingStarted;
-        private int _filteredPackets = 0;
         private readonly IReaderConfigurationService? _readerConfigurationService;
 
         public PacketTraceService(IReaderConfigurationService? readerConfigurationService = null)
@@ -93,25 +92,42 @@ namespace ApBox.Core.PacketTracing.Services
                     buffer.Clear();
                 }
                 _lastEntries.Clear();
-                _filteredPackets = 0;
             }
         }
         
-        public IEnumerable<PacketTraceEntry> GetTraces(string? readerId = null, int? limit = null)
+        public IEnumerable<PacketTraceEntry> GetTraces(string? readerId = null, int? limit = null, bool filterPollCommands = false, bool filterAckCommands = false)
         {
+            IEnumerable<PacketTraceEntry> traces;
+            
             if (readerId != null)
             {
-                return _readerBuffers.ContainsKey(readerId) 
-                    ? _readerBuffers[readerId].GetEntries(limit) 
+                traces = _readerBuffers.ContainsKey(readerId) 
+                    ? _readerBuffers[readerId].GetEntries() 
                     : Enumerable.Empty<PacketTraceEntry>();
             }
+            else
+            {
+                // Return all traces from all readers
+                traces = _readerBuffers.Values
+                    .SelectMany(b => b.GetEntries())
+                    .OrderByDescending(e => e.Timestamp);
+            }
             
-            // Return all traces from all readers
-            var allTraces = _readerBuffers.Values
-                .SelectMany(b => b.GetEntries())
-                .OrderByDescending(e => e.Timestamp);
+            // Apply filters if specified
+            if (filterPollCommands || filterAckCommands)
+            {
+                traces = traces.Where(entry => 
+                {
+                    if (entry.RawData == null) return true;
+                    if (filterPollCommands && IsPollCommand(entry.RawData))
+                        return false;
+                    if (filterAckCommands && IsAckReply(entry.RawData))
+                        return false;
+                    return true;
+                });
+            }
             
-            return limit.HasValue ? allTraces.Take(limit.Value) : allTraces;
+            return limit.HasValue ? traces.Take(limit.Value) : traces;
         }
         
         public void UpdateSettings(PacketTraceSettings settings)
@@ -136,7 +152,7 @@ namespace ApBox.Core.PacketTracing.Services
             {
                 TracingStartedAt = _tracingStarted,
                 PacketsPerReader = new Dictionary<string, int>(),
-                FilteredPackets = _filteredPackets
+                FilteredPackets = 0 // Will be calculated based on current filter settings
             };
             
             foreach (var kvp in _readerBuffers)
@@ -147,6 +163,21 @@ namespace ApBox.Core.PacketTracing.Services
                 stats.MemoryUsageBytes += kvp.Value.MemoryUsageBytes;
             }
             
+            // Calculate filtered packets based on current filter settings
+            if (_settings.FilterPollCommands || _settings.FilterAckCommands)
+            {
+                var allPackets = _readerBuffers.Values.SelectMany(b => b.GetEntries());
+                foreach (var packet in allPackets)
+                {
+                    if (packet.RawData != null && 
+                        ((_settings.FilterPollCommands && IsPollCommand(packet.RawData)) ||
+                         (_settings.FilterAckCommands && IsAckReply(packet.RawData))))
+                    {
+                        stats.FilteredPackets++;
+                    }
+                }
+            }
+            
             return stats;
         }
         
@@ -155,19 +186,6 @@ namespace ApBox.Core.PacketTracing.Services
             string readerId, string readerName, byte address)
         {
             if (!IsTracingReader(readerId)) return;
-            
-            // Apply filters
-            if (_settings.FilterPollCommands && IsPollCommand(rawData))
-            {
-                _filteredPackets++;
-                return;
-            }
-            
-            if (_settings.FilterAckCommands && IsAckReply(rawData))
-            {
-                _filteredPackets++;
-                return;
-            }
             
             // Build packet entry
             var builder = new PacketTraceEntryBuilder()

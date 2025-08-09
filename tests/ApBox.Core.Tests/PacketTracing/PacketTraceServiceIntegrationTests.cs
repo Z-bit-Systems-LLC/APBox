@@ -145,13 +145,18 @@ public class PacketTraceServiceIntegrationTests
         _service.CapturePacket(osdpPollPacket, PacketDirection.Outgoing, readerId, readerName, address);
         _service.CapturePacket(osdpAckPacket, PacketDirection.Incoming, readerId, readerName, address);
         
-        // Assert
-        var traces = _service.GetTraces(readerId).ToList();
-        Assert.That(traces, Has.Count.EqualTo(1)); // Only ACK should be captured
-        Assert.That(traces.First().Type, Is.EqualTo("ACK"));
+        // Assert - All packets should be stored, filtering only affects display
+        var allTraces = _service.GetTraces(readerId).ToList();
+        Assert.That(allTraces, Has.Count.EqualTo(2)); // Both packets stored
+        
+        // When retrieving with filters applied, only non-poll commands should be returned
+        var filteredTraces = _service.GetTraces(readerId, limit: null, filterPollCommands: true, filterAckCommands: false).ToList();
+        Assert.That(filteredTraces, Has.Count.EqualTo(1)); // Only ACK packet shown
+        Assert.That(filteredTraces.First().Type, Is.EqualTo("ACK"));
         
         var stats = _service.GetStatistics();
-        Assert.That(stats.FilteredPackets, Is.EqualTo(1)); // POLL command was filtered
+        Assert.That(stats.TotalPackets, Is.EqualTo(2)); // All packets counted
+        Assert.That(stats.FilteredPackets, Is.EqualTo(1)); // Poll command counted as filtered
     }
 
     [Test]
