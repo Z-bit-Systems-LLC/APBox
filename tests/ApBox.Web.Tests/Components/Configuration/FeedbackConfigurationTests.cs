@@ -34,15 +34,12 @@ public class FeedbackConfigurationTests : ApBoxTestContext
     }
 
     [Test]
-    public async Task FeedbackConfiguration_ShowsLoadingState()
+    public void FeedbackConfiguration_ShowsLoadingState()
     {
-        // Arrange - Set up a delay in the service call
+        // Arrange - Set up a TaskCompletionSource to control async timing
+        var tcs = new TaskCompletionSource<FeedbackConfiguration>();
         MockFeedbackConfigurationService.Setup(x => x.GetDefaultConfigurationAsync())
-            .Returns(async () =>
-            {
-                await Task.Delay(100);
-                return GetDefaultFeedbackConfiguration();
-            });
+            .Returns(tcs.Task);
 
         // Act
         var component = RenderComponent<ApBox.Web.Components.Configuration.FeedbackConfiguration>();
@@ -51,8 +48,8 @@ public class FeedbackConfigurationTests : ApBoxTestContext
         var loadingAlert = component.Find(".alert");
         Assert.That(loadingAlert.TextContent, Does.Contain("Loading feedback configuration"));
         
-        // Wait for loading to complete
-        await Task.Delay(150);
+        // Complete the loading
+        tcs.SetResult(GetDefaultFeedbackConfiguration());
         component.Render();
         
         // Should show the configuration forms after loading
@@ -178,7 +175,7 @@ public class FeedbackConfigurationTests : ApBoxTestContext
     #region Error Handling Tests
 
     [Test]
-    public async Task FeedbackConfiguration_HandlesLoadError()
+    public void FeedbackConfiguration_HandlesLoadError()
     {
         // Arrange
         MockFeedbackConfigurationService.Setup(x => x.GetDefaultConfigurationAsync())
@@ -186,7 +183,7 @@ public class FeedbackConfigurationTests : ApBoxTestContext
 
         // Act
         var component = RenderComponent<ApBox.Web.Components.Configuration.FeedbackConfiguration>();
-        await Task.Delay(50); // Wait for error to be handled
+        component.Render(); // Force render to handle error
 
         // Assert - Component should handle error gracefully and still render
         Assert.That(component, Is.Not.Null);
@@ -202,7 +199,7 @@ public class FeedbackConfigurationTests : ApBoxTestContext
             .ThrowsAsync(new Exception("Auto-save failed"));
 
         var component = RenderComponent<ApBox.Web.Components.Configuration.FeedbackConfiguration>();
-        await Task.Delay(50); // Wait for initial load
+        component.Render(); // Ensure initial load is complete
 
         // Act - Change a value to trigger auto-save
         var successLedSelect = component.Find("#success-led-color");
@@ -256,13 +253,12 @@ public class FeedbackConfigurationTests : ApBoxTestContext
     #region Service Integration Tests
 
     [Test]
-    public async Task FeedbackConfiguration_CallsServiceOnInitialization()
+    public void FeedbackConfiguration_CallsServiceOnInitialization()
     {
         // Act
         RenderComponent<ApBox.Web.Components.Configuration.FeedbackConfiguration>();
-        await Task.Delay(50); // Allow component to initialize
 
-        // Assert
+        // Assert - Service is called immediately on initialization
         MockFeedbackConfigurationService.Verify(x => x.GetDefaultConfigurationAsync(), Times.Once);
     }
 
@@ -271,14 +267,14 @@ public class FeedbackConfigurationTests : ApBoxTestContext
     {
         // Arrange
         var component = RenderComponent<ApBox.Web.Components.Configuration.FeedbackConfiguration>();
-        await Task.Delay(50); // Wait for initial load
+        component.Render(); // Ensure initial load is complete
 
         // Act - Modify success feedback
         var successDisplayMessage = component.Find("#success-display-message");
         await successDisplayMessage.InputAsync(new ChangeEventArgs { Value = "WELCOME" });
 
-        // Wait for auto-save
-        await Task.Delay(100);
+        // Force render to process changes
+        component.Render();
 
         // Assert - Should auto-save success feedback with correct data
         MockFeedbackConfigurationService.Verify(
@@ -292,8 +288,8 @@ public class FeedbackConfigurationTests : ApBoxTestContext
         var failureBeepCount = component.Find("#failure-beep-count");
         await failureBeepCount.InputAsync(new ChangeEventArgs { Value = "5" });
 
-        // Wait for auto-save
-        await Task.Delay(100);
+        // Force render to process changes
+        component.Render();
 
         // Assert - Should auto-save failure feedback with correct data
         MockFeedbackConfigurationService.Verify(
@@ -325,7 +321,7 @@ public class FeedbackConfigurationTests : ApBoxTestContext
     {
         // Arrange
         var component = RenderComponent<ApBox.Web.Components.Configuration.FeedbackConfiguration>();
-        await Task.Delay(50); // Wait for initial load
+        component.Render(); // Ensure initial load is complete
 
         // Act
         var resetButton = component.Find("#reset-to-defaults-btn");
@@ -344,7 +340,7 @@ public class FeedbackConfigurationTests : ApBoxTestContext
     {
         // Arrange
         var component = RenderComponent<ApBox.Web.Components.Configuration.FeedbackConfiguration>();
-        await Task.Delay(50); // Wait for initial load
+        component.Render(); // Ensure initial load is complete
 
         // Act - Open modal and confirm reset
         var resetButton = component.Find("#reset-to-defaults-btn");
@@ -353,8 +349,8 @@ public class FeedbackConfigurationTests : ApBoxTestContext
         var confirmButton = component.Find("#reset-confirm-btn");
         await confirmButton.ClickAsync(new MouseEventArgs());
 
-        // Wait for async operations
-        await Task.Delay(100);
+        // Force render to process async operations
+        component.Render();
 
         // Assert - Should call SaveDefaultConfigurationAsync
         MockFeedbackConfigurationService.Verify(
@@ -374,7 +370,7 @@ public class FeedbackConfigurationTests : ApBoxTestContext
     {
         // Arrange
         var component = RenderComponent<ApBox.Web.Components.Configuration.FeedbackConfiguration>();
-        await Task.Delay(50); // Wait for initial load
+        component.Render(); // Ensure initial load is complete
 
         // Act - Open modal and cancel
         var resetButton = component.Find("#reset-to-defaults-btn");
@@ -383,8 +379,8 @@ public class FeedbackConfigurationTests : ApBoxTestContext
         var cancelButton = component.Find("#reset-cancel-btn");
         await cancelButton.ClickAsync(new MouseEventArgs());
 
-        // Wait for async operations
-        await Task.Delay(100);
+        // Force render to process any pending operations
+        component.Render();
 
         // Assert - Should NOT call SaveDefaultConfigurationAsync (only the initial load call)
         MockFeedbackConfigurationService.Verify(

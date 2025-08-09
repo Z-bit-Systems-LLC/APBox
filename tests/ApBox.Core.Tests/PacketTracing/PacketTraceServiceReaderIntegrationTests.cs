@@ -42,14 +42,16 @@ public class PacketTraceServiceReaderIntegrationTests
             new ReaderConfiguration { ReaderId = reader3Id, ReaderName = "Reader 3", IsEnabled = false } // Disabled
         };
         
+        var readersTaskCompletionSource = new TaskCompletionSource<IEnumerable<ReaderConfiguration>>();
         _mockReaderService.Setup(s => s.GetAllReadersAsync())
-                         .ReturnsAsync(readers);
+                         .Returns(readersTaskCompletionSource.Task);
 
         // Act
         _service.StartTracingAll();
         
-        // Allow async method to complete
-        await Task.Delay(100);
+        // Complete the async operation synchronously
+        readersTaskCompletionSource.SetResult(readers);
+        await readersTaskCompletionSource.Task;
 
         // Assert
         Assert.That(_service.IsTracingReader(reader1Id.ToString()), Is.True);
@@ -68,14 +70,16 @@ public class PacketTraceServiceReaderIntegrationTests
             new ReaderConfiguration { ReaderId = Guid.NewGuid(), ReaderName = "Reader 2", IsEnabled = false }
         };
         
+        var readersTaskCompletionSource = new TaskCompletionSource<IEnumerable<ReaderConfiguration>>();
         _mockReaderService.Setup(s => s.GetAllReadersAsync())
-                         .ReturnsAsync(readers);
+                         .Returns(readersTaskCompletionSource.Task);
 
         // Act
         _service.StartTracingAll();
         
-        // Allow async method to complete
-        await Task.Delay(100);
+        // Complete the async operation synchronously
+        readersTaskCompletionSource.SetResult(readers);
+        await readersTaskCompletionSource.Task;
 
         // Assert
         Assert.That(_service.IsTracing, Is.False);
@@ -85,14 +89,16 @@ public class PacketTraceServiceReaderIntegrationTests
     public async Task StartTracingAll_WithNoReaders_DoesNotStartTracing()
     {
         // Arrange
+        var readersTaskCompletionSource = new TaskCompletionSource<IEnumerable<ReaderConfiguration>>();
         _mockReaderService.Setup(s => s.GetAllReadersAsync())
-                         .ReturnsAsync(new List<ReaderConfiguration>());
+                         .Returns(readersTaskCompletionSource.Task);
 
         // Act
         _service.StartTracingAll();
         
-        // Allow async method to complete
-        await Task.Delay(100);
+        // Complete the async operation synchronously
+        readersTaskCompletionSource.SetResult(new List<ReaderConfiguration>());
+        await readersTaskCompletionSource.Task;
 
         // Assert
         Assert.That(_service.IsTracing, Is.False);
@@ -102,14 +108,20 @@ public class PacketTraceServiceReaderIntegrationTests
     public async Task StartTracingAll_WhenReaderServiceThrows_DoesNotThrow()
     {
         // Arrange
+        var readersTaskCompletionSource = new TaskCompletionSource<IEnumerable<ReaderConfiguration>>();
         _mockReaderService.Setup(s => s.GetAllReadersAsync())
-                         .ThrowsAsync(new InvalidOperationException("Database error"));
+                         .Returns(readersTaskCompletionSource.Task);
 
-        // Act & Assert
-        Assert.DoesNotThrowAsync(async () =>
+        // Act
+        _service.StartTracingAll();
+        
+        // Complete with exception
+        readersTaskCompletionSource.SetException(new InvalidOperationException("Database error"));
+        
+        // Assert - Give time for exception handling but no delay needed
+        Assert.DoesNotThrow(() => 
         {
-            _service.StartTracingAll();
-            await Task.Delay(100);
+            try { readersTaskCompletionSource.Task.Wait(100); } catch { }
         });
         
         Assert.That(_service.IsTracing, Is.False);
@@ -139,12 +151,14 @@ public class PacketTraceServiceReaderIntegrationTests
             new ReaderConfiguration { ReaderId = reader2Id, ReaderName = "Reader 2", IsEnabled = false }
         };
         
+        var readersTaskCompletionSource = new TaskCompletionSource<IEnumerable<ReaderConfiguration>>();
         _mockReaderService.Setup(s => s.GetAllReadersAsync())
-                         .ReturnsAsync(readers);
+                         .Returns(readersTaskCompletionSource.Task);
 
         // Start tracing all
         _service.StartTracingAll();
-        await Task.Delay(100);
+        readersTaskCompletionSource.SetResult(readers);
+        await readersTaskCompletionSource.Task;
 
         // Act - Skip legacy API test since it uses deprecated methods
         // The CapturePacket method with PacketDirection is now deprecated
@@ -167,12 +181,14 @@ public class PacketTraceServiceReaderIntegrationTests
             new ReaderConfiguration { ReaderId = reader2Id, ReaderName = "Reader 2", IsEnabled = true }
         };
         
+        var readersTaskCompletionSource = new TaskCompletionSource<IEnumerable<ReaderConfiguration>>();
         _mockReaderService.Setup(s => s.GetAllReadersAsync())
-                         .ReturnsAsync(readers);
+                         .Returns(readersTaskCompletionSource.Task);
 
         // Start tracing
         _service.StartTracingAll();
-        await Task.Delay(100);
+        readersTaskCompletionSource.SetResult(readers);
+        await readersTaskCompletionSource.Task;
         
         Assert.That(_service.IsTracing, Is.True);
 
@@ -195,15 +211,17 @@ public class PacketTraceServiceReaderIntegrationTests
             new ReaderConfiguration { ReaderId = reader1Id, ReaderName = "Reader 1", IsEnabled = true }
         };
         
+        var readersTaskCompletionSource = new TaskCompletionSource<IEnumerable<ReaderConfiguration>>();
         _mockReaderService.Setup(s => s.GetAllReadersAsync())
-                         .ReturnsAsync(readers);
+                         .Returns(readersTaskCompletionSource.Task);
 
         PacketTraceEntry? capturedPacket = null;
         _service.PacketCaptured += (sender, packet) => capturedPacket = packet;
 
         // Start tracing
         _service.StartTracingAll();
-        await Task.Delay(100);
+        readersTaskCompletionSource.SetResult(readers);
+        await readersTaskCompletionSource.Task;
 
         // Act - Skip legacy API test since it uses deprecated methods
         // The CapturePacket method with PacketDirection is now deprecated
@@ -224,12 +242,14 @@ public class PacketTraceServiceReaderIntegrationTests
             new ReaderConfiguration { ReaderId = reader1Id, ReaderName = "Reader 1", IsEnabled = true }
         };
         
+        var readersTaskCompletionSource = new TaskCompletionSource<IEnumerable<ReaderConfiguration>>();
         _mockReaderService.Setup(s => s.GetAllReadersAsync())
-                         .ReturnsAsync(readers);
+                         .Returns(readersTaskCompletionSource.Task);
 
         // Act
         _service.StartTracingAll();
-        await Task.Delay(100);
+        readersTaskCompletionSource.SetResult(readers);
+        await readersTaskCompletionSource.Task;
 
         var stats = _service.GetStatistics();
 
