@@ -43,6 +43,12 @@ namespace ApBox.Web.ViewModels
         [ObservableProperty]
         private string _tracingDuration = "00:00:00";
         
+        [ObservableProperty]
+        private bool _isLoading;
+        
+        [ObservableProperty]
+        private string _errorMessage = string.Empty;
+        
         public PacketTraceViewModel(
             IPacketTraceService traceService,
             ILocalStorageService localStorage,
@@ -78,7 +84,32 @@ namespace ApBox.Web.ViewModels
         }
         
         
-        public Task InitializeAsync()
+        [RelayCommand]
+        private async Task InitializeAsync()
+        {
+            try
+            {
+                IsLoading = true;
+                ErrorMessage = string.Empty;
+                
+                // Load existing traces without JavaScript interop
+                await Task.Run(() =>
+                {
+                    RefreshPacketList();
+                    UpdateStatistics();
+                });
+            }
+            catch (Exception ex)
+            {
+                ErrorMessage = $"Failed to initialize packet trace: {ex.Message}";
+            }
+            finally
+            {
+                IsLoading = false;
+            }
+        }
+        
+        public Task InitializeComponentAsync()
         {
             // Load existing traces without JavaScript interop
             RefreshPacketList();

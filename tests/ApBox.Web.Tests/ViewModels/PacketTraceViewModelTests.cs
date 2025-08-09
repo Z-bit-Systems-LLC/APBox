@@ -63,7 +63,7 @@ public class PacketTraceViewModelTests
                               .Returns(mockStats);
 
         // Act
-        await _viewModel.InitializeAsync();
+        await _viewModel.InitializeComponentAsync();
 
         // Assert - Test service calls and statistics binding
         Assert.That(_viewModel.Packets.Count, Is.EqualTo(0)); // No packets loaded due to complexity

@@ -3,21 +3,58 @@
 @using ApBox.Core.PacketTracing.Models
 @using ApBox.Web.ViewModels
 @using OSDP.Net.Tracing
+@using Blazorise.SpinKit
 @inject PacketTraceViewModel ViewModel
 @implements IDisposable
 
 <PageTitle>Packet Trace</PageTitle>
 
-<Container Fluid>
-    <Row>
-        <Column ColumnSize="ColumnSize.Is3.OnDesktop.Is12.OnMobile">
-            <!-- Settings Panel -->
-            <Card>
-                <CardHeader>
-                    <CardTitle>
-                        <Icon Name="IconName.Settings" /> Trace Settings
-                    </CardTitle>
-                </CardHeader>
+<Container Fluid ElementId="packet-trace-container">
+    <Row Margin="Margin.Is4.FromBottom">
+        <Column>
+            <Heading Size="HeadingSize.Is1" ElementId="packet-trace-title">Packet Trace</Heading>
+            <Paragraph TextColor="TextColor.Muted" ElementId="packet-trace-subtitle">Capture and analyze OSDP protocol packets</Paragraph>
+        </Column>
+    </Row>
+
+    @if (ViewModel.IsLoading)
+    {
+        <Row ElementId="loading-spinner">
+            <Column>
+                <Div Display="Display.Flex" JustifyContent="JustifyContent.Center" Margin="Margin.Is5.FromTop">
+                    <Text Margin="Margin.Is2.FromEnd">Loading packet trace...</Text>
+                    <SpinKit Type="SpinKitType.Pulse"/>
+                </Div>
+            </Column>
+        </Row>
+    }
+    else if (!string.IsNullOrEmpty(ViewModel.ErrorMessage))
+    {
+        <Row>
+            <Column>
+                <Alert Color="Color.Danger" Visible="true">
+                    <Icon Name="IconName.ExclamationTriangle" Margin="Margin.Is2.FromEnd" />
+                    @ViewModel.ErrorMessage
+                    <Button Color="Color.Secondary" Size="Size.Small" Margin="Margin.Is2.FromStart" Clicked="ViewModel.InitializeCommand.ExecuteAsync">
+                        <Icon Name="IconName.Redo" />
+                        Retry
+                    </Button>
+                </Alert>
+            </Column>
+        </Row>
+    }
+    else
+    {
+        <Row>
+            <Column ColumnSize="ColumnSize.Is3.OnDesktop.Is12.OnMobile">
+                <!-- Settings Panel -->
+                <Card ElementId="trace-settings-card">
+                    <CardHeader>
+                        <CardTitle>
+                            <Icon Name="IconName.Settings" Margin="Margin.Is2.FromEnd" />
+                            Trace Settings
+                        </CardTitle>
+                    </CardHeader>
                 <CardBody>
                     <!-- Enable/Disable Toggle -->
                     <Field>
@@ -43,13 +80,14 @@
                 </CardBody>
             </Card>
             
-            <!-- Statistics Card -->
-            <Card Margin="Margin.Is3.FromTop">
-                <CardHeader>
-                    <CardTitle>
-                        <Icon Name="IconName.ChartLine" /> Statistics
-                    </CardTitle>
-                </CardHeader>
+                <!-- Statistics Card -->
+                <Card Margin="Margin.Is3.FromTop" ElementId="trace-statistics-card">
+                    <CardHeader>
+                        <CardTitle>
+                            <Icon Name="IconName.ChartLine" Margin="Margin.Is2.FromEnd" />
+                            Statistics
+                        </CardTitle>
+                    </CardHeader>
                 <CardBody>
                     <Field>
                         <FieldLabel>Memory Usage</FieldLabel>
@@ -79,15 +117,16 @@
                     </Field>
                 </CardBody>
             </Card>
-        </Column>
-        
-        <Column ColumnSize="ColumnSize.Is9.OnDesktop.Is12.OnMobile">
-            <!-- Packet Trace Grid -->
-            <Card>
-                <CardHeader>
-                    <CardTitle>
-                        <Icon Name="IconName.List" /> Packet Traces
-                    </CardTitle>
+            </Column>
+            
+            <Column ColumnSize="ColumnSize.Is9.OnDesktop.Is12.OnMobile">
+                <!-- Packet Trace Grid -->
+                <Card ElementId="packet-traces-card">
+                    <CardHeader>
+                        <CardTitle>
+                            <Icon Name="IconName.List" Margin="Margin.Is2.FromEnd" />
+                            Packet Traces
+                        </CardTitle>
                     <CardActions>
                         <Buttons>
                             <Button Color="Color.Success" 
@@ -116,63 +155,62 @@
                         </Buttons>
                     </CardActions>
                 </CardHeader>
-                <CardBody>
-                    @if (ViewModel.Packets.Any())
-                    {
-                        <Table Striped Bordered Hoverable Responsive>
-                            <TableHeader>
-                                <TableRow>
-                                    <TableHeaderCell>Time</TableHeaderCell>
-                                    <TableHeaderCell>Δt</TableHeaderCell>
-                                    <TableHeaderCell>Direction</TableHeaderCell>
-                                    <TableHeaderCell>Reader</TableHeaderCell>
-                                    <TableHeaderCell>Type</TableHeaderCell>
-                                    <TableHeaderCell>Len</TableHeaderCell>
-                                    <TableHeaderCell>Details</TableHeaderCell>
-                                    <TableHeaderCell>Actions</TableHeaderCell>
-                                </TableRow>
-                            </TableHeader>
+                    <CardBody>
+                        @if (ViewModel.Packets.Any())
+                        {
+                            <Table Striped Hoverable Responsive ElementId="packet-traces-table">
+                                <TableHeader>
+                                    <TableRow>
+                                        <TableHeaderCell>Time</TableHeaderCell>
+                                        <TableHeaderCell>Δt</TableHeaderCell>
+                                        <TableHeaderCell>Direction</TableHeaderCell>
+                                        <TableHeaderCell>Reader</TableHeaderCell>
+                                        <TableHeaderCell>Type</TableHeaderCell>
+                                        <TableHeaderCell>Len</TableHeaderCell>
+                                        <TableHeaderCell>Details</TableHeaderCell>
+                                        <TableHeaderCell>Actions</TableHeaderCell>
+                                    </TableRow>
+                                </TableHeader>
                             <TableBody>
                                 @foreach (var packet in ViewModel.Packets.Take(50))
                                 {
                                     <TableRow>
                                         <TableRowCell>
-                                            <Small>@packet.LocalTimestamp.ToString("HH:mm:ss.fff")</Small>
+                                            <small>@packet.LocalTimestamp.ToString("HH:mm:ss.fff")</small>
                                         </TableRowCell>
                                         <TableRowCell>
                                             @if (packet.Interval.TotalMilliseconds > 0)
                                             {
-                                                <Small Class="text-muted">
-                                                    +@packet.Interval.TotalMilliseconds.ToString("F0")ms
-                                                </Small>
+                                                <small class="text-muted">+@packet.Interval.TotalMilliseconds.ToString("F0")ms</small>
                                             }
                                         </TableRowCell>
                                         <TableRowCell>
                                             <Badge Color="@(packet.Direction == TraceDirection.Output ? Color.Primary : Color.Success)">
                                                 @if (packet.Direction == TraceDirection.Output)
                                                 {
-                                                    <Icon Name="IconName.ArrowRight" /> <Text>OUT</Text>
+                                                    <Icon Name="IconName.ArrowRight" Margin="Margin.Is1.FromEnd" />
+                                                    <span>OUT</span>
                                                 }
                                                 else
                                                 {
-                                                    <Icon Name="IconName.ArrowLeft" /> <Text>IN</Text>
+                                                    <Icon Name="IconName.ArrowLeft" Margin="Margin.Is1.FromEnd" />
+                                                    <span>IN</span>
                                                 }
                                             </Badge>
                                         </TableRowCell>
                                         <TableRowCell>
-                                            <Text>Reader</Text>
+                                            <span>Reader</span>
                                             <br />
-                                            <Small Class="text-muted">[Address]</Small>
+                                            <small class="text-muted">[Address]</small>
                                         </TableRowCell>
                                         <TableRowCell>
-                                            <Text>@packet.Type</Text>
-                                            @* Security info would come from parsed packet data *@
+                                            <span>@packet.Type</span>
                                         </TableRowCell>
                                         <TableRowCell>
-                                            <Small>@GetPacketLength(packet)</Small>
+                                            <small>@GetPacketLength(packet)</small>
                                         </TableRowCell>
                                         <TableRowCell>
-                                            <Text>@packet.Details</Text>
+                                            <span>@packet.Details</span>
                                         </TableRowCell>
                                         <TableRowCell>
                                             <Button Size="Size.Small" 
@@ -185,25 +223,25 @@
                                 }
                             </TableBody>
                         </Table>
-                    }
-                    else
-                    {
-                        <Alert Color="Color.Info">
-                            <AlertMessage>No packets captured yet</AlertMessage>
-                            <AlertDescription>
-                                Start tracing to capture OSDP packets from configured readers.
-                            </AlertDescription>
-                        </Alert>
-                    }
+                        }
+                        else
+                        {
+                            <Div TextAlignment="TextAlignment.Center" Padding="Padding.Is5" ElementId="no-packets-message">
+                                <Icon Name="IconName.List" IconSize="IconSize.x3" TextColor="TextColor.Muted" />
+                                <Heading Size="HeadingSize.Is4" Margin="Margin.Is3.FromTop">No Packets Captured</Heading>
+                                <Paragraph TextColor="TextColor.Muted">Start tracing to capture OSDP packets from configured readers.</Paragraph>
+                            </Div>
+                        }
                 </CardBody>
             </Card>
-        </Column>
-    </Row>
+            </Column>
+        </Row>
+    }
 </Container>
 
 <!-- Packet Details Modal -->
-<Modal @ref="detailsModal">
-    <ModalContent Size="ModalSize.Large">
+<Modal @ref="detailsModal" ElementId="packet-details-modal">
+    <ModalContent Centered Size="ModalSize.Large">
         <ModalHeader>
             <ModalTitle>Packet Details</ModalTitle>
             <CloseButton />
@@ -271,7 +309,7 @@
         ViewModel.StateHasChanged = StateHasChanged;
         ViewModel.InvokeAsync = InvokeAsync;
         
-        await ViewModel.InitializeAsync();
+        await ViewModel.InitializeComponentAsync();
     }
     
     protected override async Task OnAfterRenderAsync(bool firstRender)
