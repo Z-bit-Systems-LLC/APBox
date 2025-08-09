@@ -3,6 +3,8 @@ using ApBox.Core.Services.Configuration;
 using ApBox.Core.Services.Core;
 using ApBox.Core.Services.Infrastructure;
 using ApBox.Core.Services.Security;
+using ApBox.Core.PacketTracing.Services;
+using ApBox.Core.PacketTracing.Models;
 using ApBox.Plugins;
 using OSDP.Net;
 
@@ -17,6 +19,7 @@ public class OsdpCommunicationManager : IOsdpCommunicationManager
     private readonly ISecurityModeUpdateService _securityModeUpdateService;
     private readonly IFeedbackConfigurationService _feedbackConfigurationService;
     private readonly IPinCollectionService _pinCollectionService;
+    private readonly IPacketTraceService _packetTraceService;
     private readonly CancellationTokenSource _cancellationTokenSource = new();
     private ControlPanel? _controlPanel;
     private bool _isRunning;
@@ -27,6 +30,7 @@ public class OsdpCommunicationManager : IOsdpCommunicationManager
         ISecurityModeUpdateService securityModeUpdateService,
         IFeedbackConfigurationService feedbackConfigurationService,
         IPinCollectionService pinCollectionService,
+        IPacketTraceService packetTraceService,
         ILogger<OsdpCommunicationManager> logger)
     {
         _logger = logger;
@@ -34,6 +38,7 @@ public class OsdpCommunicationManager : IOsdpCommunicationManager
         _securityModeUpdateService = securityModeUpdateService;
         _feedbackConfigurationService = feedbackConfigurationService;
         _pinCollectionService = pinCollectionService;
+        _packetTraceService = packetTraceService;
         
         // Subscribe to PIN collection events
         _pinCollectionService.PinCollectionCompleted += OnPinCollectionCompleted;
@@ -99,7 +104,7 @@ public class OsdpCommunicationManager : IOsdpCommunicationManager
             }
             
             // Create device with shared ControlPanel and connection
-            var device = new OsdpDevice(config, _logger, _controlPanel, connectionId, _feedbackConfigurationService);
+            var device = new OsdpDevice(config, _logger, _controlPanel, connectionId, _feedbackConfigurationService, _packetTraceService);
             device.CardRead += OnDeviceCardRead;
             device.PinDigitReceived += OnDevicePinDigitReceived;
             device.StatusChanged += OnDeviceStatusChanged;

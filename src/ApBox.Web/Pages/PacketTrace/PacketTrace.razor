@@ -1,0 +1,369 @@
+@page "/packet-trace"
+@using ApBox.Core.PacketTracing
+@using ApBox.Core.PacketTracing.Models
+@using ApBox.Web.ViewModels
+@inject PacketTraceViewModel ViewModel
+@implements IDisposable
+
+<PageTitle>Packet Trace</PageTitle>
+
+<Container Fluid>
+    <Row>
+        <Column ColumnSize="ColumnSize.Is3.OnDesktop.Is12.OnMobile">
+            <!-- Settings Panel -->
+            <Card>
+                <CardHeader>
+                    <CardTitle>
+                        <Icon Name="IconName.Settings" /> Trace Settings
+                    </CardTitle>
+                </CardHeader>
+                <CardBody>
+                    <!-- Enable/Disable Toggle -->
+                    <Field>
+                        <Switch @bind-Checked="@ViewModel.TracingEnabled" Disabled="@ViewModel.TracingEnabled">
+                            Enable Tracing
+                        </Switch>
+                    </Field>
+                    
+                    <Divider />
+                    
+                    <!-- Limit Mode -->
+                    <Field>
+                        <FieldLabel>Limit Mode</FieldLabel>
+                        <RadioGroup @bind-CheckedValue="@ViewModel.LimitMode" Orientation="Orientation.Vertical">
+                            <Radio Value="TraceLimitMode.Size">By Count</Radio>
+                            <Radio Value="TraceLimitMode.Time">By Age</Radio>
+                            <Radio Value="TraceLimitMode.Hybrid">Both</Radio>
+                        </RadioGroup>
+                    </Field>
+                    
+                    <!-- Max Packets -->
+                    <Field>
+                        <FieldLabel>Max Packets/Reader</FieldLabel>
+                        <NumericEdit @bind-Value="@ViewModel.MaxPacketsPerReader" 
+                                     Min="100" Max="10000" Step="100" />
+                        <FieldHelp>Maximum packets to store per reader</FieldHelp>
+                    </Field>
+                    
+                    <!-- Max Age -->
+                    <Field>
+                        <FieldLabel>Max Age (minutes)</FieldLabel>
+                        <NumericEdit @bind-Value="@ViewModel.MaxAgeMinutes" 
+                                     Min="1" Max="60" Step="5"
+                                     Disabled="@(ViewModel.LimitMode == TraceLimitMode.Size)" />
+                        <FieldHelp>Remove packets older than this</FieldHelp>
+                    </Field>
+                    
+                    <Divider />
+                    
+                    <!-- Filters -->
+                    <Field>
+                        <FieldLabel>Packet Filters</FieldLabel>
+                        <Check @bind-Checked="@ViewModel.FilterPollCommands">
+                            Hide Poll Commands
+                        </Check>
+                        <Check @bind-Checked="@ViewModel.FilterAckCommands">
+                            Hide ACK Replies
+                        </Check>
+                    </Field>
+                    
+                    <!-- Apply Button -->
+                    <Button Color="Color.Primary" 
+                            Clicked="@ApplySettings" 
+                            Block>
+                        <Icon Name="IconName.Save" /> Apply Settings
+                    </Button>
+                </CardBody>
+            </Card>
+            
+            <!-- Statistics Card -->
+            <Card Margin="Margin.Is3.FromTop">
+                <CardHeader>
+                    <CardTitle>
+                        <Icon Name="IconName.ChartLine" /> Statistics
+                    </CardTitle>
+                </CardHeader>
+                <CardBody>
+                    <Field>
+                        <FieldLabel>Memory Usage</FieldLabel>
+                        <Text>@ViewModel.MemoryUsage</Text>
+                        <Progress Value="@GetMemoryPercentage()" Color="@GetMemoryProgressColor()" />
+                    </Field>
+                    
+                    <Field>
+                        <FieldLabel>Total Packets</FieldLabel>
+                        <Badge Color="Color.Primary">@ViewModel.TotalPackets</Badge>
+                    </Field>
+                    
+                    <Field>
+                        <FieldLabel>Filtered</FieldLabel>
+                        <Badge Color="Color.Warning">@ViewModel.FilteredPackets</Badge>
+                    </Field>
+                    
+                    <Field>
+                        <FieldLabel>Duration</FieldLabel>
+                        <Text>@ViewModel.TracingDuration</Text>
+                    </Field>
+                </CardBody>
+            </Card>
+        </Column>
+        
+        <Column ColumnSize="ColumnSize.Is9.OnDesktop.Is12.OnMobile">
+            <!-- Packet Trace Grid -->
+            <Card>
+                <CardHeader>
+                    <CardTitle>
+                        <Icon Name="IconName.List" /> Packet Traces
+                    </CardTitle>
+                    <CardActions>
+                        <Buttons>
+                            <Button Color="Color.Success" 
+                                    Clicked="@StartTracing" 
+                                    Disabled="@ViewModel.TracingEnabled"
+                                    Size="Size.Small">
+                                <Icon Name="IconName.Play" /> Start
+                            </Button>
+                            <Button Color="Color.Danger" 
+                                    Clicked="@StopTracing"
+                                    Disabled="@(!ViewModel.TracingEnabled)"
+                                    Size="Size.Small">
+                                <Icon Name="IconName.Stop" /> Stop
+                            </Button>
+                            <Button Color="Color.Warning" 
+                                    Clicked="@ClearAllTraces"
+                                    Size="Size.Small">
+                                <Icon Name="IconName.Clear" /> Clear
+                            </Button>
+                            <Button Color="Color.Info" 
+                                    Clicked="@ExportToOsdpCap"
+                                    Size="Size.Small"
+                                    Disabled="@(ViewModel.TotalPackets == 0)">
+                                <Icon Name="IconName.Download" /> Export
+                            </Button>
+                        </Buttons>
+                    </CardActions>
+                </CardHeader>
+                <CardBody>
+                    @if (ViewModel.Packets.Any())
+                    {
+                        <Table Striped Bordered Hoverable Responsive>
+                            <TableHeader>
+                                <TableRow>
+                                    <TableHeaderCell>Time</TableHeaderCell>
+                                    <TableHeaderCell>Δt</TableHeaderCell>
+                                    <TableHeaderCell>Direction</TableHeaderCell>
+                                    <TableHeaderCell>Reader</TableHeaderCell>
+                                    <TableHeaderCell>Type</TableHeaderCell>
+                                    <TableHeaderCell>Len</TableHeaderCell>
+                                    <TableHeaderCell>Details</TableHeaderCell>
+                                    <TableHeaderCell>Actions</TableHeaderCell>
+                                </TableRow>
+                            </TableHeader>
+                            <TableBody>
+                                @foreach (var packet in ViewModel.Packets.Take(50))
+                                {
+                                    <TableRow>
+                                        <TableRowCell>
+                                            <Small>@packet.LocalTimestamp.ToString("HH:mm:ss.fff")</Small>
+                                        </TableRowCell>
+                                        <TableRowCell>
+                                            @if (packet.Interval.HasValue)
+                                            {
+                                                <Small Class="text-muted">
+                                                    +@packet.Interval.Value.TotalMilliseconds.ToString("F0")ms
+                                                </Small>
+                                            }
+                                        </TableRowCell>
+                                        <TableRowCell>
+                                            <Badge Color="@(packet.Direction == PacketDirection.Outgoing ? Color.Primary : Color.Success)">
+                                                @if (packet.Direction == PacketDirection.Outgoing)
+                                                {
+                                                    <Icon Name="IconName.ArrowRight" /> <Text>OUT</Text>
+                                                }
+                                                else
+                                                {
+                                                    <Icon Name="IconName.ArrowLeft" /> <Text>IN</Text>
+                                                }
+                                            </Badge>
+                                        </TableRowCell>
+                                        <TableRowCell>
+                                            <Text>@packet.ReaderName</Text>
+                                            <br />
+                                            <Small Class="text-muted">[0x@packet.Address.ToString("X2")]</Small>
+                                        </TableRowCell>
+                                        <TableRowCell>
+                                            <Text>@packet.Type</Text>
+                                            @if (packet.IsSecure)
+                                            {
+                                                <Icon Name="IconName.Lock" TextColor="TextColor.Warning" />
+                                            }
+                                        </TableRowCell>
+                                        <TableRowCell>
+                                            <Small>@packet.Length</Small>
+                                        </TableRowCell>
+                                        <TableRowCell>
+                                            <Text>@packet.Details</Text>
+                                        </TableRowCell>
+                                        <TableRowCell>
+                                            <Button Size="Size.Small" 
+                                                    Color="Color.Light"
+                                                    Clicked="@(() => ShowPacketDetails(packet))">
+                                                <Icon Name="IconName.Eye" />
+                                            </Button>
+                                        </TableRowCell>
+                                    </TableRow>
+                                }
+                            </TableBody>
+                        </Table>
+                    }
+                    else
+                    {
+                        <Alert Color="Color.Info">
+                            <AlertMessage>No packets captured yet</AlertMessage>
+                            <AlertDescription>
+                                Start tracing to capture OSDP packets from configured readers.
+                            </AlertDescription>
+                        </Alert>
+                    }
+                </CardBody>
+            </Card>
+        </Column>
+    </Row>
+</Container>
+
+<!-- Packet Details Modal -->
+<Modal @ref="detailsModal">
+    <ModalContent Size="ModalSize.Large">
+        <ModalHeader>
+            <ModalTitle>Packet Details</ModalTitle>
+            <CloseButton />
+        </ModalHeader>
+        <ModalBody>
+            @if (selectedPacket != null)
+            {
+                <Tabs SelectedTab="@selectedTab" SelectedTabChanged="@OnSelectedTabChanged">
+                    <Items>
+                        <Tab Name="info">Info</Tab>
+                        <Tab Name="hex">Hex</Tab>
+                        <Tab Name="ascii">ASCII</Tab>
+                    </Items>
+                    <Content>
+                        <TabPanel Name="info">
+                            <Fields>
+                                <Field>
+                                    <FieldLabel>Timestamp</FieldLabel>
+                                    <TextEdit Value="@selectedPacket.LocalTimestamp.ToString("yyyy-MM-dd HH:mm:ss.fff")" 
+                                              ReadOnly />
+                                </Field>
+                                <Field>
+                                    <FieldLabel>Direction</FieldLabel>
+                                    <TextEdit Value="@selectedPacket.Direction.ToString()" ReadOnly />
+                                </Field>
+                                <Field>
+                                    <FieldLabel>Type</FieldLabel>
+                                    <TextEdit Value="@selectedPacket.Type" ReadOnly />
+                                </Field>
+                                <Field>
+                                    <FieldLabel>Length</FieldLabel>
+                                    <TextEdit Value="@selectedPacket.Length.ToString()" ReadOnly />
+                                </Field>
+                                @if (!string.IsNullOrEmpty(selectedPacket.Details))
+                                {
+                                    <Field>
+                                        <FieldLabel>Details</FieldLabel>
+                                        <MemoEdit Value="@selectedPacket.Details" ReadOnly Rows="3" />
+                                    </Field>
+                                }
+                            </Fields>
+                        </TabPanel>
+                        <TabPanel Name="hex">
+                            <pre>@selectedPacket.GetHexDisplay()</pre>
+                        </TabPanel>
+                        <TabPanel Name="ascii">
+                            <pre>@selectedPacket.GetAsciiDisplay()</pre>
+                        </TabPanel>
+                    </Content>
+                </Tabs>
+            }
+        </ModalBody>
+    </ModalContent>
+</Modal>
+
+@code {
+    private Modal? detailsModal;
+    private PacketTraceEntry? selectedPacket;
+    private string selectedTab = "info";
+    private bool _hasRendered = false;
+    
+    protected override async Task OnInitializedAsync()
+    {
+        await ViewModel.InitializeAsync();
+    }
+    
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender && !_hasRendered)
+        {
+            _hasRendered = true;
+            await ViewModel.InitializeWithJavaScriptAsync();
+            StateHasChanged();
+        }
+        await base.OnAfterRenderAsync(firstRender);
+    }
+    
+    private int GetMemoryPercentage()
+    {
+        // Parse memory usage string and calculate percentage
+        // This is a simplified implementation
+        return 25;
+    }
+    
+    private Color GetMemoryProgressColor()
+    {
+        var percentage = GetMemoryPercentage();
+        if (percentage < 50) return Color.Success;
+        if (percentage < 80) return Color.Warning;
+        return Color.Danger;
+    }
+    
+    private async Task ShowPacketDetails(PacketTraceEntry packet)
+    {
+        selectedPacket = packet;
+        await detailsModal!.Show();
+    }
+    
+    private async Task ApplySettings()
+    {
+        await ViewModel.ApplySettingsCommand.ExecuteAsync(null);
+    }
+    
+    private void StartTracing()
+    {
+        ViewModel.StartTracingCommand.Execute(null);
+    }
+    
+    private void StopTracing()
+    {
+        ViewModel.StopTracingCommand.Execute(null);
+    }
+    
+    private void ClearAllTraces()
+    {
+        ViewModel.ClearAllTracesCommand.Execute(null);
+    }
+    
+    private async Task ExportToOsdpCap()
+    {
+        await ViewModel.ExportToOsdpCapCommand.ExecuteAsync(null);
+    }
+    
+    private void OnSelectedTabChanged(string name)
+    {
+        selectedTab = name;
+    }
+    
+    public void Dispose()
+    {
+        // Unsubscribe from events if needed
+    }
+}

@@ -1,6 +1,8 @@
 using System.Collections;
 using ApBox.Core.Models;
 using ApBox.Core.Services.Configuration;
+using ApBox.Core.PacketTracing.Services;
+using ApBox.Core.PacketTracing.Models;
 using ApBox.Plugins;
 using OSDP.Net;
 using OSDP.Net.Model.CommandData;
@@ -17,7 +19,8 @@ public class OsdpDevice(
     ILogger logger,
     ControlPanel controlPanel,
     Guid connectionId,
-    IFeedbackConfigurationService feedbackConfigurationService)
+    IFeedbackConfigurationService feedbackConfigurationService,
+    IPacketTraceService packetTraceService)
     : IOsdpDevice, IDisposable
 {
     private bool _disposed;
@@ -48,6 +51,10 @@ public class OsdpDevice(
             controlPanel.RawCardDataReplyReceived += OnCardRead;
             controlPanel.KeypadReplyReceived += OnKeypadReply;
             controlPanel.ConnectionStatusChanged += OnConnectionStatusChanged;
+            
+            // Subscribe to packet tracing events if available
+            // Note: OSDP.Net might not expose raw packet events directly
+            // We'll capture what we can from the available events
             
             // Add device to the existing connection
             controlPanel.AddDevice(
@@ -304,6 +311,12 @@ public class OsdpDevice(
             if (eventArgs.Address != Address) return;
             
             LastActivity = DateTime.UtcNow;
+            
+            // Capture packet data for tracing (incoming card data reply)
+            if (packetTraceService.IsTracingReader(Id.ToString()))
+            {
+                CaptureCardDataReply(eventArgs);
+            }
 
             string bitString = BuildRawBitString(eventArgs.RawCardData.Data);
             var cardNumber = ConvertWiegandToCardNumber(eventArgs.RawCardData.Data);
@@ -343,6 +356,12 @@ public class OsdpDevice(
             if (eventArgs.Address != Address) return;
             
             LastActivity = DateTime.UtcNow;
+            
+            // Capture packet data for tracing (incoming keypad reply)
+            if (packetTraceService.IsTracingReader(Id.ToString()))
+            {
+                CaptureKeypadReply(eventArgs);
+            }
 
             // Convert keypad data to individual digits
             var keypadData = eventArgs.KeypadData;
@@ -686,4 +705,99 @@ public class OsdpDevice(
         // ControlPanel is shared, so we don't dispose it here
         _disposed = true;
     }
+
+    #region Packet Tracing Methods
+
+    private void CaptureCardDataReply(ControlPanel.RawCardDataReplyEventArgs eventArgs)
+    {
+        try
+        {
+            // Convert BitArray to byte array for packet tracing
+            var bitArray = eventArgs.RawCardData.Data;
+            var rawData = ConvertBitArrayToBytes(bitArray);
+            
+            // Create packet trace entry builder for more detailed information
+            var builder = new PacketTraceEntryBuilder()
+                .FromRawData(rawData)
+                .WithDirection(PacketDirection.Incoming)
+                .WithReader(Id.ToString(), Name, Address);
+            
+            var entry = builder.Build();
+            
+            // Add OSDP-specific details
+            entry.Type = "Card Data Reply";
+            entry.Command = $"osdp_RAW (Format: {eventArgs.RawCardData.FormatCode})";
+            entry.IsValid = true;
+            entry.Details = $"Card Data - Format: {eventArgs.RawCardData.FormatCode}, Bit Count: {eventArgs.RawCardData.BitCount}";
+            
+            // Manually add to packet trace service using the entry
+            if (packetTraceService.IsTracingReader(Id.ToString()))
+            {
+                packetTraceService.CapturePacket(rawData, PacketDirection.Incoming, Id.ToString(), Name, Address);
+            }
+            
+            logger.LogDebug("Captured card data reply packet: {Length} bytes from reader {ReaderName}", 
+                rawData.Length, Name);
+        }
+        catch (Exception ex)
+        {
+            logger.LogWarning(ex, "Failed to capture card data reply packet from reader {ReaderName}", Name);
+        }
+    }
+
+    private void CaptureKeypadReply(ControlPanel.KeypadReplyEventArgs eventArgs)
+    {
+        try
+        {
+            // Use the raw keypad data bytes
+            var rawData = eventArgs.KeypadData.Data;
+            
+            // Create packet trace entry builder for more detailed information
+            var builder = new PacketTraceEntryBuilder()
+                .FromRawData(rawData)
+                .WithDirection(PacketDirection.Incoming)
+                .WithReader(Id.ToString(), Name, Address);
+            
+            var entry = builder.Build();
+            
+            // Add OSDP-specific details
+            entry.Type = "Keypad Reply";
+            entry.Command = "osdp_KEYPAD";
+            entry.IsValid = true;
+            entry.Details = $"Keypad Data - Digit Count: {eventArgs.KeypadData.DigitCount}, Raw: {Convert.ToHexString(rawData)}";
+            
+            // Manually add to packet trace service
+            if (packetTraceService.IsTracingReader(Id.ToString()))
+            {
+                packetTraceService.CapturePacket(rawData, PacketDirection.Incoming, Id.ToString(), Name, Address);
+            }
+            
+            logger.LogDebug("Captured keypad reply packet: {Length} bytes from reader {ReaderName}", 
+                rawData.Length, Name);
+        }
+        catch (Exception ex)
+        {
+            logger.LogWarning(ex, "Failed to capture keypad reply packet from reader {ReaderName}", Name);
+        }
+    }
+
+    private static byte[] ConvertBitArrayToBytes(BitArray bitArray)
+    {
+        // Calculate number of bytes needed
+        var byteCount = (bitArray.Length + 7) / 8;
+        var bytes = new byte[byteCount];
+        
+        // Convert BitArray to byte array
+        for (int i = 0; i < bitArray.Length; i++)
+        {
+            if (bitArray[i])
+            {
+                bytes[i / 8] |= (byte)(1 << (7 - (i % 8)));
+            }
+        }
+        
+        return bytes;
+    }
+
+    #endregion
 }

@@ -8,6 +8,7 @@ using ApBox.Core.Services.Infrastructure;
 using ApBox.Core.Services.Plugins;
 using ApBox.Core.Services.Events;
 using ApBox.Core.Data;
+using ApBox.Core.PacketTracing.Services;
 using ApBox.Plugins;
 using ApBox.Web.ViewModels;
 using ApBox.Web.Services.Notifications;
@@ -42,6 +43,13 @@ public static class ServiceCollectionExtensions
             provider.GetRequiredService<UnifiedNotificationService>());
         
         
+        // Register packet tracing services
+        services.AddSingleton<IPacketTraceService>(provider =>
+        {
+            var readerService = provider.GetRequiredService<IReaderConfigurationService>();
+            return new PacketTraceService(readerService);
+        });
+        
         // Register ViewModels
         services.AddScoped<DashboardViewModel>();
         services.AddScoped<CardEventsViewModel>();
@@ -49,6 +57,7 @@ public static class ServiceCollectionExtensions
         services.AddScoped<FeedbackConfigurationViewModel>();
         services.AddScoped<PluginsConfigurationViewModel>();
         services.AddScoped<SystemConfigurationViewModel>();
+        services.AddScoped<PacketTraceViewModel>();
         
         // Register system management services
         services.AddScoped<IConfigurationExportService, ConfigurationExportService>();
