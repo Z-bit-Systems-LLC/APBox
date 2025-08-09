@@ -5,24 +5,10 @@ namespace ApBox.Core.PacketTracing
     public class PacketTraceBuffer
     {
         private readonly CircularBuffer<PacketTraceEntry> _buffer;
-        private readonly Timer? _cleanupTimer;
-        private TimeSpan _maxAge;
-        private int _maxSize;
         
-        public PacketTraceBuffer(int maxSize = 1000, TimeSpan? maxAge = null)
+        public PacketTraceBuffer()
         {
-            _maxSize = maxSize;
-            _maxAge = maxAge ?? TimeSpan.Zero;
-            _buffer = new CircularBuffer<PacketTraceEntry>(maxSize);
-            
-            if (maxAge.HasValue)
-            {
-                _cleanupTimer = new Timer(
-                    CleanupOldEntries, 
-                    null, 
-                    TimeSpan.FromMinutes(1), 
-                    TimeSpan.FromMinutes(1));
-            }
+            _buffer = new CircularBuffer<PacketTraceEntry>(10000); // Large buffer, memory limit will control size
         }
         
         public int CurrentSize => _buffer.Count;
@@ -50,22 +36,6 @@ namespace ApBox.Core.PacketTracing
             return entries.OrderByDescending(e => e.Timestamp);
         }
         
-        public void UpdateLimits(int? maxSize, TimeSpan? maxAge)
-        {
-            if (maxSize.HasValue)
-                _maxSize = maxSize.Value;
-            if (maxAge.HasValue)
-                _maxAge = maxAge.Value;
-        }
-        
-        private void CleanupOldEntries(object? state)
-        {
-            if (_maxAge == TimeSpan.Zero) return;
-            
-            var cutoff = DateTime.UtcNow - _maxAge;
-            // Note: This requires a more sophisticated buffer implementation
-            // that supports removal of old entries
-        }
         
         private void UpdateMemoryUsage()
         {

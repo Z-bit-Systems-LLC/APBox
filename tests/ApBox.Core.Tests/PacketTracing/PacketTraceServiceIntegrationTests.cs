@@ -57,11 +57,10 @@ public class PacketTraceServiceIntegrationTests
         // Arrange
         var settings = new PacketTraceSettings
         {
+            Enabled = true,
+            MemoryLimitMB = 20,
             FilterPollCommands = true,
-            FilterAckCommands = false,
-            MaxPacketsPerReader = 1000,
-            MaxAgeMinutes = 30,
-            LimitMode = TraceLimitMode.Time
+            FilterAckCommands = false
         };
         
         // Act
@@ -69,11 +68,10 @@ public class PacketTraceServiceIntegrationTests
         
         // Assert
         var currentSettings = _service.GetCurrentSettings();
+        Assert.That(currentSettings.Enabled, Is.EqualTo(settings.Enabled));
+        Assert.That(currentSettings.MemoryLimitMB, Is.EqualTo(settings.MemoryLimitMB));
         Assert.That(currentSettings.FilterPollCommands, Is.EqualTo(settings.FilterPollCommands));
         Assert.That(currentSettings.FilterAckCommands, Is.EqualTo(settings.FilterAckCommands));
-        Assert.That(currentSettings.MaxPacketsPerReader, Is.EqualTo(settings.MaxPacketsPerReader));
-        Assert.That(currentSettings.MaxAgeMinutes, Is.EqualTo(settings.MaxAgeMinutes));
-        Assert.That(currentSettings.LimitMode, Is.EqualTo(settings.LimitMode));
     }
 
     [Test]

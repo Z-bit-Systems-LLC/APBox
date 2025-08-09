@@ -27,10 +27,7 @@ namespace ApBox.Core.PacketTracing.Services
         {
             if (!_readerBuffers.ContainsKey(readerId))
             {
-                var buffer = new PacketTraceBuffer(
-                    _settings.MaxPacketsPerReader,
-                    _settings.LimitMode != TraceLimitMode.Size ? 
-                        TimeSpan.FromMinutes(_settings.MaxAgeMinutes) : null);
+                var buffer = new PacketTraceBuffer();
                 _readerBuffers[readerId] = buffer;
             }
             
@@ -120,15 +117,6 @@ namespace ApBox.Core.PacketTracing.Services
         public void UpdateSettings(PacketTraceSettings settings)
         {
             _settings = settings;
-            
-            // Update buffer limits
-            foreach (var buffer in _readerBuffers.Values)
-            {
-                buffer.UpdateLimits(
-                    settings.MaxPacketsPerReader,
-                    settings.LimitMode != TraceLimitMode.Size ? 
-                        TimeSpan.FromMinutes(settings.MaxAgeMinutes) : null);
-            }
         }
         
         public PacketTraceSettings GetCurrentSettings() => _settings;
@@ -138,8 +126,7 @@ namespace ApBox.Core.PacketTracing.Services
             var stats = new TracingStatistics
             {
                 TracingStartedAt = _tracingStarted,
-                PacketsPerReader = new Dictionary<string, int>(),
-                FilteredPackets = 0 // Will be calculated based on current filter settings
+                PacketsPerReader = new Dictionary<string, int>()
             };
             
             foreach (var kvp in _readerBuffers)
@@ -149,8 +136,6 @@ namespace ApBox.Core.PacketTracing.Services
                 stats.TotalPackets += count;
                 stats.MemoryUsageBytes += kvp.Value.MemoryUsageBytes;
             }
-            
-            // FilteredPackets will be calculated by the ViewModel based on display filters
             
             return stats;
         }

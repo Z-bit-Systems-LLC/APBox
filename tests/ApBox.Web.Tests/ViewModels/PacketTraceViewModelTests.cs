@@ -78,11 +78,8 @@ public class PacketTraceViewModelTests
     {
         // Arrange
         _viewModel.TracingEnabled = true;
-        _viewModel.MaxPacketsPerReader = 1000;
-        _viewModel.MaxAgeMinutes = 30;
         _viewModel.FilterPollCommands = false;
         _viewModel.FilterAckCommands = true;
-        _viewModel.LimitMode = TraceLimitMode.Hybrid;
 
         PacketTraceSettings? appliedSettings = null;
         _mockPacketTraceService.Setup(s => s.UpdateSettings(It.IsAny<PacketTraceSettings>()))
@@ -94,11 +91,8 @@ public class PacketTraceViewModelTests
         // Assert
         Assert.That(appliedSettings, Is.Not.Null);
         Assert.That(appliedSettings.Enabled, Is.True);
-        Assert.That(appliedSettings.MaxPacketsPerReader, Is.EqualTo(1000));
-        Assert.That(appliedSettings.MaxAgeMinutes, Is.EqualTo(30));
         Assert.That(appliedSettings.FilterPollCommands, Is.False);
         Assert.That(appliedSettings.FilterAckCommands, Is.True);
-        Assert.That(appliedSettings.LimitMode, Is.EqualTo(TraceLimitMode.Hybrid));
     }
 
     [Test]
@@ -158,11 +152,8 @@ public class PacketTraceViewModelTests
         var savedSettings = new PacketTraceSettings
         {
             Enabled = true,
-            MaxPacketsPerReader = 750,
-            MaxAgeMinutes = 20,
             FilterPollCommands = false,
-            FilterAckCommands = true,
-            LimitMode = TraceLimitMode.Time
+            FilterAckCommands = true
         };
 
         _mockLocalStorage.Setup(s => s.ContainKeyAsync("packetTraceSettings", default))
@@ -175,11 +166,8 @@ public class PacketTraceViewModelTests
 
         // Assert
         Assert.That(_viewModel.TracingEnabled, Is.True);
-        Assert.That(_viewModel.MaxPacketsPerReader, Is.EqualTo(750));
-        Assert.That(_viewModel.MaxAgeMinutes, Is.EqualTo(20));
         Assert.That(_viewModel.FilterPollCommands, Is.False);
         Assert.That(_viewModel.FilterAckCommands, Is.True);
-        Assert.That(_viewModel.LimitMode, Is.EqualTo(TraceLimitMode.Time));
     }
 
     [Test]

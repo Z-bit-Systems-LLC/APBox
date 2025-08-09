@@ -24,19 +24,10 @@ namespace ApBox.Web.ViewModels
         private bool _tracingEnabled;
         
         [ObservableProperty]
-        private int _maxPacketsPerReader = 500;
-        
-        [ObservableProperty]
-        private int _maxAgeMinutes = 15;
-        
-        [ObservableProperty]
         private bool _filterPollCommands = true;
         
         [ObservableProperty]
         private bool _filterAckCommands = false;
-        
-        [ObservableProperty]
-        private TraceLimitMode _limitMode = TraceLimitMode.Size;
         
         // Statistics
         [ObservableProperty]
@@ -47,6 +38,7 @@ namespace ApBox.Web.ViewModels
         
         [ObservableProperty]
         private int _filteredPackets;
+        
         
         [ObservableProperty]
         private string _tracingDuration = "00:00:00";
@@ -85,6 +77,7 @@ namespace ApBox.Web.ViewModels
             }
         }
         
+        
         public Task InitializeAsync()
         {
             // Load existing traces without JavaScript interop
@@ -119,11 +112,8 @@ namespace ApBox.Web.ViewModels
             var settings = new PacketTraceSettings
             {
                 Enabled = TracingEnabled,
-                MaxPacketsPerReader = MaxPacketsPerReader,
-                MaxAgeMinutes = MaxAgeMinutes,
                 FilterPollCommands = FilterPollCommands,
-                FilterAckCommands = FilterAckCommands,
-                LimitMode = LimitMode
+                FilterAckCommands = FilterAckCommands
             };
             
             // Save to LocalStorage with error handling
@@ -273,22 +263,9 @@ namespace ApBox.Web.ViewModels
         private void ApplySettingsToViewModel(PacketTraceSettings settings)
         {
             TracingEnabled = settings.Enabled;
-            MaxPacketsPerReader = settings.MaxPacketsPerReader;
-            MaxAgeMinutes = settings.MaxAgeMinutes;
             FilterPollCommands = settings.FilterPollCommands;
             FilterAckCommands = settings.FilterAckCommands;
-            LimitMode = settings.LimitMode;
         }
-        
-        /// <summary>
-        /// Placeholder for StateHasChanged - will be set by the component
-        /// </summary>
-        public Action StateHasChanged { get; set; } = () => { };
-        
-        /// <summary>
-        /// Placeholder for InvokeAsync - will be set by the component
-        /// </summary>
-        public Func<Func<Task>, Task>? InvokeAsync { get; set; }
         
         private bool IsPollCommand(string packetType)
         {
@@ -301,5 +278,16 @@ namespace ApBox.Web.ViewModels
             // Check if packet type indicates an ACK reply
             return packetType?.Contains("Ack", StringComparison.OrdinalIgnoreCase) == true;
         }
+        
+        /// <summary>
+        /// Placeholder for StateHasChanged - will be set by the component
+        /// </summary>
+        public Action StateHasChanged { get; set; } = () => { };
+        
+        /// <summary>
+        /// Placeholder for InvokeAsync - will be set by the component
+        /// </summary>
+        public Func<Func<Task>, Task>? InvokeAsync { get; set; }
+        
     }
 }

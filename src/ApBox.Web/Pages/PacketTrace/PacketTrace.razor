@@ -28,39 +28,10 @@
                     
                     <Divider />
                     
-                    <!-- Limit Mode -->
-                    <Field>
-                        <FieldLabel>Limit Mode</FieldLabel>
-                        <RadioGroup @bind-CheckedValue="@ViewModel.LimitMode" Orientation="Orientation.Vertical">
-                            <Radio Value="TraceLimitMode.Size">By Count</Radio>
-                            <Radio Value="TraceLimitMode.Time">By Age</Radio>
-                            <Radio Value="TraceLimitMode.Hybrid">Both</Radio>
-                        </RadioGroup>
-                    </Field>
-                    
-                    <!-- Max Packets -->
-                    <Field>
-                        <FieldLabel>Max Packets/Reader</FieldLabel>
-                        <NumericEdit @bind-Value="@ViewModel.MaxPacketsPerReader" 
-                                     Min="100" Max="10000" Step="100" />
-                        <FieldHelp>Maximum packets to store per reader</FieldHelp>
-                    </Field>
-                    
-                    <!-- Max Age -->
-                    <Field>
-                        <FieldLabel>Max Age (minutes)</FieldLabel>
-                        <NumericEdit @bind-Value="@ViewModel.MaxAgeMinutes" 
-                                     Min="1" Max="60" Step="5"
-                                     Disabled="@(ViewModel.LimitMode == TraceLimitMode.Size)" />
-                        <FieldHelp>Remove packets older than this</FieldHelp>
-                    </Field>
-                    
-                    <Divider />
-                    
                     <!-- Filters -->
                     <Field>
                         <FieldLabel>Display Filters</FieldLabel>
-                        <FieldHelp>Filters only affect display. All packets are captured in memory.</FieldHelp>
+                        <FieldHelp>Filters only affect display. All packets are captured in memory. Memory limit is fixed at 10 MB.</FieldHelp>
                         <Check Checked="@ViewModel.FilterPollCommands" CheckedChanged="@(async (bool value) => await OnPollFilterChanged(value))">
                             Hide Poll Commands
                         </Check>
@@ -100,6 +71,7 @@
                         <FieldLabel>Filtered Out</FieldLabel>
                         <Badge Color="Color.Warning">@ViewModel.FilteredPackets</Badge>
                     </Field>
+                    
                     
                     <Field>
                         <FieldLabel>Duration</FieldLabel>
@@ -334,19 +306,6 @@
         await detailsModal!.Show();
     }
     
-    private async Task OnPollFilterChanged(bool value)
-    {
-        ViewModel.FilterPollCommands = value;
-        // Auto-refresh is handled by the ViewModel's OnFilterPollCommandsChanged method
-        await ViewModel.ApplySettingsCommand.ExecuteAsync(null);
-    }
-    
-    private async Task OnAckFilterChanged(bool value)
-    {
-        ViewModel.FilterAckCommands = value;
-        // Auto-refresh is handled by the ViewModel's OnFilterAckCommandsChanged method
-        await ViewModel.ApplySettingsCommand.ExecuteAsync(null);
-    }
     
     private void StartTracing()
     {
@@ -436,6 +395,20 @@
         }
         
         return ascii.ToString();
+    }
+    
+    private async Task OnPollFilterChanged(bool value)
+    {
+        ViewModel.FilterPollCommands = value;
+        // Auto-refresh is handled by the ViewModel's OnFilterPollCommandsChanged method
+        await ViewModel.ApplySettingsCommand.ExecuteAsync(null);
+    }
+    
+    private async Task OnAckFilterChanged(bool value)
+    {
+        ViewModel.FilterAckCommands = value;
+        // Auto-refresh is handled by the ViewModel's OnFilterAckCommandsChanged method
+        await ViewModel.ApplySettingsCommand.ExecuteAsync(null);
     }
     
     public void Dispose()
