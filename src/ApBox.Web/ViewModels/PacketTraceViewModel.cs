@@ -165,6 +165,9 @@ namespace ApBox.Web.ViewModels
             
             // Notify that the collection has changed
             OnPropertyChanged(nameof(Packets));
+            
+            // Update UI on the main thread
+            InvokeAsync?.Invoke(() => { StateHasChanged(); return Task.CompletedTask; });
         }
         
         private void RefreshPacketList()
@@ -199,5 +202,15 @@ namespace ApBox.Web.ViewModels
             FilterAckCommands = settings.FilterAckCommands;
             LimitMode = settings.LimitMode;
         }
+        
+        /// <summary>
+        /// Placeholder for StateHasChanged - will be set by the component
+        /// </summary>
+        public Action StateHasChanged { get; set; } = () => { };
+        
+        /// <summary>
+        /// Placeholder for InvokeAsync - will be set by the component
+        /// </summary>
+        public Func<Func<Task>, Task>? InvokeAsync { get; set; }
     }
 }

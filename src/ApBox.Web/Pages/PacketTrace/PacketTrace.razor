@@ -297,6 +297,10 @@
     
     protected override async Task OnInitializedAsync()
     {
+        // Set up component callbacks for the ViewModel
+        ViewModel.StateHasChanged = StateHasChanged;
+        ViewModel.InvokeAsync = InvokeAsync;
+        
         await ViewModel.InitializeAsync();
     }
     
