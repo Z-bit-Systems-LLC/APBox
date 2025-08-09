@@ -74,7 +74,6 @@ public class OsdpCommunicationManager : IOsdpCommunicationManager
                 _controlPanel = new ControlPanel();
                 // Subscribe to global events
                 _controlPanel.ConnectionStatusChanged += OnConnectionStatusChanged;
-                // _controlPanel.RawCardDataReplyReceived += OnCardRead; // TODO: Enable when OSDP.Net API is confirmed
             }
             
             // Get or create connection for this device's connection string

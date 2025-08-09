@@ -1,8 +1,6 @@
 using System.Collections;
 using ApBox.Core.Models;
 using ApBox.Core.Services.Configuration;
-using ApBox.Core.PacketTracing.Services;
-using ApBox.Core.PacketTracing.Models;
 using ApBox.Plugins;
 using OSDP.Net;
 using OSDP.Net.Model.CommandData;
@@ -50,10 +48,6 @@ public class OsdpDevice(
             controlPanel.RawCardDataReplyReceived += OnCardRead;
             controlPanel.KeypadReplyReceived += OnKeypadReply;
             controlPanel.ConnectionStatusChanged += OnConnectionStatusChanged;
-            
-            // Subscribe to packet tracing events if available
-            // Note: OSDP.Net might not expose raw packet events directly
-            // We'll capture what we can from the available events
             
             // Add device to the existing connection
             controlPanel.AddDevice(
