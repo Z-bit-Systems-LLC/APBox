@@ -1,99 +1,88 @@
-using System;
-using System.Text;
 using System.Text.RegularExpressions;
+using OSDP.Net.Model;
+using OSDP.Net.Tracing;
 
-namespace ApBox.Core.PacketTracing.Models
+namespace ApBox.Core.PacketTracing.Models;
+
+/// <summary>
+/// Represents an entry in a packet trace, providing details of a packet, including its direction,
+/// timestamp, type, and associated data.
+/// </summary>
+public class PacketTraceEntry
 {
-    public class PacketTraceEntry
+    /// <summary>
+    /// Gets the direction of the packet in the trace entry.
+    /// This property indicates whether the packet is incoming or outgoing.
+    /// </summary>
+    public TraceDirection Direction { get; }
+
+    /// <summary>
+    /// Gets the timestamp associated with the packet trace entry.
+    /// This property indicates the UTC time at which the packet was captured.
+    /// </summary>
+    public DateTime Timestamp { get; }
+
+    /// <summary>
+    /// Gets the timestamp of the packet trace entry converted to local time.
+    /// This property provides the local representation of the trace entry's timestamp.
+    /// </summary>
+    public DateTime LocalTimestamp => Timestamp.ToLocalTime();
+
+    /// <summary>
+    /// Represents the time interval between the current packet and the previous one within the packet trace.
+    /// This property is useful for analyzing timing or delay in communication flows.
+    /// </summary>
+    public TimeSpan Interval { get; }
+
+    /// <summary>
+    /// Gets the type of the packet represented in the trace entry.
+    /// This property identifies the packet's command or response type, represented as a human-readable string.
+    /// </summary>
+    public string Type
     {
-        public string Id { get; set; } = Guid.NewGuid().ToString();
-        public DateTime Timestamp { get; set; } = DateTime.UtcNow;
-        public DateTime LocalTimestamp => Timestamp.ToLocalTime();
-        public TimeSpan? Interval { get; set; }
-        
-        public PacketDirection Direction { get; set; }
-        public string ReaderId { get; set; } = string.Empty;
-        public string ReaderName { get; set; } = string.Empty;
-        public byte Address { get; set; }
-        
-        public byte[]? RawData { get; set; }
-        public int Length => RawData?.Length ?? 0;
-        
-        public string? Type { get; set; }
-        public string? Command { get; set; }
-        public string? Reply { get; set; }
-        
-        public bool IsSecure { get; set; }
-        public int? Sequence { get; set; }
-        public bool IsValid { get; set; }
-        public string? ValidationError { get; set; }
-        
-        public string? Details { get; set; }
-        public string? SessionId { get; set; }
-        
-        // Factory method pattern
-        public static PacketTraceEntry Create(
-            byte[] rawData,
-            PacketDirection direction,
-            string readerId,
-            string readerName,
-            byte address,
-            PacketTraceEntry? previousEntry = null)
+        get
         {
-            var entry = new PacketTraceEntry
+            if (Packet.CommandType != null)
             {
-                RawData = rawData,
-                Direction = direction,
-                ReaderId = readerId,
-                ReaderName = readerName,
-                Address = address,
-                Timestamp = DateTime.UtcNow
-            };
-            
-            if (previousEntry != null)
-            {
-                entry.Interval = entry.Timestamp - previousEntry.Timestamp;
+                return ToSpacedString(Packet.CommandType);
             }
-            
-            return entry;
-        }
-        
-        public string GetHexDisplay()
-        {
-            if (RawData == null || RawData.Length == 0) return string.Empty;
-            
-            var sb = new StringBuilder();
-            for (int i = 0; i < RawData.Length; i++)
-            {
-                if (i > 0 && i % 16 == 0) sb.AppendLine();
-                if (i > 0 && i % 8 == 0 && i % 16 != 0) sb.Append("  ");
-                sb.AppendFormat("{0:X2} ", RawData[i]);
-            }
-            return sb.ToString().TrimEnd();
-        }
-        
-        public string GetAsciiDisplay()
-        {
-            if (RawData == null) return string.Empty;
-            
-            var sb = new StringBuilder();
-            foreach (var b in RawData)
-            {
-                sb.Append(b >= 32 && b <= 126 ? (char)b : '.');
-            }
-            return sb.ToString();
-        }
-        
-        // Format enum names with spaces for readability
-        private static string ToSpacedString(Enum enumValue)
-        {
-            return Regex.Replace(enumValue.ToString(), "(?<!^)([A-Z](?=[a-z]))", " $1");
+
+            return Packet.ReplyType != null ? ToSpacedString(Packet.ReplyType) : "Unknown";
         }
     }
     
-    public enum PacketDirection
+    /// <summary>
+    /// Gets the packet associated with the trace entry.
+    /// This property contains the detailed information being traced,
+    /// including the data and type of the packet.
+    /// </summary>
+    public Packet Packet { get; }
+
+    /// <summary>
+    /// Gets the detailed information of the packet payload in the trace entry.
+    /// This property parses and formats the payload data of the packet,
+    /// or returns "Empty" if no data is available.
+    /// </summary>
+    public string Details => Packet.ParsePayloadData()?.ToString() ?? "Empty";
+    
+    private static string ToSpacedString(Enum enumValue)
     {
-        Outgoing,  // Control Panel to Reader
-        Incoming   // Reader to Control Panel
+        // Use Regex to insert spaces before any capital letter followed by a lowercase letter, ignoring the first capital.
+        return Regex.Replace(enumValue.ToString(), "(?<!^)([A-Z](?=[a-z]))", " $1");
+    }
+
+    // Private constructor
+    private PacketTraceEntry(TraceDirection direction, DateTime timestamp, TimeSpan interval, Packet packet)
+    {
+        Direction = direction;
+        Timestamp = timestamp;
+        Interval = interval;
+        Packet = packet;
+    }
+
+    // Factory method
+    internal static PacketTraceEntry Create(TraceDirection direction, DateTime timestamp, TimeSpan interval, Packet packet)
+    {
+        return new PacketTraceEntry(direction, timestamp, interval, packet);
     }
 }

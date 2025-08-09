@@ -297,22 +297,14 @@ public class OsdpCommunicationManager : IOsdpCommunicationManager
     {
         try
         {
-            // Convert OSDP.Net TraceEntry to our PacketTraceEntry and capture it
-            // Try to determine direction from TraceEntry properties
-            var direction = DeterminePacketDirection(traceEntry);
-            
+            // Use the new TraceEntry-based capture method
             // For now, capture all packets and let the PacketTraceService handle filtering by reader
             // We'll use a generic approach since we may not have direct access to device address from TraceEntry
             foreach (var device in _devices.Values)
             {
                 if (_packetTraceService.IsTracingReader(device.Id.ToString()))
                 {
-                    _packetTraceService.CapturePacket(
-                        traceEntry.Data, 
-                        direction, 
-                        device.Id.ToString(), 
-                        device.Name, 
-                        device.Address);
+                    _packetTraceService.CapturePacket(traceEntry, device.Id.ToString(), device.Name);
                     
                     // For now, just capture to the first device being traced
                     // In a real scenario, we'd need to determine which device the packet belongs to
@@ -326,65 +318,4 @@ public class OsdpCommunicationManager : IOsdpCommunicationManager
         }
     }
     
-    private PacketDirection DeterminePacketDirection(TraceEntry traceEntry)
-    {
-        try
-        {
-            // Method 1: Try to use TraceEntry.Direction property
-            var direction = traceEntry.Direction;
-            _logger.LogDebug("TraceEntry Direction: {Direction} (type: {Type})", direction, direction.GetType().Name);
-            
-            // Convert based on common enum naming patterns
-            var directionString = direction.ToString().ToLowerInvariant();
-            if (directionString.Contains("out") || directionString.Contains("tx") || directionString.Contains("send") || 
-                directionString.Contains("transmit") || directionString == "outbound")
-            {
-                return PacketDirection.Outgoing;
-            }
-            else if (directionString.Contains("in") || directionString.Contains("rx") || directionString.Contains("recv") || 
-                     directionString.Contains("receive") || directionString == "inbound")
-            {
-                return PacketDirection.Incoming;
-            }
-            
-            // Method 2: Analyze OSDP packet structure to determine direction
-            if (traceEntry.Data?.Length >= 6) // Minimum OSDP packet size
-            {
-                // OSDP packet structure: SOM | ADDR | LEN | CTRL | DATA... | CHKSUM
-                // SOM = 0xFF (Start of Message)
-                // ADDR = Address byte (bit 7 indicates command/reply)
-                // Commands: ADDR bit 7 = 0 (0x00-0x7F)
-                // Replies:  ADDR bit 7 = 1 (0x80-0xFF)
-                
-                var data = traceEntry.Data;
-                if (data[0] == 0xFF && data.Length >= 4) // Valid OSDP packet
-                {
-                    var addr = data[1];
-                    var isReply = (addr & 0x80) != 0; // Check bit 7
-                    
-                    var detectedDirection = isReply ? PacketDirection.Incoming : PacketDirection.Outgoing;
-                    _logger.LogDebug("OSDP packet analysis: SOM=0x{SOM:X2}, ADDR=0x{ADDR:X2}, IsReply={IsReply}, Direction={Direction}", 
-                        data[0], addr, isReply, detectedDirection);
-                    
-                    return detectedDirection;
-                }
-            }
-            
-            // Method 3: Log packet data for manual analysis if we can't determine
-            if (traceEntry.Data?.Length > 0)
-            {
-                var hexData = string.Join(" ", traceEntry.Data.Take(Math.Min(12, traceEntry.Data.Length)).Select(b => $"{b:X2}"));
-                _logger.LogWarning("Unable to determine packet direction from TraceEntry.Direction='{Direction}' or packet analysis. " +
-                                   "First {Count} bytes: {HexData}", direction, Math.Min(12, traceEntry.Data.Length), hexData);
-            }
-            
-            // Default to incoming if we can't determine
-            return PacketDirection.Incoming;
-        }
-        catch (Exception ex)
-        {
-            _logger.LogWarning(ex, "Error determining packet direction, defaulting to Incoming");
-            return PacketDirection.Incoming;
-        }
-    }
 }

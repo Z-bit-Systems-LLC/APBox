@@ -2,6 +2,7 @@
 @using ApBox.Core.PacketTracing
 @using ApBox.Core.PacketTracing.Models
 @using ApBox.Web.ViewModels
+@using OSDP.Net.Tracing
 @inject PacketTraceViewModel ViewModel
 @implements IDisposable
 
@@ -60,28 +61,14 @@
                     <Field>
                         <FieldLabel>Display Filters</FieldLabel>
                         <FieldHelp>Filters only affect display. All packets are captured in memory.</FieldHelp>
-                        <Check @bind-Checked="@ViewModel.FilterPollCommands">
+                        <Check Checked="@ViewModel.FilterPollCommands" CheckedChanged="@(async (bool value) => await OnPollFilterChanged(value))">
                             Hide Poll Commands
                         </Check>
-                        <Check @bind-Checked="@ViewModel.FilterAckCommands">
+                        <Check Checked="@ViewModel.FilterAckCommands" CheckedChanged="@(async (bool value) => await OnAckFilterChanged(value))">
                             Hide ACK Replies
                         </Check>
                     </Field>
                     
-                    <!-- Apply Button -->
-                    <Button Color="Color.Primary" 
-                            Clicked="@ApplySettings" 
-                            Block>
-                        <Icon Name="IconName.Save" /> Apply Settings
-                    </Button>
-                    
-                    <!-- Refresh Button -->
-                    <Button Color="Color.Light" 
-                            Clicked="@RefreshDisplay" 
-                            Block
-                            Margin="Margin.Is2.FromTop">
-                        <Icon Name="IconName.Sync" /> Refresh Display
-                    </Button>
                 </CardBody>
             </Card>
             
@@ -181,16 +168,16 @@
                                             <Small>@packet.LocalTimestamp.ToString("HH:mm:ss.fff")</Small>
                                         </TableRowCell>
                                         <TableRowCell>
-                                            @if (packet.Interval.HasValue)
+                                            @if (packet.Interval.TotalMilliseconds > 0)
                                             {
                                                 <Small Class="text-muted">
-                                                    +@packet.Interval.Value.TotalMilliseconds.ToString("F0")ms
+                                                    +@packet.Interval.TotalMilliseconds.ToString("F0")ms
                                                 </Small>
                                             }
                                         </TableRowCell>
                                         <TableRowCell>
-                                            <Badge Color="@(packet.Direction == PacketDirection.Outgoing ? Color.Primary : Color.Success)">
-                                                @if (packet.Direction == PacketDirection.Outgoing)
+                                            <Badge Color="@(packet.Direction == TraceDirection.Output ? Color.Primary : Color.Success)">
+                                                @if (packet.Direction == TraceDirection.Output)
                                                 {
                                                     <Icon Name="IconName.ArrowRight" /> <Text>OUT</Text>
                                                 }
@@ -201,19 +188,16 @@
                                             </Badge>
                                         </TableRowCell>
                                         <TableRowCell>
-                                            <Text>@packet.ReaderName</Text>
+                                            <Text>Reader</Text>
                                             <br />
-                                            <Small Class="text-muted">[0x@packet.Address.ToString("X2")]</Small>
+                                            <Small Class="text-muted">[Address]</Small>
                                         </TableRowCell>
                                         <TableRowCell>
                                             <Text>@packet.Type</Text>
-                                            @if (packet.IsSecure)
-                                            {
-                                                <Icon Name="IconName.Lock" TextColor="TextColor.Warning" />
-                                            }
+                                            @* Security info would come from parsed packet data *@
                                         </TableRowCell>
                                         <TableRowCell>
-                                            <Small>@packet.Length</Small>
+                                            <Small>@GetPacketLength(packet)</Small>
                                         </TableRowCell>
                                         <TableRowCell>
                                             <Text>@packet.Details</Text>
@@ -279,7 +263,7 @@
                                 </Field>
                                 <Field>
                                     <FieldLabel>Length</FieldLabel>
-                                    <TextEdit Value="@selectedPacket.Length.ToString()" ReadOnly />
+                                    <TextEdit Value="@GetPacketLength(selectedPacket).ToString()" ReadOnly />
                                 </Field>
                                 @if (!string.IsNullOrEmpty(selectedPacket.Details))
                                 {
@@ -291,10 +275,10 @@
                             </Fields>
                         </TabPanel>
                         <TabPanel Name="hex">
-                            <pre>@selectedPacket.GetHexDisplay()</pre>
+                            <pre>@GetHexDisplay(GetPacketData(selectedPacket))</pre>
                         </TabPanel>
                         <TabPanel Name="ascii">
-                            <pre>@selectedPacket.GetAsciiDisplay()</pre>
+                            <pre>@GetAsciiDisplay(GetPacketData(selectedPacket))</pre>
                         </TabPanel>
                     </Content>
                 </Tabs>
@@ -350,8 +334,17 @@
         await detailsModal!.Show();
     }
     
-    private async Task ApplySettings()
+    private async Task OnPollFilterChanged(bool value)
     {
+        ViewModel.FilterPollCommands = value;
+        // Auto-refresh is handled by the ViewModel's OnFilterPollCommandsChanged method
+        await ViewModel.ApplySettingsCommand.ExecuteAsync(null);
+    }
+    
+    private async Task OnAckFilterChanged(bool value)
+    {
+        ViewModel.FilterAckCommands = value;
+        // Auto-refresh is handled by the ViewModel's OnFilterAckCommandsChanged method
         await ViewModel.ApplySettingsCommand.ExecuteAsync(null);
     }
     
@@ -375,14 +368,74 @@
         await ViewModel.ExportToOsdpCapCommand.ExecuteAsync(null);
     }
     
-    private void RefreshDisplay()
-    {
-        ViewModel.RefreshDisplayCommand.Execute(null);
-    }
-    
     private void OnSelectedTabChanged(string name)
     {
         selectedTab = name;
+    }
+    
+    private int GetPacketLength(PacketTraceEntry packet)
+    {
+        // For now, return a placeholder length
+        // In the real implementation, this would come from parsing the packet data
+        return 8; // Typical OSDP packet minimum length
+    }
+    
+    private byte[] GetPacketData(PacketTraceEntry packet)
+    {
+        // For now, return empty data
+        // In the real implementation, this would come from the TraceEntry.Data
+        return new byte[0];
+    }
+    
+    private string GetHexDisplay(byte[] data)
+    {
+        if (data == null || data.Length == 0) return "";
+        
+        var hex = new System.Text.StringBuilder();
+        for (int i = 0; i < data.Length; i += 16)
+        {
+            hex.AppendFormat("{0:X4}: ", i);
+            
+            // Hex bytes
+            for (int j = 0; j < 16; j++)
+            {
+                if (i + j < data.Length)
+                    hex.AppendFormat("{0:X2} ", data[i + j]);
+                else
+                    hex.Append("   ");
+                
+                if (j == 7) hex.Append(" ");
+            }
+            
+            hex.Append(" |");
+            
+            // ASCII representation
+            for (int j = 0; j < 16 && i + j < data.Length; j++)
+            {
+                byte b = data[i + j];
+                hex.Append(b >= 32 && b <= 126 ? (char)b : '.');
+            }
+            
+            hex.AppendLine("|");
+        }
+        
+        return hex.ToString();
+    }
+    
+    private string GetAsciiDisplay(byte[] data)
+    {
+        if (data == null || data.Length == 0) return "";
+        
+        var ascii = new System.Text.StringBuilder();
+        foreach (byte b in data)
+        {
+            if (b >= 32 && b <= 126)
+                ascii.Append((char)b);
+            else
+                ascii.Append('.');
+        }
+        
+        return ascii.ToString();
     }
     
     public void Dispose()

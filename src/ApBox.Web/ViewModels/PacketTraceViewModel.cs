@@ -64,6 +64,27 @@ namespace ApBox.Web.ViewModels
             _traceService.PacketCaptured += OnPacketCaptured;
         }
         
+        // Auto-refresh display when filter properties change
+        partial void OnFilterPollCommandsChanged(bool value)
+        {
+            // Only refresh if we have a service and are not in initialization mode
+            if (_traceService != null && Packets != null)
+            {
+                RefreshPacketList();
+                UpdateStatistics();
+            }
+        }
+        
+        partial void OnFilterAckCommandsChanged(bool value)
+        {
+            // Only refresh if we have a service and are not in initialization mode
+            if (_traceService != null && Packets != null)
+            {
+                RefreshPacketList();
+                UpdateStatistics();
+            }
+        }
+        
         public Task InitializeAsync()
         {
             // Load existing traces without JavaScript interop
@@ -164,11 +185,11 @@ namespace ApBox.Web.ViewModels
         {
             // Check if packet should be displayed based on current filters
             bool shouldDisplay = true;
-            if (e.RawData != null)
+            if (e.Packet != null)
             {
-                if (FilterPollCommands && IsPollCommand(e.RawData))
+                if (FilterPollCommands && IsPollCommand(e.Type))
                     shouldDisplay = false;
-                if (FilterAckCommands && IsAckReply(e.RawData))
+                if (FilterAckCommands && IsAckReply(e.Type))
                     shouldDisplay = false;
             }
             
@@ -194,13 +215,24 @@ namespace ApBox.Web.ViewModels
         
         private void RefreshPacketList()
         {
-            var traces = _traceService.GetTraces(
-                readerId: null, 
-                limit: 100, 
-                filterPollCommands: FilterPollCommands, 
-                filterAckCommands: FilterAckCommands);
+            if (_traceService == null) return; // Avoid null reference during initialization or testing
+            
+            // Get all traces from service (no filtering at service level)
+            var allTraces = _traceService.GetTraces(readerId: null, limit: 200);
+            
+            // Apply filters at ViewModel level
+            var filteredTraces = allTraces.Where(trace => 
+            {
+                if (trace.Packet == null) return true;
+                if (FilterPollCommands && IsPollCommand(trace.Type))
+                    return false;
+                if (FilterAckCommands && IsAckReply(trace.Type))
+                    return false;
+                return true;
+            }).Take(100); // Limit to 100 for UI performance
+            
             Packets.Clear();
-            foreach (var trace in traces)
+            foreach (var trace in filteredTraces)
             {
                 Packets.Add(trace);
             }
@@ -208,10 +240,29 @@ namespace ApBox.Web.ViewModels
         
         private void UpdateStatistics()
         {
+            if (_traceService == null) return; // Avoid null reference during initialization or testing
+            
             var stats = _traceService.GetStatistics();
+            if (stats == null) return; // Avoid null reference if service returns null stats
+            
             TotalPackets = stats.TotalPackets;
-            FilteredPackets = stats.FilteredPackets;
             MemoryUsage = stats.FormattedMemoryUsage;
+            
+            // Calculate filtered packets at ViewModel level
+            if (FilterPollCommands || FilterAckCommands)
+            {
+                var allTraces = _traceService.GetTraces(readerId: null, limit: null);
+                FilteredPackets = allTraces.Count(trace =>
+                {
+                    if (trace.Packet == null) return false;
+                    return (FilterPollCommands && IsPollCommand(trace.Type)) ||
+                           (FilterAckCommands && IsAckReply(trace.Type));
+                });
+            }
+            else
+            {
+                FilteredPackets = 0;
+            }
             
             if (stats.TracingDuration.HasValue)
             {
@@ -239,28 +290,16 @@ namespace ApBox.Web.ViewModels
         /// </summary>
         public Func<Func<Task>, Task>? InvokeAsync { get; set; }
         
-        private bool IsPollCommand(byte[] data)
+        private bool IsPollCommand(string packetType)
         {
-            // Check if packet is OSDP Poll command (0x60)
-            if (data.Length < 6) return false;
-            
-            // Look for OSDP SOM (Start of Message)
-            if (data[0] != 0x53) return false;
-            
-            // Check for Poll command (0x60) in the data portion
-            return data.Length > 4 && data[4] == 0x60;
+            // Check if packet type indicates a Poll command
+            return packetType?.Contains("Poll", StringComparison.OrdinalIgnoreCase) == true;
         }
         
-        private bool IsAckReply(byte[] data)
+        private bool IsAckReply(string packetType)
         {
-            // Check if packet is OSDP ACK reply (0x40)
-            if (data.Length < 6) return false;
-            
-            // Look for OSDP SOM (Start of Message)
-            if (data[0] != 0x53) return false;
-            
-            // Check for ACK reply (0x40) in the data portion
-            return data.Length > 4 && data[4] == 0x40;
+            // Check if packet type indicates an ACK reply
+            return packetType?.Contains("Ack", StringComparison.OrdinalIgnoreCase) == true;
         }
     }
 }

@@ -1,5 +1,6 @@
 using ApBox.Core.PacketTracing.Models;
 using ApBox.Core.Services.Reader;
+using OSDP.Net.Tracing;
 
 namespace ApBox.Core.PacketTracing.Services
 {
@@ -95,7 +96,7 @@ namespace ApBox.Core.PacketTracing.Services
             }
         }
         
-        public IEnumerable<PacketTraceEntry> GetTraces(string? readerId = null, int? limit = null, bool filterPollCommands = false, bool filterAckCommands = false)
+        public IEnumerable<PacketTraceEntry> GetTraces(string? readerId = null, int? limit = null)
         {
             IEnumerable<PacketTraceEntry> traces;
             
@@ -111,20 +112,6 @@ namespace ApBox.Core.PacketTracing.Services
                 traces = _readerBuffers.Values
                     .SelectMany(b => b.GetEntries())
                     .OrderByDescending(e => e.Timestamp);
-            }
-            
-            // Apply filters if specified
-            if (filterPollCommands || filterAckCommands)
-            {
-                traces = traces.Where(entry => 
-                {
-                    if (entry.RawData == null) return true;
-                    if (filterPollCommands && IsPollCommand(entry.RawData))
-                        return false;
-                    if (filterAckCommands && IsAckReply(entry.RawData))
-                        return false;
-                    return true;
-                });
             }
             
             return limit.HasValue ? traces.Take(limit.Value) : traces;
@@ -163,42 +150,27 @@ namespace ApBox.Core.PacketTracing.Services
                 stats.MemoryUsageBytes += kvp.Value.MemoryUsageBytes;
             }
             
-            // Calculate filtered packets based on current filter settings
-            if (_settings.FilterPollCommands || _settings.FilterAckCommands)
-            {
-                var allPackets = _readerBuffers.Values.SelectMany(b => b.GetEntries());
-                foreach (var packet in allPackets)
-                {
-                    if (packet.RawData != null && 
-                        ((_settings.FilterPollCommands && IsPollCommand(packet.RawData)) ||
-                         (_settings.FilterAckCommands && IsAckReply(packet.RawData))))
-                    {
-                        stats.FilteredPackets++;
-                    }
-                }
-            }
+            // FilteredPackets will be calculated by the ViewModel based on display filters
             
             return stats;
         }
         
-        // This method would be called by the OSDP communication layer
-        public void CapturePacket(byte[] rawData, PacketDirection direction, 
-            string readerId, string readerName, byte address)
+        // Primary method to capture packet from OSDP.Net TraceEntry
+        public void CapturePacket(TraceEntry traceEntry, string readerId, string readerName)
         {
             if (!IsTracingReader(readerId)) return;
             
-            // Build packet entry
-            var builder = new PacketTraceEntryBuilder()
-                .FromRawData(rawData)
-                .WithDirection(direction)
-                .WithReader(readerId, readerName, address);
-            
-            if (_lastEntries.ContainsKey(readerId))
+            // Build packet entry using OSDP-Bench pattern
+            var builder = new PacketTraceEntryBuilder();
+            PacketTraceEntry entry;
+            try 
             {
-                builder.WithPreviousEntry(_lastEntries[readerId]);
+                entry = builder.FromTraceEntry(traceEntry, _lastEntries.ContainsKey(readerId) ? _lastEntries[readerId] : null).Build();
             }
-            
-            var entry = builder.Build();
+            catch (Exception)
+            {
+                return; // Skip entries that can't be parsed
+            }
             
             // Store in buffer
             if (_readerBuffers.ContainsKey(readerId))
@@ -214,31 +186,15 @@ namespace ApBox.Core.PacketTracing.Services
             CheckMemoryLimits();
         }
         
-        private bool IsPollCommand(byte[] data)
+        // Legacy method for backward compatibility
+        public void CapturePacket(byte[] rawData, TraceDirection direction, 
+            string readerId, string readerName, byte address)
         {
-            // Check if packet is OSDP Poll command (0x60)
-            // OSDP packets typically have: SOM (0x53), Address, LEN_LSB, LEN_MSB, Control, Data..., Checksum
-            if (data.Length < 6) return false;
-            
-            // Look for OSDP SOM (Start of Message)
-            if (data[0] != 0x53) return false;
-            
-            // Check for Poll command (0x60) in the data portion
-            // The command is typically at position 4 after SOM, Address, LEN_LSB, LEN_MSB
-            return data.Length > 4 && data[4] == 0x60;
+            // For legacy support, we would need to create a TraceEntry
+            // But since OSDP.Net provides TraceEntry objects, this method may not be needed
+            throw new NotSupportedException("Use CapturePacket(TraceEntry, string, string) instead - OSDP.Net provides TraceEntry objects directly");
         }
         
-        private bool IsAckReply(byte[] data)
-        {
-            // Check if packet is OSDP ACK reply (0x40)
-            if (data.Length < 6) return false;
-            
-            // Look for OSDP SOM (Start of Message)
-            if (data[0] != 0x53) return false;
-            
-            // Check for ACK reply (0x40) in the data portion
-            return data.Length > 4 && data[4] == 0x40;
-        }
         
         private void CheckMemoryLimits()
         {
@@ -251,5 +207,6 @@ namespace ApBox.Core.PacketTracing.Services
                 // Raise memory limit event
             }
         }
+        
     }
 }

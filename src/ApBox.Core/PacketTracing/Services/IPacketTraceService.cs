@@ -1,4 +1,5 @@
 using ApBox.Core.PacketTracing.Models;
+using OSDP.Net.Tracing;
 
 namespace ApBox.Core.PacketTracing.Services
 {
@@ -13,14 +14,17 @@ namespace ApBox.Core.PacketTracing.Services
         void StopTracingAll();
         void ClearTraces(string? readerId = null);
         
-        IEnumerable<PacketTraceEntry> GetTraces(string? readerId = null, int? limit = null, bool filterPollCommands = false, bool filterAckCommands = false);
+        IEnumerable<PacketTraceEntry> GetTraces(string? readerId = null, int? limit = null);
         
         void UpdateSettings(PacketTraceSettings settings);
         PacketTraceSettings GetCurrentSettings();
         TracingStatistics GetStatistics();
         
-        // Method to capture raw packet data
-        void CapturePacket(byte[] rawData, PacketDirection direction, string readerId, string readerName, byte address);
+        // Method to capture packet from OSDP.Net TraceEntry
+        void CapturePacket(TraceEntry traceEntry, string readerId, string readerName);
+        
+        // Legacy method to capture raw packet data (for backward compatibility)
+        void CapturePacket(byte[] rawData, TraceDirection direction, string readerId, string readerName, byte address);
         
         event EventHandler<PacketTraceEntry>? PacketCaptured;
     }
