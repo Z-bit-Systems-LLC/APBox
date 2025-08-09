@@ -56,19 +56,9 @@
                         </CardTitle>
                     </CardHeader>
                 <CardBody>
-                    <!-- Enable/Disable Toggle -->
-                    <Field>
-                        <Switch @bind-Checked="@ViewModel.TracingEnabled" Disabled="@ViewModel.TracingEnabled">
-                            Enable Tracing
-                        </Switch>
-                    </Field>
-                    
-                    <Divider />
-                    
                     <!-- Filters -->
                     <Field>
                         <FieldLabel>Display Filters</FieldLabel>
-                        <FieldHelp>Filters only affect display. All packets are captured in memory. Memory limit is fixed at 10 MB.</FieldHelp>
                         <Check Checked="@ViewModel.FilterPollCommands" CheckedChanged="@(async (bool value) => await OnPollFilterChanged(value))">
                             Hide Poll Commands
                         </Check>
