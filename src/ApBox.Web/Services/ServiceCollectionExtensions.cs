@@ -50,6 +50,9 @@ public static class ServiceCollectionExtensions
             return new PacketTraceService(readerService);
         });
         
+        // Register packet tracing startup service
+        services.AddHostedService<PacketTraceStartupService>();
+        
         // Register ViewModels
         services.AddScoped<DashboardViewModel>();
         services.AddScoped<CardEventsViewModel>();
