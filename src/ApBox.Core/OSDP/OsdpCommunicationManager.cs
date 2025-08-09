@@ -7,6 +7,9 @@ using ApBox.Core.PacketTracing.Services;
 using ApBox.Core.PacketTracing.Models;
 using ApBox.Plugins;
 using OSDP.Net;
+using OSDP.Net.Model;
+using OSDP.Net.Model.ReplyData;
+using OSDP.Net.Tracing;
 
 namespace ApBox.Core.OSDP;
 
@@ -95,7 +98,7 @@ public class OsdpCommunicationManager : IOsdpCommunicationManager
                 
                 // Create new connection
                 var connection = _serialPortService.CreateConnection(config.ConnectionString, config.BaudRate);
-                connectionId = _controlPanel.StartConnection(connection);
+                connectionId = _controlPanel.StartConnection(connection, TimeSpan.FromMilliseconds(100), TraceCallback);
                     
                 _connectionMappings[config.ConnectionString] = connectionId;
                 
@@ -104,7 +107,7 @@ public class OsdpCommunicationManager : IOsdpCommunicationManager
             }
             
             // Create device with shared ControlPanel and connection
-            var device = new OsdpDevice(config, _logger, _controlPanel, connectionId, _feedbackConfigurationService, _packetTraceService);
+            var device = new OsdpDevice(config, _logger, _controlPanel, connectionId, _feedbackConfigurationService);
             device.CardRead += OnDeviceCardRead;
             device.PinDigitReceived += OnDevicePinDigitReceived;
             device.StatusChanged += OnDeviceStatusChanged;
@@ -289,5 +292,38 @@ public class OsdpCommunicationManager : IOsdpCommunicationManager
         // Global connection status changes will be handled by individual devices
         // This is a placeholder for any manager-level connection monitoring
         _logger.LogDebug("Global OSDP connection status changed");
+    }
+    
+    private void TraceCallback(TraceEntry traceEntry)
+    {
+        try
+        {
+            // Convert OSDP.Net TraceEntry to our PacketTraceEntry and capture it
+            // For now, we'll determine direction from the packet data itself or default to incoming
+            var direction = PacketDirection.Incoming; // Will be refined based on actual TraceEntry properties
+            
+            // For now, capture all packets and let the PacketTraceService handle filtering by reader
+            // We'll use a generic approach since we may not have direct access to device address from TraceEntry
+            foreach (var device in _devices.Values)
+            {
+                if (_packetTraceService.IsTracingReader(device.Id.ToString()))
+                {
+                    _packetTraceService.CapturePacket(
+                        traceEntry.Data, 
+                        direction, 
+                        device.Id.ToString(), 
+                        device.Name, 
+                        device.Address);
+                    
+                    // For now, just capture to the first device being traced
+                    // In a real scenario, we'd need to determine which device the packet belongs to
+                    break;
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+            _logger.LogWarning(ex, "Error processing OSDP trace entry");
+        }
     }
 }
