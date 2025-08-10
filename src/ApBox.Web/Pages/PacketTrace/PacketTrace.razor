@@ -192,8 +192,17 @@
                         {
                             <Div TextAlignment="TextAlignment.Center" Padding="Padding.Is5" ElementId="no-packets-message">
                                 <Icon Name="IconName.List" IconSize="IconSize.x3" TextColor="TextColor.Muted" />
-                                <Heading Size="HeadingSize.Is4" Margin="Margin.Is3.FromTop">No Packets Captured</Heading>
-                                <Paragraph TextColor="TextColor.Muted">Start tracing to capture OSDP packets from configured readers.</Paragraph>
+                                <Heading Size="HeadingSize.Is4" Margin="Margin.Is3.FromTop">No Packets to Display</Heading>
+                                <Paragraph TextColor="TextColor.Muted">
+                                    @if (ViewModel.TracingEnabled)
+                                    {
+                                        <span>No packets match the current display filters, or no packets have been captured yet.</span>
+                                    }
+                                    else
+                                    {
+                                        <span>Start tracing to capture OSDP packets from configured readers.</span>
+                                    }
+                                </Paragraph>
                             </Div>
                         }
                 </CardBody>
@@ -210,7 +219,7 @@
         ViewModel.StateHasChanged = StateHasChanged;
         ViewModel.InvokeAsync = InvokeAsync;
         
-        await ViewModel.InitializeCommand.ExecuteAsync(null);;
+        await ViewModel.InitializeCommand.ExecuteAsync(null);
     }
     
     
