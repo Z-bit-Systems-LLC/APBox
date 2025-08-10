@@ -1,29 +1,45 @@
+using System.Text;
+using System.Text.Json;
 using ApBox.Core.PacketTracing.Models;
+using OSDP.Net.Tracing;
 
 namespace ApBox.Core.PacketTracing.Export
 {
     public class OsdpCapExporter
     {
-        // OSDPCAP format implementation
-        // Will be implemented based on the specification provided
-        
         public async Task<byte[]> ExportToOsdpCapAsync(
             IEnumerable<PacketTraceEntry> packets,
             OsdpCapMetadata metadata)
         {
-            // Placeholder for OSDPCAP format implementation
-            // The actual implementation will depend on the OSDPCAP specification
+            var stringBuilder = new StringBuilder();
             
-            using var stream = new MemoryStream();
-            using var writer = new BinaryWriter(stream);
+            foreach (var packet in packets)
+            {
+                var unixTime = packet.Timestamp.Subtract(new DateTime(1970, 1, 1));
+                long timeNano = (unixTime.Ticks - (long)Math.Floor(unixTime.TotalSeconds) * TimeSpan.TicksPerSecond) * 100L;
+                
+                var traceEntry = new 
+                {
+                    timeSec = Math.Floor(unixTime.TotalSeconds).ToString("F0"),
+                    timeNano = timeNano.ToString("000000000"),
+                    io = packet.Direction == TraceDirection.Input ? "input" : "output",
+                    data = GetPacketDataAsHex(packet),
+                    osdpTraceVersion = "1",
+                    osdpSource = "APBox"
+                };
+                
+                var line = JsonSerializer.Serialize(traceEntry);
+                stringBuilder.AppendLine(line);
+            }
             
-            // Write OSDPCAP header
-            // Write metadata
-            // Write packet records
-            
-            await Task.CompletedTask; // Async placeholder
-            
-            return stream.ToArray();
+            await Task.CompletedTask; // Keep async for consistency
+            return Encoding.UTF8.GetBytes(stringBuilder.ToString());
+        }
+        
+        private static string GetPacketDataAsHex(PacketTraceEntry packet)
+        {
+            // Use the raw packet data from OSDP.Net Packet
+            return BitConverter.ToString(packet.Packet.RawData.ToArray());
         }
     }
     

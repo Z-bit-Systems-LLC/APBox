@@ -32,7 +32,7 @@ public class PacketTraceStartupServiceTests
     }
 
     [Test]
-    public async Task StartAsync_WhenPacketTraceThrows_LogsErrorButDoesNotThrow()
+    public void StartAsync_WhenPacketTraceThrows_LogsErrorButDoesNotThrow()
     {
         // Arrange
         var exception = new Exception("Test exception");
@@ -53,7 +53,7 @@ public class PacketTraceStartupServiceTests
     }
 
     [Test]
-    public async Task StopAsync_WhenPacketTraceThrows_DoesNotThrow()
+    public void StopAsync_WhenPacketTraceThrows_DoesNotThrow()
     {
         // Arrange
         var exception = new Exception("Test exception");

@@ -8,7 +8,7 @@ namespace ApBox.Core.PacketTracing.Models;
 /// Represents an entry in a packet trace, providing details of a packet, including its direction,
 /// timestamp, type, and associated data.
 /// </summary>
-public class PacketTraceEntry
+public partial class PacketTraceEntry
 {
     /// <summary>
     /// Gets the direction of the packet in the trace entry.
@@ -63,12 +63,12 @@ public class PacketTraceEntry
     /// This property parses and formats the payload data of the packet,
     /// or returns "Empty" if no data is available.
     /// </summary>
-    public string Details => Packet.ParsePayloadData()?.ToString() ?? "Empty";
+    public string Details => Packet.ParsePayloadData().ToString() ?? "Empty";
     
     private static string ToSpacedString(Enum enumValue)
     {
         // Use Regex to insert spaces before any capital letter followed by a lowercase letter, ignoring the first capital.
-        return Regex.Replace(enumValue.ToString(), "(?<!^)([A-Z](?=[a-z]))", " $1");
+        return SpacedString().Replace(enumValue.ToString(), " $1");
     }
 
     // Private constructor
@@ -85,4 +85,7 @@ public class PacketTraceEntry
     {
         return new PacketTraceEntry(direction, timestamp, interval, packet);
     }
+
+    [GeneratedRegex("(?<!^)([A-Z](?=[a-z]))")]
+    private static partial Regex SpacedString();
 }

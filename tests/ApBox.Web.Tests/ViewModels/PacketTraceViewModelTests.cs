@@ -1,10 +1,12 @@
 using ApBox.Core.PacketTracing.Services;
 using ApBox.Core.PacketTracing.Models;
 using ApBox.Core.PacketTracing;
+using ApBox.Core.PacketTracing.Export;
 using ApBox.Web.ViewModels;
 using ApBox.Web.Services.Notifications;
 using Blazored.LocalStorage;
 using OSDP.Net.Tracing;
+using Microsoft.JSInterop;
 using Moq;
 using NUnit.Framework;
 
@@ -18,6 +20,8 @@ public class PacketTraceViewModelTests
     private Mock<IPacketTraceService> _mockPacketTraceService;
     private Mock<ILocalStorageService> _mockLocalStorage;
     private Mock<INotificationAggregator> _mockNotificationAggregator;
+    private Mock<OsdpCapExporter> _mockExporter;
+    private Mock<IJSRuntime> _mockJSRuntime;
 
     [SetUp]
     public void Setup()
@@ -25,6 +29,8 @@ public class PacketTraceViewModelTests
         _mockPacketTraceService = new Mock<IPacketTraceService>();
         _mockLocalStorage = new Mock<ILocalStorageService>();
         _mockNotificationAggregator = new Mock<INotificationAggregator>();
+        _mockExporter = new Mock<OsdpCapExporter>();
+        _mockJSRuntime = new Mock<IJSRuntime>();
         
         // Setup default GetStatistics to avoid null reference during property changes
         _mockPacketTraceService.Setup(s => s.GetStatistics())
@@ -42,7 +48,9 @@ public class PacketTraceViewModelTests
 
         _viewModel = new PacketTraceViewModel(_mockPacketTraceService.Object,
             _mockNotificationAggregator.Object,
-            _mockLocalStorage.Object);
+            _mockLocalStorage.Object,
+            _mockExporter.Object,
+            _mockJSRuntime.Object);
     }
 
     [TearDown]
@@ -178,13 +186,17 @@ public class PacketTraceViewModelTests
     }
 
     [Test]
-    public void ExportToOsdpCapAsync_ThrowsNotImplementedException()
+    public async Task ExportToOsdpCapAsync_WithNoPackets_SetsErrorMessage()
     {
-        // Act & Assert
-        var ex = Assert.ThrowsAsync<NotImplementedException>(
-            async () => await _viewModel.ExportToOsdpCapCommand.ExecuteAsync(null));
+        // Arrange
+        _mockPacketTraceService.Setup(s => s.GetTraces(It.IsAny<string>(), It.IsAny<int?>()))
+            .Returns(new List<PacketTraceEntry>());
+
+        // Act
+        await _viewModel.ExportToOsdpCapCommand.ExecuteAsync(null);
         
-        Assert.That(ex.Message, Does.Contain("OSDPCAP export"));
+        // Assert
+        Assert.That(_viewModel.ErrorMessage, Is.EqualTo("No packet data available for export"));
     }
 
     [Test]

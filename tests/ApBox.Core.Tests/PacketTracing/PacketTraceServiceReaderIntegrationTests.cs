@@ -105,7 +105,7 @@ public class PacketTraceServiceReaderIntegrationTests
     }
 
     [Test]
-    public async Task StartTracingAll_WhenReaderServiceThrows_DoesNotThrow()
+    public void StartTracingAll_WhenReaderServiceThrows_DoesNotThrow()
     {
         // Arrange
         var readersTaskCompletionSource = new TaskCompletionSource<IEnumerable<ReaderConfiguration>>();

@@ -4,16 +4,20 @@ using System.Collections.ObjectModel;
 using ApBox.Core.PacketTracing.Models;
 using ApBox.Core.PacketTracing.Services;
 using ApBox.Core.PacketTracing;
+using ApBox.Core.PacketTracing.Export;
 using ApBox.Web.Models.Notifications;
 using ApBox.Web.Services.Notifications;
 using Blazored.LocalStorage;
+using Microsoft.JSInterop;
 
 namespace ApBox.Web.ViewModels
 {
     public partial class PacketTraceViewModel(
         IPacketTraceService traceService,
         INotificationAggregator notificationAggregator,
-        ILocalStorageService localStorage)
+        ILocalStorageService localStorage,
+        OsdpCapExporter exporter,
+        IJSRuntime jsRuntime)
         : ObservableObject, IDisposable
     {
         private const string SettingsKey = "packetTraceSettings";
@@ -134,11 +138,37 @@ namespace ApBox.Web.ViewModels
         [RelayCommand]
         private async Task ExportToOsdpCapAsync()
         {
-            // TODO: Implement OSDPCAP export when specification is provided
-            await Task.Delay(100); // Placeholder
-            
-            // For now, just show a message
-            throw new NotImplementedException("OSDPCAP export will be implemented when specification is provided");
+            try
+            {
+                var packets = traceService.GetTraces();
+                
+                if (!packets.Any())
+                {
+                    ErrorMessage = "No packet data available for export";
+                    return;
+                }
+
+                var metadata = new OsdpCapMetadata
+                {
+                    DeviceName = "ApBox Gateway",
+                    CaptureStartTime = packets.First().Timestamp,
+                    CaptureEndTime = packets.Last().Timestamp,
+                    Version = "1.0"
+                };
+
+                var exportData = await exporter.ExportToOsdpCapAsync(packets, metadata);
+                var fileName = $"apbox-trace-{DateTime.Now:yyyyMMdd-HHmmss}.osdpcap";
+                
+                // Trigger immediate download via JavaScript
+                var base64Data = Convert.ToBase64String(exportData);
+                var dataUri = $"data:application/octet-stream;base64,{base64Data}";
+                
+                await jsRuntime.InvokeVoidAsync("downloadFile", dataUri, fileName);
+            }
+            catch (Exception ex)
+            {
+                ErrorMessage = $"Export failed: {ex.Message}";
+            }
         }
         
         private void OnPacketTraceNotification(PacketTraceNotification notification)

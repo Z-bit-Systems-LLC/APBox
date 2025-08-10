@@ -239,17 +239,6 @@ namespace ApBox.Core.PacketTracing.Services
                 // Raise event for real-time UI updates
                 PacketCaptured?.Invoke(this, entry);
             }
-            
         }
-        
-        // Legacy method for backward compatibility
-        public void CapturePacket(byte[] rawData, TraceDirection direction, 
-            string readerId, string readerName, byte address)
-        {
-            // For legacy support, we would need to create a TraceEntry
-            // But since OSDP.Net provides TraceEntry objects, this method may not be needed
-            throw new NotSupportedException("Use CapturePacket(TraceEntry, string, string) instead - OSDP.Net provides TraceEntry objects directly");
-        }
-        
     }
 }

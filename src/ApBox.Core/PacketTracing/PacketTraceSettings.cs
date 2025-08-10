@@ -2,10 +2,12 @@ namespace ApBox.Core.PacketTracing
 {
     public class PacketTraceSettings
     {
-        public bool Enabled { get; set; } = false;
-        public int MemoryLimitMB { get; set; } = 10;
-        public bool AutoStopOnMemoryLimit { get; set; } = true;
-        public bool FilterPollCommands { get; set; } = true;
-        public bool FilterAckCommands { get; set; } = false;
+        public bool Enabled { get; init; }
+
+        public int MemoryLimitMB { get; init; } = 10;
+        
+        public bool FilterPollCommands { get; init; } = true;
+        
+        public bool FilterAckCommands { get; init; }
     }
 }

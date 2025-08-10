@@ -192,7 +192,7 @@ public class FeedbackConfigurationTests : ApBoxTestContext
     }
 
     [Test]
-    public async Task FeedbackConfiguration_HandlesAutoSaveError()
+    public void FeedbackConfiguration_HandlesAutoSaveError()
     {
         // Arrange
         MockFeedbackConfigurationService.Setup(x => x.SaveSuccessFeedbackAsync(It.IsAny<ReaderFeedback>()))

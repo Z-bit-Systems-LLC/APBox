@@ -136,9 +136,8 @@
                                         <TableHeaderCell>Time</TableHeaderCell>
                                         <TableHeaderCell>Δt</TableHeaderCell>
                                         <TableHeaderCell>Direction</TableHeaderCell>
-                                        <TableHeaderCell>Reader</TableHeaderCell>
+                                        <TableHeaderCell>Address</TableHeaderCell>
                                         <TableHeaderCell>Type</TableHeaderCell>
-                                        <TableHeaderCell>Len</TableHeaderCell>
                                         <TableHeaderCell>Details</TableHeaderCell>
                                     </TableRow>
                                 </TableHeader>
@@ -170,15 +169,10 @@
                                             </Badge>
                                         </TableRowCell>
                                         <TableRowCell>
-                                            <span>Reader</span>
-                                            <br />
-                                            <small class="text-muted">[Address]</small>
+                                            <span>@packet.Packet.Address</span>
                                         </TableRowCell>
                                         <TableRowCell>
                                             <span>@packet.Type</span>
-                                        </TableRowCell>
-                                        <TableRowCell>
-                                            <small>@GetPacketLength(packet)</small>
                                         </TableRowCell>
                                         <TableRowCell>
                                             <span>@packet.Details</span>
@@ -239,12 +233,6 @@
         await ViewModel.ExportToOsdpCapCommand.ExecuteAsync(null);
     }
     
-    private int GetPacketLength(PacketTraceEntry packet)
-    {
-        // For now, return a placeholder length
-        // In the real implementation, this would come from parsing the packet data
-        return 8; // Typical OSDP packet minimum length
-    }
 
     private async Task OnPollFilterChanged(bool value)
     {
@@ -265,3 +253,14 @@
         // Unsubscribe from events if needed
     }
 }
+
+<script>
+    window.downloadFile = function(dataUri, fileName) {
+        const link = document.createElement('a');
+        link.href = dataUri;
+        link.download = fileName;
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+    };
+</script>
