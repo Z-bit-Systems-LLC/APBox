@@ -8,5 +8,9 @@ namespace ApBox.Core.PacketTracing
         public double ReplyPercentage => TotalOutgoingPackets > 0 
             ? (double)PacketsWithReplies / TotalOutgoingPackets * 100 
             : 0;
+        
+        // Response time statistics
+        public double AverageResponseTimeMs { get; set; }
+        public int ResponseTimeCount { get; set; }
     }
 }

@@ -36,6 +36,9 @@ namespace ApBox.Web.ViewModels
         private double _replyPercentage;
         
         [ObservableProperty]
+        private double _averageResponseTimeMs;
+        
+        [ObservableProperty]
         private bool _isLoading;
         
         [ObservableProperty]
@@ -171,6 +174,7 @@ namespace ApBox.Web.ViewModels
             var stats = notification.Statistics;
             
             ReplyPercentage = stats.ReplyPercentage;
+            AverageResponseTimeMs = stats.AverageResponseTimeMs;
             
             // Update UI on the main thread
             InvokeAsync?.Invoke(() => { StateHasChanged(); return Task.CompletedTask; });
@@ -205,6 +209,7 @@ namespace ApBox.Web.ViewModels
             var stats = traceService.GetStatistics();
 
             ReplyPercentage = stats.ReplyPercentage;
+            AverageResponseTimeMs = stats.AverageResponseTimeMs;
         }
         
         private void ApplySettingsToViewModel(PacketTraceSettings settings)

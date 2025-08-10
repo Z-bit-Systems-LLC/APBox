@@ -103,6 +103,8 @@ public class PacketTraceServiceIntegrationTests
         Assert.That(stats, Is.Not.Null);
         Assert.That(stats.ReplyPercentage, Is.GreaterThanOrEqualTo(0));
         Assert.That(stats.ReplyPercentage, Is.LessThanOrEqualTo(100));
+        Assert.That(stats.AverageResponseTimeMs, Is.GreaterThanOrEqualTo(0));
+        Assert.That(stats.ResponseTimeCount, Is.GreaterThanOrEqualTo(0));
     }
 
     [Test]
@@ -119,6 +121,8 @@ public class PacketTraceServiceIntegrationTests
         Assert.That(stats.ReplyPercentage, Is.EqualTo(0.0));
         Assert.That(stats.TotalOutgoingPackets, Is.EqualTo(0));
         Assert.That(stats.PacketsWithReplies, Is.EqualTo(0));
+        Assert.That(stats.AverageResponseTimeMs, Is.EqualTo(0.0));
+        Assert.That(stats.ResponseTimeCount, Is.EqualTo(0));
     }
     
 

@@ -31,7 +31,9 @@ public class PacketTraceViewModelTests
             .Returns(new TracingStatistics
             {
                 TotalOutgoingPackets = 0,
-                PacketsWithReplies = 0
+                PacketsWithReplies = 0,
+                AverageResponseTimeMs = 0,
+                ResponseTimeCount = 0
             });
         
         // Setup default GetTraces to avoid null reference during RefreshPacketList

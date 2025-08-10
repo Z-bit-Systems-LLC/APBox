@@ -127,6 +127,7 @@ namespace ApBox.Core.PacketTracing.Services
         {
             int totalOutgoing = 0;
             int packetsWithReplies = 0;
+            var responseTimes = new List<double>();
             
             // Analyze packets from all readers
             foreach (var buffer in _readerBuffers.Values)
@@ -159,6 +160,8 @@ namespace ApBox.Core.PacketTracing.Services
                         
                         // Look for a reply (incoming packet) before the next outgoing packet
                         bool hasReply = false;
+                        DateTime? replyTime = null;
+                        
                         for (int j = i + 1; j < packets.Count; j++)
                         {
                             var nextPacket = packets[j];
@@ -171,6 +174,7 @@ namespace ApBox.Core.PacketTracing.Services
                             if (nextPacket.Direction == TraceDirection.Input)
                             {
                                 hasReply = true;
+                                replyTime = nextPacket.Timestamp;
                                 break;
                             }
                         }
@@ -178,6 +182,16 @@ namespace ApBox.Core.PacketTracing.Services
                         if (hasReply)
                         {
                             packetsWithReplies++;
+                            
+                            // Calculate response time if we have both timestamps
+                            if (replyTime.HasValue)
+                            {
+                                var responseTimeMs = (replyTime.Value - currentPacket.Timestamp).TotalMilliseconds;
+                                if (responseTimeMs >= 0) // Ensure valid response time
+                                {
+                                    responseTimes.Add(responseTimeMs);
+                                }
+                            }
                         }
                     }
                 }
@@ -185,6 +199,18 @@ namespace ApBox.Core.PacketTracing.Services
             
             stats.TotalOutgoingPackets = totalOutgoing;
             stats.PacketsWithReplies = packetsWithReplies;
+            
+            // Calculate average response time
+            if (responseTimes.Count > 0)
+            {
+                stats.AverageResponseTimeMs = responseTimes.Average();
+                stats.ResponseTimeCount = responseTimes.Count;
+            }
+            else
+            {
+                stats.AverageResponseTimeMs = 0;
+                stats.ResponseTimeCount = 0;
+            }
         }
         
         // Primary method to capture packet from OSDP.Net TraceEntry

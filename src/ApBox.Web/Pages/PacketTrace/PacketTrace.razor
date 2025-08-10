@@ -82,6 +82,19 @@
                         <FieldLabel>Reply Rate</FieldLabel>
                         <Text>@ViewModel.ReplyPercentage.ToString("F1")%</Text>
                     </Field>
+                    <Field Margin="Margin.Is3.FromTop">
+                        <FieldLabel>Average Response Time</FieldLabel>
+                        <Text>
+                            @if (ViewModel.AverageResponseTimeMs > 0)
+                            {
+                                @($"{ViewModel.AverageResponseTimeMs:F1} ms")
+                            }
+                            else
+                            {
+                                <span>N/A</span>
+                            }
+                        </Text>
+                    </Field>
                 </CardBody>
             </Card>
             </Column>
