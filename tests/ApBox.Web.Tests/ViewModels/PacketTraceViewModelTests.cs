@@ -5,6 +5,8 @@ using ApBox.Web.ViewModels;
 using ApBox.Web.Services.Notifications;
 using Blazored.LocalStorage;
 using OSDP.Net.Tracing;
+using Moq;
+using NUnit.Framework;
 
 namespace ApBox.Web.Tests.ViewModels;
 
@@ -37,14 +39,19 @@ public class PacketTraceViewModelTests
         _mockPacketTraceService.Setup(s => s.GetTraces(It.IsAny<string>(), It.IsAny<int?>()))
             .Returns(new List<PacketTraceEntry>());
 
-        _viewModel = new PacketTraceViewModel(
-            _mockPacketTraceService.Object,
-            _mockLocalStorage.Object,
-            _mockNotificationAggregator.Object);
+        _viewModel = new PacketTraceViewModel(_mockPacketTraceService.Object,
+            _mockNotificationAggregator.Object,
+            _mockLocalStorage.Object);
+    }
+
+    [TearDown]
+    public void TearDown()
+    {
+        _viewModel?.Dispose();
     }
 
     [Test]
-    public async Task InitializeAsync_LoadsExistingTraces()
+    public async Task InitializeAsync_LoadsExistingTracesAndSubscribesToNotifications()
     {
         // Arrange - Test service interaction without requiring actual PacketTraceEntry objects
         var existingTraces = new List<PacketTraceEntry>(); // Empty list for now
@@ -52,25 +59,23 @@ public class PacketTraceViewModelTests
         _mockPacketTraceService.Setup(s => s.GetTraces(null, 200))
                               .Returns(existingTraces);
 
-        var mockStats = new TracingStatistics
-        {
-            TotalPackets = 2,
-            FilteredPackets = 0,
-            MemoryUsageBytes = 1024
-        };
-
-        _mockPacketTraceService.Setup(s => s.GetStatistics())
-                              .Returns(mockStats);
+        // Setup LocalStorage to return false for ContainKeyAsync so no settings are loaded
+        _mockLocalStorage.Setup(s => s.ContainKeyAsync("packetTraceSettings", default))
+                        .ReturnsAsync(false);
 
         // Act
-        await _viewModel.InitializeComponentAsync();
+        await _viewModel.InitializeCommand.ExecuteAsync(null);
 
-        // Assert - Test service calls and statistics binding
-        Assert.That(_viewModel.Packets.Count, Is.EqualTo(0)); // No packets loaded due to complexity
-        Assert.That(_viewModel.TotalPackets, Is.EqualTo(2)); // Statistics should still be loaded
-        Assert.That(_viewModel.FilteredPackets, Is.EqualTo(0));
+        // Assert - Test service calls for loading existing traces
+        Assert.That(_viewModel.Packets.Count, Is.EqualTo(0)); // No packets loaded due to empty list
+        Assert.That(_viewModel.ErrorMessage, Is.Empty); // No errors
+        Assert.That(_viewModel.IsLoading, Is.False); // Loading should be complete
+        
         _mockPacketTraceService.Verify(s => s.GetTraces(null, 200), Times.Once);
-        _mockPacketTraceService.Verify(s => s.GetStatistics(), Times.AtLeastOnce);
+        
+        // Verify that the ViewModel subscribes to notifications during InitializeAsync
+        _mockNotificationAggregator.Verify(s => s.Subscribe<ApBox.Web.Models.Notifications.PacketTraceNotification>(It.IsAny<Action<ApBox.Web.Models.Notifications.PacketTraceNotification>>()), Times.Once);
+        _mockNotificationAggregator.Verify(s => s.Subscribe<ApBox.Web.Models.Notifications.TracingStatisticsNotification>(It.IsAny<Action<ApBox.Web.Models.Notifications.TracingStatisticsNotification>>()), Times.Once);
     }
 
     [Test]
@@ -122,7 +127,7 @@ public class PacketTraceViewModelTests
 
 
     [Test]
-    public async Task InitializeWithJavaScriptAsync_LoadsSettingsFromLocalStorage()
+    public async Task InitializeAsync_LoadsSettingsFromLocalStorage()
     {
         // Arrange
         var savedSettings = new PacketTraceSettings
@@ -138,7 +143,7 @@ public class PacketTraceViewModelTests
                         .ReturnsAsync(savedSettings);
 
         // Act
-        await _viewModel.InitializeWithJavaScriptAsync();
+        await _viewModel.InitializeCommand.ExecuteAsync(null);
 
         // Assert
         Assert.That(_viewModel.TracingEnabled, Is.True);
@@ -147,28 +152,26 @@ public class PacketTraceViewModelTests
     }
 
     [Test]
-    public void InitializeWithJavaScriptAsync_HandlesLocalStorageErrors()
+    public void InitializeAsync_HandlesLocalStorageErrors()
     {
         // Arrange
         _mockLocalStorage.Setup(s => s.ContainKeyAsync("packetTraceSettings", default))
                         .ThrowsAsync(new InvalidOperationException("LocalStorage not available"));
 
         // Act & Assert
-        Assert.DoesNotThrowAsync(async () => await _viewModel.InitializeWithJavaScriptAsync());
+        Assert.DoesNotThrowAsync(async () => await _viewModel.InitializeCommand.ExecuteAsync(null));
     }
 
     [Test]
-    public void PacketCapturedEvent_UpdatesUICollection()
+    public void BasicCommandsAreAvailable()
     {
-        // Test that the ViewModel subscribes to PacketCaptured event
-        // The actual packet collection and statistics updates will be tested in integration tests
-        
-        // Verify that the ViewModel subscribes to PacketCaptured event during construction
-        _mockPacketTraceService.VerifyAdd(s => s.PacketCaptured += It.IsAny<EventHandler<PacketTraceEntry>>(), Times.Once);
-        
-        // Test basic command functionality
+        // Test basic command functionality is available after construction
         Assert.That(_viewModel.StartTracingCommand, Is.Not.Null);
         Assert.That(_viewModel.StopTracingCommand, Is.Not.Null);
+        Assert.That(_viewModel.RefreshDisplayCommand, Is.Not.Null);
+        Assert.That(_viewModel.InitializeCommand, Is.Not.Null);
+        Assert.That(_viewModel.ApplySettingsCommand, Is.Not.Null);
+        Assert.That(_viewModel.ExportToOsdpCapCommand, Is.Not.Null);
     }
 
     [Test]
@@ -179,6 +182,25 @@ public class PacketTraceViewModelTests
             async () => await _viewModel.ExportToOsdpCapCommand.ExecuteAsync(null));
         
         Assert.That(ex.Message, Does.Contain("OSDPCAP export"));
+    }
+
+    [Test]
+    public async Task Dispose_UnsubscribesFromNotifications()
+    {
+        // Arrange - Initialize first to create subscriptions
+        _mockLocalStorage.Setup(s => s.ContainKeyAsync("packetTraceSettings", default))
+                        .ReturnsAsync(false);
+        await _viewModel.InitializeCommand.ExecuteAsync(null);
+        
+        // Act
+        _viewModel.Dispose();
+        
+        // Assert - Verify unsubscriptions were called
+        _mockNotificationAggregator.Verify(s => s.Unsubscribe<ApBox.Web.Models.Notifications.PacketTraceNotification>(It.IsAny<Action<ApBox.Web.Models.Notifications.PacketTraceNotification>>()), Times.Once);
+        _mockNotificationAggregator.Verify(s => s.Unsubscribe<ApBox.Web.Models.Notifications.TracingStatisticsNotification>(It.IsAny<Action<ApBox.Web.Models.Notifications.TracingStatisticsNotification>>()), Times.Once);
+        
+        // Verify multiple calls to Dispose don't cause issues
+        Assert.DoesNotThrow(() => _viewModel.Dispose());
     }
 
     private static PacketTraceEntry CreateTestPacketTrace(string readerName, TraceDirection direction)

@@ -1,5 +1,8 @@
 using System.Collections.Concurrent;
 using ApBox.Core.Services.Events;
+using ApBox.Core.PacketTracing.Services;
+using ApBox.Core.PacketTracing.Models;
+using ApBox.Core.PacketTracing;
 using ApBox.Web.Hubs;
 using ApBox.Web.Models.Notifications;
 using Microsoft.AspNetCore.SignalR;
@@ -14,16 +17,19 @@ public class UnifiedNotificationService : INotificationAggregator, IHostedServic
 {
     private readonly IEventPublisher _eventPublisher;
     private readonly IHubContext<NotificationHub, INotificationClient> _hubContext;
+    private readonly IPacketTraceService _packetTraceService;
     private readonly ILogger<UnifiedNotificationService> _logger;
     private readonly ConcurrentDictionary<Type, List<Delegate>> _serverSideHandlers = new();
 
     public UnifiedNotificationService(
         IEventPublisher eventPublisher,
         IHubContext<NotificationHub, INotificationClient> hubContext,
+        IPacketTraceService packetTraceService,
         ILogger<UnifiedNotificationService> logger)
     {
         _eventPublisher = eventPublisher;
         _hubContext = hubContext;
+        _packetTraceService = packetTraceService;
         _logger = logger;
     }
 
@@ -35,6 +41,9 @@ public class UnifiedNotificationService : INotificationAggregator, IHostedServic
         _eventPublisher.Subscribe<CardProcessingCompletedEvent>(OnCardProcessingCompleted);
         _eventPublisher.Subscribe<PinProcessingCompletedEvent>(OnPinProcessingCompleted);
         _eventPublisher.Subscribe<ReaderStatusChangedEvent>(OnReaderStatusChanged);
+        
+        // Subscribe to packet trace events
+        _packetTraceService.PacketCaptured += OnPacketCaptured;
 
         _logger.LogInformation("Unified Notification Service started - handling both server-side and SignalR notifications");
         return Task.CompletedTask;
@@ -48,6 +57,9 @@ public class UnifiedNotificationService : INotificationAggregator, IHostedServic
         _eventPublisher.Unsubscribe<CardProcessingCompletedEvent>(OnCardProcessingCompleted);
         _eventPublisher.Unsubscribe<PinProcessingCompletedEvent>(OnPinProcessingCompleted);
         _eventPublisher.Unsubscribe<ReaderStatusChangedEvent>(OnReaderStatusChanged);
+        
+        // Unsubscribe from packet trace events
+        _packetTraceService.PacketCaptured -= OnPacketCaptured;
 
         _logger.LogInformation("Unified Notification Service stopped");
         return Task.CompletedTask;
@@ -200,6 +212,35 @@ public class UnifiedNotificationService : INotificationAggregator, IHostedServic
         }
     }
 
+    private async void OnPacketCaptured(object? sender, PacketTraceEntry entry)
+    {
+        try
+        {
+            var notification = new PacketTraceNotification
+            {
+                TraceEntry = entry,
+                Timestamp = DateTime.UtcNow
+            };
+
+            // Distribute to both channels
+            await DistributeNotificationAsync(notification);
+            
+            // Also send updated statistics
+            var statsNotification = new TracingStatisticsNotification
+            {
+                Statistics = _packetTraceService.GetStatistics(),
+                Timestamp = DateTime.UtcNow
+            };
+            
+            await DistributeNotificationAsync(statsNotification);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error processing packet captured event for packet address {Address}", 
+                entry.Packet.Address);
+        }
+    }
+
     #endregion
 
     #region Private Helper Methods
@@ -235,6 +276,12 @@ public class UnifiedNotificationService : INotificationAggregator, IHostedServic
                     break;
                 case ReaderStatusNotification statusNotification:
                     await _hubContext.Clients.All.ReaderStatusChanged(statusNotification);
+                    break;
+                case PacketTraceNotification traceNotification:
+                    await _hubContext.Clients.All.PacketReceived(traceNotification.TraceEntry);
+                    break;
+                case TracingStatisticsNotification statsNotification:
+                    await _hubContext.Clients.All.TracingStatisticsUpdated(statsNotification.Statistics);
                     break;
                 default:
                     _logger.LogWarning("Unknown notification type for SignalR broadcast: {NotificationType}", 
