@@ -62,6 +62,57 @@ public class CardNumberConversionTests
     }
     
     [Test]
+    public void ConvertCardDataToNumber_80BitCard_HandlesCorrectlyWithoutMangling()
+    {
+        // Test the specific case mentioned in GitHub issue #8
+        // Create 80-bit card data (10 bytes)
+        var cardData = new byte[10];
+        // Fill with a pattern that would expose bit ordering issues
+        for (int i = 0; i < cardData.Length; i++)
+        {
+            cardData[i] = (byte)(0x80 + i); // High bit set, plus sequential pattern
+        }
+        
+        var result = ConvertCardDataToNumber(cardData);
+        
+        // Should handle this without throwing and return a valid number string
+        Assert.That(result, Is.Not.Null);
+        Assert.That(result, Is.Not.Empty);
+        Assert.That(result, Is.Not.EqualTo("0"));
+        
+        // Parse as BigInteger to verify it's a valid large number
+        var parsedNumber = BigInteger.Parse(result);
+        Assert.That(parsedNumber, Is.GreaterThan(BigInteger.Zero));
+        
+        // For 80-bit data with high bits set, number should be quite large
+        // Should be larger than 64-bit maximum
+        var max64Bit = BigInteger.Parse("18446744073709551615");
+        Assert.That(parsedNumber, Is.GreaterThan(max64Bit));
+    }
+    
+    [Test]
+    public void ConvertCardDataToNumber_256BitMaximum_HandlesCorrectly()
+    {
+        // Test with 256-bit maximum (32 bytes of 0xFF)
+        var cardData = new byte[32];
+        Array.Fill(cardData, (byte)0xFF);
+        
+        var result = ConvertCardDataToNumber(cardData);
+        
+        // Should handle this without throwing and return a valid number string
+        Assert.That(result, Is.Not.Null);
+        Assert.That(result, Is.Not.Empty);
+        
+        // Parse as BigInteger to verify
+        var parsedNumber = BigInteger.Parse(result);
+        Assert.That(parsedNumber, Is.GreaterThan(BigInteger.Zero));
+        
+        // This should be an extremely large number
+        var numberString = parsedNumber.ToString();
+        Assert.That(numberString.Length, Is.GreaterThan(70)); // Should be a very long decimal
+    }
+    
+    [Test]
     public void ConvertCardDataToNumber_SingleByte_ConvertsCorrectly()
     {
         var cardData = new byte[] { 0xFF };

@@ -1,3 +1,4 @@
+using System.Numerics;
 using Blazored.LocalStorage;
 
 namespace ApBox.Web.Services;
@@ -84,34 +85,58 @@ public class CardNumberFormatService : IDisposable
         if (string.IsNullOrWhiteSpace(cardNumber))
             return string.Empty;
 
-        // Try to parse the card number as a decimal number
-        if (!ulong.TryParse(cardNumber, out var number))
+        // Try to parse the card number using BigInteger for large number support
+        if (!BigInteger.TryParse(cardNumber, out var number))
             return cardNumber; // Return as-is if parsing fails
 
         return _currentFormat switch
         {
             CardNumberFormat.Decimal => number.ToString(),
-            CardNumberFormat.Hexadecimal => $"0x{number:X}",
+            CardNumberFormat.Hexadecimal => FormatHexadecimal(number),
             CardNumberFormat.Binary => FormatBinary(number, bitLength),
             _ => cardNumber
         };
     }
 
     /// <summary>
-    /// Formats a number as a binary string with proper bit width padding
+    /// Formats a BigInteger as a hexadecimal string
     /// </summary>
-    private static string FormatBinary(ulong number, int bitLength)
+    private static string FormatHexadecimal(BigInteger number)
+    {
+        if (number == 0)
+            return "0x0";
+
+        // Convert to hex without leading zeros
+        var hexString = number.ToString("X");
+        
+        // Remove any leading zeros that BigInteger.ToString might add
+        hexString = hexString.TrimStart('0');
+        
+        // If all digits were zeros (shouldn't happen since we check for 0 above), use "0"
+        if (string.IsNullOrEmpty(hexString))
+            hexString = "0";
+
+        return $"0x{hexString}";
+    }
+
+    /// <summary>
+    /// Formats a BigInteger as a binary string with proper bit width padding
+    /// </summary>
+    private static string FormatBinary(BigInteger number, int bitLength)
     {
         // Ensure we have a reasonable bit length
         var actualBitLength = Math.Max(bitLength, 8);
         
-        // Convert to binary string with proper padding
-        var binaryString = Convert.ToString((long)number, 2);
+        // Convert BigInteger to binary string
+        var binaryString = ConvertToBinaryString(number);
         
         // Pad with leading zeros to match bit length
-        binaryString = binaryString.PadLeft(actualBitLength, '0');
+        if (binaryString.Length < actualBitLength)
+        {
+            binaryString = binaryString.PadLeft(actualBitLength, '0');
+        }
         
-        // Group by 4 bits for readability (optional - can be removed if not desired)
+        // Group by 4 bits for readability
         var grouped = string.Empty;
         for (int i = 0; i < binaryString.Length; i += 4)
         {
@@ -121,6 +146,26 @@ public class CardNumberFormatService : IDisposable
         }
         
         return grouped;
+    }
+
+    /// <summary>
+    /// Converts a BigInteger to binary string representation
+    /// </summary>
+    private static string ConvertToBinaryString(BigInteger number)
+    {
+        if (number == 0)
+            return "0";
+        
+        var result = string.Empty;
+        var tempNumber = number;
+        
+        while (tempNumber > 0)
+        {
+            result = ((tempNumber % 2) == 0 ? "0" : "1") + result;
+            tempNumber /= 2;
+        }
+        
+        return result;
     }
 
     /// <summary>
