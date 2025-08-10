@@ -194,7 +194,7 @@ public class UnifiedNotificationServiceTests
 
         return async (eventData) => 
         {
-            var result = method.Invoke(_service, new object[] { eventData });
+            var result = method.Invoke(_service, [eventData]);
             if (result is Task task)
                 await task;
         };

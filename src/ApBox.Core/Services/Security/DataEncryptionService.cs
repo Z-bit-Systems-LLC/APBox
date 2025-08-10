@@ -5,17 +5,9 @@ namespace ApBox.Core.Services.Security;
 /// <summary>
 /// Service for encrypting/decrypting sensitive data using AES encryption
 /// </summary>
-public class DataEncryptionService : IDataEncryptionService
+public class DataEncryptionService(IEncryptionKeyService keyService, ILogger<DataEncryptionService> logger)
+    : IDataEncryptionService
 {
-    private readonly IEncryptionKeyService _keyService;
-    private readonly ILogger<DataEncryptionService> _logger;
-
-    public DataEncryptionService(IEncryptionKeyService keyService, ILogger<DataEncryptionService> logger)
-    {
-        _keyService = keyService;
-        _logger = logger;
-    }
-
     public string EncryptData(string plainText)
     {
         if (string.IsNullOrEmpty(plainText))
@@ -23,7 +15,7 @@ public class DataEncryptionService : IDataEncryptionService
 
         try
         {
-            var key = _keyService.GetEncryptionKeyAsync().GetAwaiter().GetResult();
+            var key = keyService.GetEncryptionKeyAsync().GetAwaiter().GetResult();
             
             using var aes = Aes.Create();
             aes.Key = key;
@@ -47,7 +39,7 @@ public class DataEncryptionService : IDataEncryptionService
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Failed to encrypt data");
+            logger.LogError(ex, "Failed to encrypt data");
             throw;
         }
     }
@@ -59,7 +51,7 @@ public class DataEncryptionService : IDataEncryptionService
 
         try
         {
-            var key = _keyService.GetEncryptionKeyAsync().GetAwaiter().GetResult();
+            var key = keyService.GetEncryptionKeyAsync().GetAwaiter().GetResult();
             var fullCipher = Convert.FromBase64String(encryptedData);
 
             using var aes = Aes.Create();
@@ -82,7 +74,7 @@ public class DataEncryptionService : IDataEncryptionService
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Failed to decrypt data");
+            logger.LogError(ex, "Failed to decrypt data");
             throw;
         }
     }
