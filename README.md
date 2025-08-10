@@ -423,6 +423,33 @@ docker run -d -p 8080:80 --name apbox apbox:latest
 - **Development**: Raspberry Pi 4 or compatible
 - **Production**: Strato Pi CM Duo v3 (industrial-grade)
 
+### Linux Deployment Requirements
+
+**Raspberry Pi Configuration (Raspbian)**
+
+When deploying on Raspberry Pi 4 with Raspbian, the application requires proper permissions to access serial ports for OSDP communication. Without these permissions, ApBox will run but produce no OSDP output.
+
+**Solution 1: Add User to dialout Group (Recommended)**
+```bash
+# Add current user to dialout group
+sudo usermod -a -G dialout $USER
+
+# Verify group membership
+groups $USER
+
+# Log out and back in for changes to take effect
+```
+
+**Solution 2: Run with sudo (Not Recommended for Production)**
+```bash
+# Run with elevated privileges
+sudo dotnet run --project src/ApBox.Web
+# or for single executable:
+sudo ./ApBox.Web
+```
+
+**Note**: The dialout group approach is preferred for production deployments as it follows the principle of least privilege and doesn't require running the entire application as root.
+
 ## Contributing
 
 1. Fork the repository

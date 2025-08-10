@@ -173,6 +173,26 @@ public interface IApBoxPlugin
 5. **Database**: SQLite for configuration and event logging
 6. **Deployment**: Docker containers for both development and production
 
+## Linux Deployment Configuration
+
+**Raspberry Pi Requirements (Raspbian)**
+
+When deploying on Raspberry Pi 4 with Raspbian, serial port access requires proper permissions:
+
+```bash
+# Option 1: Add user to dialout group (recommended)
+sudo usermod -a -G dialout $USER
+# Log out and back in for group changes to take effect
+
+# Option 2: Run with sudo (not recommended for production)
+sudo dotnet run --project src/ApBox.Web
+
+# Verify user is in dialout group
+groups $USER
+```
+
+**Note**: Without proper serial port permissions, the application will run but produce no OSDP output. The dialout group membership is the preferred solution for production deployments.
+
 ## Reference Projects
 
 - **Aporta** (https://github.com/bytedreamer/Aporta): Reference implementation for:
