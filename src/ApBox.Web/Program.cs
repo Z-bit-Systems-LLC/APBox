@@ -100,6 +100,7 @@ app.MapControllers();
 
 // Map SignalR hub
 app.MapHub<NotificationHub>(HubConstants.NotificationHubUrl);
+app.MapHub<PacketTraceHub>("/packettracehub");
 
 // Map Blazor
 app.MapBlazorHub();

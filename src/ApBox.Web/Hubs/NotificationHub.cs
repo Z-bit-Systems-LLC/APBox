@@ -1,4 +1,6 @@
 using ApBox.Web.Models.Notifications;
+using ApBox.Core.PacketTracing.Models;
+using ApBox.Core.PacketTracing;
 using Microsoft.AspNetCore.SignalR;
 
 namespace ApBox.Web.Hubs;
@@ -61,5 +63,15 @@ public interface INotificationClient
     /// Called when statistics are updated
     /// </summary>
     Task StatisticsUpdated(StatisticsNotification notification);
+
+    /// <summary>
+    /// Called when a packet is captured during tracing
+    /// </summary>
+    Task PacketReceived(PacketTraceEntry entry);
+
+    /// <summary>
+    /// Called when tracing statistics are updated
+    /// </summary>
+    Task TracingStatisticsUpdated(TracingStatistics statistics);
 }
 

@@ -1,4 +1,5 @@
 using ApBox.Core.Models;
+using ApBox.Core.PacketTracing.Services;
 using ApBox.Core.Services.Core;
 using ApBox.Core.Services.Events;
 using ApBox.Plugins;
@@ -17,6 +18,7 @@ public class UnifiedNotificationServiceTests
 {
     private Mock<IEventPublisher> _mockEventPublisher = null!;
     private Mock<IHubContext<NotificationHub, INotificationClient>> _mockHubContext = null!;
+    private Mock<IPacketTraceService> _mockPacketTraceService = null!;
     private Mock<ILogger<UnifiedNotificationService>> _mockLogger = null!;
     private Mock<INotificationClient> _mockNotificationClient = null!;
     private Mock<IHubCallerClients<INotificationClient>> _mockClients = null!;
@@ -27,6 +29,7 @@ public class UnifiedNotificationServiceTests
     {
         _mockEventPublisher = new Mock<IEventPublisher>();
         _mockHubContext = new Mock<IHubContext<NotificationHub, INotificationClient>>();
+        _mockPacketTraceService = new Mock<IPacketTraceService>();
         _mockLogger = new Mock<ILogger<UnifiedNotificationService>>();
         _mockNotificationClient = new Mock<INotificationClient>();
         _mockClients = new Mock<IHubCallerClients<INotificationClient>>();
@@ -37,6 +40,7 @@ public class UnifiedNotificationServiceTests
         _service = new UnifiedNotificationService(
             _mockEventPublisher.Object,
             _mockHubContext.Object,
+            _mockPacketTraceService.Object,
             _mockLogger.Object);
     }
 

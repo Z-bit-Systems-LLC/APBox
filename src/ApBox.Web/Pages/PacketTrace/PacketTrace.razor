@@ -1,0 +1,266 @@
+@page "/packet-trace"
+@using ApBox.Core.PacketTracing.Models
+@using ApBox.Web.ViewModels
+@using OSDP.Net.Tracing
+@using Blazorise.SpinKit
+@inject PacketTraceViewModel ViewModel
+@implements IDisposable
+
+<PageTitle>Packet Trace</PageTitle>
+
+<Container Fluid ElementId="packet-trace-container">
+    <Row Margin="Margin.Is4.FromBottom">
+        <Column>
+            <Heading Size="HeadingSize.Is1" ElementId="packet-trace-title">Packet Trace</Heading>
+            <Paragraph TextColor="TextColor.Muted" ElementId="packet-trace-subtitle">Capture and analyze OSDP protocol packets</Paragraph>
+        </Column>
+    </Row>
+
+    @if (ViewModel.IsLoading)
+    {
+        <Row ElementId="loading-spinner">
+            <Column>
+                <Div Display="Display.Flex" JustifyContent="JustifyContent.Center" Margin="Margin.Is5.FromTop">
+                    <Text Margin="Margin.Is2.FromEnd">Loading packet trace...</Text>
+                    <SpinKit Type="SpinKitType.Pulse"/>
+                </Div>
+            </Column>
+        </Row>
+    }
+    else if (!string.IsNullOrEmpty(ViewModel.ErrorMessage))
+    {
+        <Row>
+            <Column>
+                <Alert Color="Color.Danger" Visible="true">
+                    <Icon Name="IconName.ExclamationTriangle" Margin="Margin.Is2.FromEnd" />
+                    @ViewModel.ErrorMessage
+                    <Button Color="Color.Secondary" Size="Size.Small" Margin="Margin.Is2.FromStart" Clicked="ViewModel.InitializeCommand.ExecuteAsync">
+                        <Icon Name="IconName.Redo" />
+                        Retry
+                    </Button>
+                </Alert>
+            </Column>
+        </Row>
+    }
+    else
+    {
+        <Row>
+            <Column ColumnSize="ColumnSize.Is3.OnDesktop.Is12.OnMobile">
+                <!-- Settings Panel -->
+                <Card ElementId="trace-settings-card">
+                    <CardHeader>
+                        <CardTitle>
+                            <Icon Name="IconName.Settings" Margin="Margin.Is2.FromEnd" />
+                            Trace Settings
+                        </CardTitle>
+                    </CardHeader>
+                <CardBody>
+                    <!-- Filters -->
+                    <Field>
+                        <FieldLabel>Display Filters</FieldLabel>
+                        <Check Checked="@ViewModel.FilterPollCommands" CheckedChanged="@(async (bool value) => await OnPollFilterChanged(value))">
+                            Hide Poll Commands
+                        </Check>
+                        <Check Checked="@ViewModel.FilterAckCommands" CheckedChanged="@(async (bool value) => await OnAckFilterChanged(value))">
+                            Hide ACK Replies
+                        </Check>
+                    </Field>
+                    
+                </CardBody>
+            </Card>
+            
+                <!-- Statistics Card -->
+                <Card Margin="Margin.Is3.FromTop" ElementId="trace-statistics-card">
+                    <CardHeader>
+                        <CardTitle>
+                            <Icon Name="IconName.ChartLine" Margin="Margin.Is2.FromEnd" />
+                            Statistics
+                        </CardTitle>
+                    </CardHeader>
+                <CardBody>
+                    <Field>
+                        <FieldLabel>Reply Rate</FieldLabel>
+                        <Text>@ViewModel.ReplyPercentage.ToString("F1")%</Text>
+                    </Field>
+                    <Field Margin="Margin.Is3.FromTop">
+                        <FieldLabel>Average Response Time</FieldLabel>
+                        <Text>
+                            @if (ViewModel.AverageResponseTimeMs > 0)
+                            {
+                                @($"{ViewModel.AverageResponseTimeMs:F1} ms")
+                            }
+                            else
+                            {
+                                <span>N/A</span>
+                            }
+                        </Text>
+                    </Field>
+                </CardBody>
+            </Card>
+            </Column>
+            
+            <Column ColumnSize="ColumnSize.Is9.OnDesktop.Is12.OnMobile">
+                <!-- Packet Trace Grid -->
+                <Card ElementId="packet-traces-card">
+                    <CardHeader>
+                    <CardActions>
+                        <Buttons>
+                            <Button Color="Color.Success" 
+                                    Clicked="@StartTracing" 
+                                    Disabled="@ViewModel.TracingEnabled"
+                                    Size="Size.Small">
+                                <Icon Name="IconName.Play" /> Start
+                            </Button>
+                            <Button Color="Color.Danger" 
+                                    Clicked="@StopTracing"
+                                    Disabled="@(!ViewModel.TracingEnabled)"
+                                    Size="Size.Small">
+                                <Icon Name="IconName.Stop" /> Stop
+                            </Button>
+                        </Buttons>
+                        <Button Color="Color.Secondary" 
+                                Clicked="@ExportToOsdpCap"
+                                Size="Size.Small"
+                                Float="Float.End"
+                                Disabled="@(!ViewModel.Packets.Any())">
+                            <Icon Name="IconName.Download" /> Export
+                        </Button>
+                    </CardActions>
+                </CardHeader>
+                    <CardBody>
+                        @if (ViewModel.Packets.Any())
+                        {
+                            <Table Striped Hoverable Responsive ElementId="packet-traces-table">
+                                <TableHeader>
+                                    <TableRow>
+                                        <TableHeaderCell>Time</TableHeaderCell>
+                                        <TableHeaderCell>Δt</TableHeaderCell>
+                                        <TableHeaderCell>Direction</TableHeaderCell>
+                                        <TableHeaderCell>Address</TableHeaderCell>
+                                        <TableHeaderCell>Type</TableHeaderCell>
+                                        <TableHeaderCell>Details</TableHeaderCell>
+                                    </TableRow>
+                                </TableHeader>
+                            <TableBody>
+                                @foreach (var packet in ViewModel.Packets.Take(50))
+                                {
+                                    <TableRow>
+                                        <TableRowCell>
+                                            <small>@packet.LocalTimestamp.ToString("HH:mm:ss.fff")</small>
+                                        </TableRowCell>
+                                        <TableRowCell>
+                                            @if (packet.Interval.TotalMilliseconds > 0)
+                                            {
+                                                <small class="text-muted">+@packet.Interval.TotalMilliseconds.ToString("F0")ms</small>
+                                            }
+                                        </TableRowCell>
+                                        <TableRowCell>
+                                            <Badge Color="@(packet.Direction == TraceDirection.Output ? Color.Primary : Color.Success)">
+                                                @if (packet.Direction == TraceDirection.Output)
+                                                {
+                                                    <Icon Name="IconName.ArrowRight" Margin="Margin.Is1.FromEnd" />
+                                                    <span>OUT</span>
+                                                }
+                                                else
+                                                {
+                                                    <Icon Name="IconName.ArrowLeft" Margin="Margin.Is1.FromEnd" />
+                                                    <span>IN</span>
+                                                }
+                                            </Badge>
+                                        </TableRowCell>
+                                        <TableRowCell>
+                                            <span>@packet.Packet.Address</span>
+                                        </TableRowCell>
+                                        <TableRowCell>
+                                            <span>@packet.Type</span>
+                                        </TableRowCell>
+                                        <TableRowCell>
+                                            <span>@packet.Details</span>
+                                        </TableRowCell>
+                                    </TableRow>
+                                }
+                            </TableBody>
+                        </Table>
+                        }
+                        else
+                        {
+                            <Div TextAlignment="TextAlignment.Center" Padding="Padding.Is5" ElementId="no-packets-message">
+                                <Icon Name="IconName.List" IconSize="IconSize.x3" TextColor="TextColor.Muted" />
+                                <Heading Size="HeadingSize.Is4" Margin="Margin.Is3.FromTop">No Packets to Display</Heading>
+                                <Paragraph TextColor="TextColor.Muted">
+                                    @if (ViewModel.TracingEnabled)
+                                    {
+                                        <span>No packets match the current display filters, or no packets have been captured yet.</span>
+                                    }
+                                    else
+                                    {
+                                        <span>Start tracing to capture OSDP packets from configured readers.</span>
+                                    }
+                                </Paragraph>
+                            </Div>
+                        }
+                </CardBody>
+            </Card>
+            </Column>
+        </Row>
+    }
+</Container>
+
+@code {
+    protected override async Task OnInitializedAsync()
+    {
+        // Set up component callbacks for the ViewModel
+        ViewModel.StateHasChanged = StateHasChanged;
+        ViewModel.InvokeAsync = InvokeAsync;
+        
+        await ViewModel.InitializeCommand.ExecuteAsync(null);
+    }
+    
+    
+    private void StartTracing()
+    {
+        ViewModel.StartTracingCommand.Execute(null);
+    }
+    
+    private void StopTracing()
+    {
+        ViewModel.StopTracingCommand.Execute(null);
+    }
+    
+    
+    private async Task ExportToOsdpCap()
+    {
+        await ViewModel.ExportToOsdpCapCommand.ExecuteAsync(null);
+    }
+    
+
+    private async Task OnPollFilterChanged(bool value)
+    {
+        ViewModel.FilterPollCommands = value;
+        // Auto-refresh is handled by the ViewModel's OnFilterPollCommandsChanged method
+        await ViewModel.ApplySettingsCommand.ExecuteAsync(null);
+    }
+    
+    private async Task OnAckFilterChanged(bool value)
+    {
+        ViewModel.FilterAckCommands = value;
+        // Auto-refresh is handled by the ViewModel's OnFilterAckCommandsChanged method
+        await ViewModel.ApplySettingsCommand.ExecuteAsync(null);
+    }
+    
+    public void Dispose()
+    {
+        // Unsubscribe from events if needed
+    }
+}
+
+<script>
+    window.downloadFile = function(dataUri, fileName) {
+        const link = document.createElement('a');
+        link.href = dataUri;
+        link.download = fileName;
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+    };
+</script>

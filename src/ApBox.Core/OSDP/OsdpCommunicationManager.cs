@@ -3,8 +3,13 @@ using ApBox.Core.Services.Configuration;
 using ApBox.Core.Services.Core;
 using ApBox.Core.Services.Infrastructure;
 using ApBox.Core.Services.Security;
+using ApBox.Core.PacketTracing.Services;
+using ApBox.Core.PacketTracing.Models;
 using ApBox.Plugins;
 using OSDP.Net;
+using OSDP.Net.Model;
+using OSDP.Net.Model.ReplyData;
+using OSDP.Net.Tracing;
 
 namespace ApBox.Core.OSDP;
 
@@ -17,6 +22,7 @@ public class OsdpCommunicationManager : IOsdpCommunicationManager
     private readonly ISecurityModeUpdateService _securityModeUpdateService;
     private readonly IFeedbackConfigurationService _feedbackConfigurationService;
     private readonly IPinCollectionService _pinCollectionService;
+    private readonly IPacketTraceService _packetTraceService;
     private readonly CancellationTokenSource _cancellationTokenSource = new();
     private ControlPanel? _controlPanel;
     private bool _isRunning;
@@ -27,6 +33,7 @@ public class OsdpCommunicationManager : IOsdpCommunicationManager
         ISecurityModeUpdateService securityModeUpdateService,
         IFeedbackConfigurationService feedbackConfigurationService,
         IPinCollectionService pinCollectionService,
+        IPacketTraceService packetTraceService,
         ILogger<OsdpCommunicationManager> logger)
     {
         _logger = logger;
@@ -34,6 +41,7 @@ public class OsdpCommunicationManager : IOsdpCommunicationManager
         _securityModeUpdateService = securityModeUpdateService;
         _feedbackConfigurationService = feedbackConfigurationService;
         _pinCollectionService = pinCollectionService;
+        _packetTraceService = packetTraceService;
         
         // Subscribe to PIN collection events
         _pinCollectionService.PinCollectionCompleted += OnPinCollectionCompleted;
@@ -66,7 +74,6 @@ public class OsdpCommunicationManager : IOsdpCommunicationManager
                 _controlPanel = new ControlPanel();
                 // Subscribe to global events
                 _controlPanel.ConnectionStatusChanged += OnConnectionStatusChanged;
-                // _controlPanel.RawCardDataReplyReceived += OnCardRead; // TODO: Enable when OSDP.Net API is confirmed
             }
             
             // Get or create connection for this device's connection string
@@ -90,7 +97,7 @@ public class OsdpCommunicationManager : IOsdpCommunicationManager
                 
                 // Create new connection
                 var connection = _serialPortService.CreateConnection(config.ConnectionString, config.BaudRate);
-                connectionId = _controlPanel.StartConnection(connection);
+                connectionId = _controlPanel.StartConnection(connection, TimeSpan.FromMilliseconds(100), TraceCallback);
                     
                 _connectionMappings[config.ConnectionString] = connectionId;
                 
@@ -285,4 +292,30 @@ public class OsdpCommunicationManager : IOsdpCommunicationManager
         // This is a placeholder for any manager-level connection monitoring
         _logger.LogDebug("Global OSDP connection status changed");
     }
+    
+    private void TraceCallback(TraceEntry traceEntry)
+    {
+        try
+        {
+            // Use the new TraceEntry-based capture method
+            // For now, capture all packets and let the PacketTraceService handle filtering by reader
+            // We'll use a generic approach since we may not have direct access to device address from TraceEntry
+            foreach (var device in _devices.Values)
+            {
+                if (_packetTraceService.IsTracingReader(device.Id.ToString()))
+                {
+                    _packetTraceService.CapturePacket(traceEntry, device.Id.ToString(), device.Name);
+                    
+                    // For now, just capture to the first device being traced
+                    // In a real scenario, we'd need to determine which device the packet belongs to
+                    break;
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+            _logger.LogWarning(ex, "Error processing OSDP trace entry");
+        }
+    }
+    
 }
