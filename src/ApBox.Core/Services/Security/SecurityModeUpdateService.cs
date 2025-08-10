@@ -1,5 +1,7 @@
 using ApBox.Core.Data.Repositories;
 using ApBox.Core.Models;
+using ApBox.Core.Services.Infrastructure;
+using ApBox.Core.Services.Events;
 
 namespace ApBox.Core.Services.Security;
 
@@ -10,15 +12,18 @@ public class SecurityModeUpdateService : ISecurityModeUpdateService
 {
     private readonly IReaderConfigurationRepository _readerRepository;
     private readonly IOsdpSecurityService _securityService;
+    private readonly IEventPublisher _eventPublisher;
     private readonly ILogger<SecurityModeUpdateService> _logger;
 
     public SecurityModeUpdateService(
         IReaderConfigurationRepository readerRepository,
         IOsdpSecurityService securityService,
+        IEventPublisher eventPublisher,
         ILogger<SecurityModeUpdateService> logger)
     {
         _readerRepository = readerRepository;
         _securityService = securityService;
+        _eventPublisher = eventPublisher;
         _logger = logger;
     }
 
@@ -47,6 +52,22 @@ public class SecurityModeUpdateService : ISecurityModeUpdateService
 
             // Save the updated configuration
             await _readerRepository.UpdateAsync(reader);
+
+            // Fire a reader status change event to trigger UI updates with new security mode
+            // This will cause the EventProcessingPipeline to enrich the event with the updated database values
+            var statusEvent = new ReaderStatusChangedEvent
+            {
+                ReaderId = reader.ReaderId,
+                ReaderName = reader.ReaderName,
+                IsOnline = true, // Assume online since security mode was just updated
+                ErrorMessage = null,
+                IsEnabled = reader.IsEnabled,
+                SecurityMode = newSecurityMode,
+                Status = "Security mode updated",
+                Timestamp = DateTime.UtcNow
+            };
+
+            await _eventPublisher.PublishAsync(statusEvent);
 
             _logger.LogInformation("Successfully updated security mode for reader {ReaderId} to {SecurityMode}", readerId, newSecurityMode);
             return true;

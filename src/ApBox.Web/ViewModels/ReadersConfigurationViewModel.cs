@@ -390,6 +390,7 @@ public partial class ReadersConfigurationViewModel : ObservableValidator, IDispo
     {
         // Register event handlers for real-time updates
         _notificationAggregator.Subscribe<ReaderStatusNotification>(OnReaderStatusChanged);
+        _notificationAggregator.Subscribe<ReaderConfigurationNotification>(OnReaderConfigurationChanged);
     }
 
     private void OnReaderStatusChanged(ReaderStatusNotification notification)
@@ -410,10 +411,48 @@ public partial class ReadersConfigurationViewModel : ObservableValidator, IDispo
         }
     }
 
+    private void OnReaderConfigurationChanged(ReaderConfigurationNotification notification)
+    {
+        try
+        {
+            _logger.LogDebug("Received reader configuration change for {ReaderName} ({ReaderId}): {ChangeType}", 
+                notification.ReaderName, notification.ReaderId, notification.ChangeType);
+            
+            // Find the reader in our collection and update it
+            var existingReader = Readers.FirstOrDefault(r => r.ReaderId == notification.ReaderId);
+            if (existingReader != null)
+            {
+                // Update the security mode and other properties
+                existingReader.SecurityMode = notification.SecurityMode;
+                existingReader.ReaderName = notification.ReaderName;
+                existingReader.SerialPort = notification.SerialPort;
+                existingReader.BaudRate = notification.BaudRate;
+                existingReader.Address = notification.Address;
+                existingReader.IsEnabled = notification.IsEnabled;
+                
+                _logger.LogInformation("Updated reader {ReaderId} security mode to {SecurityMode} in UI", 
+                    notification.ReaderId, notification.SecurityMode);
+            }
+            else
+            {
+                _logger.LogWarning("Reader {ReaderId} not found in UI collection for configuration update", 
+                    notification.ReaderId);
+            }
+            
+            // Notify UI to update
+            InvokeAsync?.Invoke(() => { StateHasChanged?.Invoke(); return Task.CompletedTask; });
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error handling reader configuration change");
+        }
+    }
+
 
     public void Dispose()
     {
         // Unsubscribe from events
         _notificationAggregator.Unsubscribe<ReaderStatusNotification>(OnReaderStatusChanged);
+        _notificationAggregator.Unsubscribe<ReaderConfigurationNotification>(OnReaderConfigurationChanged);
     }
 }
