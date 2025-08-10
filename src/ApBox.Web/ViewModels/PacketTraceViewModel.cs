@@ -108,6 +108,9 @@ namespace ApBox.Web.ViewModels
         [RelayCommand]
         private void StartTracing()
         {
+            // Clear the UI packet collection as well
+            Packets.Clear();
+            traceService.ClearTraces();
             traceService.StartTracingAll();
             TracingEnabled = true;
         }

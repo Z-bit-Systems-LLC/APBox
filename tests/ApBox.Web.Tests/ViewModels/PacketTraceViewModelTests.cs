@@ -102,14 +102,16 @@ public class PacketTraceViewModelTests
     }
 
     [Test]
-    public void StartTracing_CallsServiceStartTracingAll()
+    public void StartTracing_CallsServiceStartTracingAllAndClearsTraces()
     {
         // Act
         _viewModel.StartTracingCommand.Execute(null);
 
         // Assert
+        _mockPacketTraceService.Verify(s => s.ClearTraces(null), Times.Once);
         _mockPacketTraceService.Verify(s => s.StartTracingAll(), Times.Once);
         Assert.That(_viewModel.TracingEnabled, Is.True);
+        Assert.That(_viewModel.Packets.Count, Is.EqualTo(0)); // UI packets collection should be cleared
     }
 
     [Test]
