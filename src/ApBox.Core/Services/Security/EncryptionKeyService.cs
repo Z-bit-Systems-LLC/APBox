@@ -19,14 +19,10 @@ public sealed class EncryptionKeyService : IEncryptionKeyService
         _logger = logger;
         _fileSystem = fileSystem;
         
-        // Store the key file in the application data directory
-        var appDataPath = _fileSystem.GetFolderPath(Environment.SpecialFolder.CommonApplicationData);
-        var apboxDataDir = _fileSystem.CombinePath(appDataPath, "ApBox");
+        // Store the key file in the application directory
+        var appDirectory = AppContext.BaseDirectory;
         
-        // Ensure directory exists
-        _fileSystem.CreateDirectory(apboxDataDir);
-        
-        _keyFilePath = _fileSystem.CombinePath(apboxDataDir, ".encryption_key");
+        _keyFilePath = _fileSystem.CombinePath(appDirectory, ".encryption_key");
     }
 
     public async Task<byte[]> GetEncryptionKeyAsync()

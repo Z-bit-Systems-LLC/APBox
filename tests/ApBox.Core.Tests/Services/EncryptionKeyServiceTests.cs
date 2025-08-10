@@ -49,7 +49,6 @@ public class EncryptionKeyServiceTests
         
         // Verify that file was written
         _mockFileSystem.Verify(x => x.WriteAllTextAsync(It.IsAny<string>(), It.IsAny<string>(), Encoding.UTF8), Times.Once);
-        _mockFileSystem.Verify(x => x.CreateDirectory(It.IsAny<string>()), Times.Once);
     }
 
     [Test]
