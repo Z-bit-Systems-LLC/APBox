@@ -1,5 +1,4 @@
 @page "/packet-trace"
-@using ApBox.Core.PacketTracing
 @using ApBox.Core.PacketTracing.Models
 @using ApBox.Web.ViewModels
 @using OSDP.Net.Tracing
@@ -80,30 +79,8 @@
                     </CardHeader>
                 <CardBody>
                     <Field>
-                        <FieldLabel>Memory Usage</FieldLabel>
-                        <Text>@ViewModel.MemoryUsage</Text>
-                        <Progress Value="@GetMemoryPercentage()" Color="@GetMemoryProgressColor()" />
-                    </Field>
-                    
-                    <Field>
-                        <FieldLabel>Total Captured</FieldLabel>
-                        <Badge Color="Color.Primary">@ViewModel.TotalPackets</Badge>
-                    </Field>
-                    
-                    <Field>
-                        <FieldLabel>Displayed</FieldLabel>
-                        <Badge Color="Color.Success">@(ViewModel.TotalPackets - ViewModel.FilteredPackets)</Badge>
-                    </Field>
-                    
-                    <Field>
-                        <FieldLabel>Filtered Out</FieldLabel>
-                        <Badge Color="Color.Warning">@ViewModel.FilteredPackets</Badge>
-                    </Field>
-                    
-                    
-                    <Field>
-                        <FieldLabel>Duration</FieldLabel>
-                        <Text>@ViewModel.TracingDuration</Text>
+                        <FieldLabel>Reply Rate</FieldLabel>
+                        <Text>@ViewModel.ReplyPercentage.ToString("F1")%</Text>
                     </Field>
                 </CardBody>
             </Card>
@@ -132,7 +109,7 @@
                                 Clicked="@ExportToOsdpCap"
                                 Size="Size.Small"
                                 Float="Float.End"
-                                Disabled="@(ViewModel.TotalPackets == 0)">
+                                Disabled="@(!ViewModel.Packets.Any())">
                             <Icon Name="IconName.Download" /> Export
                         </Button>
                     </CardActions>
@@ -150,7 +127,6 @@
                                         <TableHeaderCell>Type</TableHeaderCell>
                                         <TableHeaderCell>Len</TableHeaderCell>
                                         <TableHeaderCell>Details</TableHeaderCell>
-                                        <TableHeaderCell>Actions</TableHeaderCell>
                                     </TableRow>
                                 </TableHeader>
                             <TableBody>
@@ -194,13 +170,6 @@
                                         <TableRowCell>
                                             <span>@packet.Details</span>
                                         </TableRowCell>
-                                        <TableRowCell>
-                                            <Button Size="Size.Small" 
-                                                    Color="Color.Light"
-                                                    Clicked="@(() => ShowPacketDetails(packet))">
-                                                <Icon Name="IconName.Eye" />
-                                            </Button>
-                                        </TableRowCell>
                                     </TableRow>
                                 }
                             </TableBody>
@@ -221,109 +190,14 @@
     }
 </Container>
 
-<!-- Packet Details Modal -->
-<Modal @ref="detailsModal" ElementId="packet-details-modal">
-    <ModalContent Centered Size="ModalSize.Large">
-        <ModalHeader>
-            <ModalTitle>Packet Details</ModalTitle>
-            <CloseButton />
-        </ModalHeader>
-        <ModalBody>
-            @if (selectedPacket != null)
-            {
-                <Tabs SelectedTab="@selectedTab" SelectedTabChanged="@OnSelectedTabChanged">
-                    <Items>
-                        <Tab Name="info">Info</Tab>
-                        <Tab Name="hex">Hex</Tab>
-                        <Tab Name="ascii">ASCII</Tab>
-                    </Items>
-                    <Content>
-                        <TabPanel Name="info">
-                            <Fields>
-                                <Field>
-                                    <FieldLabel>Timestamp</FieldLabel>
-                                    <TextEdit Value="@selectedPacket.LocalTimestamp.ToString("yyyy-MM-dd HH:mm:ss.fff")" 
-                                              ReadOnly />
-                                </Field>
-                                <Field>
-                                    <FieldLabel>Direction</FieldLabel>
-                                    <TextEdit Value="@selectedPacket.Direction.ToString()" ReadOnly />
-                                </Field>
-                                <Field>
-                                    <FieldLabel>Type</FieldLabel>
-                                    <TextEdit Value="@selectedPacket.Type" ReadOnly />
-                                </Field>
-                                <Field>
-                                    <FieldLabel>Length</FieldLabel>
-                                    <TextEdit Value="@GetPacketLength(selectedPacket).ToString()" ReadOnly />
-                                </Field>
-                                @if (!string.IsNullOrEmpty(selectedPacket.Details))
-                                {
-                                    <Field>
-                                        <FieldLabel>Details</FieldLabel>
-                                        <MemoEdit Value="@selectedPacket.Details" ReadOnly Rows="3" />
-                                    </Field>
-                                }
-                            </Fields>
-                        </TabPanel>
-                        <TabPanel Name="hex">
-                            <pre>@GetHexDisplay(GetPacketData(selectedPacket))</pre>
-                        </TabPanel>
-                        <TabPanel Name="ascii">
-                            <pre>@GetAsciiDisplay(GetPacketData(selectedPacket))</pre>
-                        </TabPanel>
-                    </Content>
-                </Tabs>
-            }
-        </ModalBody>
-    </ModalContent>
-</Modal>
-
 @code {
-    private Modal? detailsModal;
-    private PacketTraceEntry? selectedPacket;
-    private string selectedTab = "info";
-    private bool _hasRendered = false;
-    
     protected override async Task OnInitializedAsync()
     {
         // Set up component callbacks for the ViewModel
         ViewModel.StateHasChanged = StateHasChanged;
         ViewModel.InvokeAsync = InvokeAsync;
         
-        await ViewModel.InitializeComponentAsync();
-    }
-    
-    protected override async Task OnAfterRenderAsync(bool firstRender)
-    {
-        if (firstRender && !_hasRendered)
-        {
-            _hasRendered = true;
-            await ViewModel.InitializeWithJavaScriptAsync();
-            StateHasChanged();
-        }
-        await base.OnAfterRenderAsync(firstRender);
-    }
-    
-    private int GetMemoryPercentage()
-    {
-        // Parse memory usage string and calculate percentage
-        // This is a simplified implementation
-        return 25;
-    }
-    
-    private Color GetMemoryProgressColor()
-    {
-        var percentage = GetMemoryPercentage();
-        if (percentage < 50) return Color.Success;
-        if (percentage < 80) return Color.Warning;
-        return Color.Danger;
-    }
-    
-    private async Task ShowPacketDetails(PacketTraceEntry packet)
-    {
-        selectedPacket = packet;
-        await detailsModal!.Show();
+        await ViewModel.InitializeCommand.ExecuteAsync(null);;
     }
     
     
@@ -343,76 +217,13 @@
         await ViewModel.ExportToOsdpCapCommand.ExecuteAsync(null);
     }
     
-    private void OnSelectedTabChanged(string name)
-    {
-        selectedTab = name;
-    }
-    
     private int GetPacketLength(PacketTraceEntry packet)
     {
         // For now, return a placeholder length
         // In the real implementation, this would come from parsing the packet data
         return 8; // Typical OSDP packet minimum length
     }
-    
-    private byte[] GetPacketData(PacketTraceEntry packet)
-    {
-        // For now, return empty data
-        // In the real implementation, this would come from the TraceEntry.Data
-        return new byte[0];
-    }
-    
-    private string GetHexDisplay(byte[] data)
-    {
-        if (data == null || data.Length == 0) return "";
-        
-        var hex = new System.Text.StringBuilder();
-        for (int i = 0; i < data.Length; i += 16)
-        {
-            hex.AppendFormat("{0:X4}: ", i);
-            
-            // Hex bytes
-            for (int j = 0; j < 16; j++)
-            {
-                if (i + j < data.Length)
-                    hex.AppendFormat("{0:X2} ", data[i + j]);
-                else
-                    hex.Append("   ");
-                
-                if (j == 7) hex.Append(" ");
-            }
-            
-            hex.Append(" |");
-            
-            // ASCII representation
-            for (int j = 0; j < 16 && i + j < data.Length; j++)
-            {
-                byte b = data[i + j];
-                hex.Append(b >= 32 && b <= 126 ? (char)b : '.');
-            }
-            
-            hex.AppendLine("|");
-        }
-        
-        return hex.ToString();
-    }
-    
-    private string GetAsciiDisplay(byte[] data)
-    {
-        if (data == null || data.Length == 0) return "";
-        
-        var ascii = new System.Text.StringBuilder();
-        foreach (byte b in data)
-        {
-            if (b >= 32 && b <= 126)
-                ascii.Append((char)b);
-            else
-                ascii.Append('.');
-        }
-        
-        return ascii.ToString();
-    }
-    
+
     private async Task OnPollFilterChanged(bool value)
     {
         ViewModel.FilterPollCommands = value;

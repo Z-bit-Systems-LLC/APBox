@@ -30,9 +30,8 @@ public class PacketTraceViewModelTests
         _mockPacketTraceService.Setup(s => s.GetStatistics())
             .Returns(new TracingStatistics
             {
-                TotalPackets = 0,
-                FilteredPackets = 0,
-                MemoryUsageBytes = 0
+                TotalOutgoingPackets = 0,
+                PacketsWithReplies = 0
             });
         
         // Setup default GetTraces to avoid null reference during RefreshPacketList

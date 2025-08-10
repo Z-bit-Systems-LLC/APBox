@@ -33,16 +33,7 @@ namespace ApBox.Web.ViewModels
         
         // Statistics
         [ObservableProperty]
-        private string _memoryUsage = "0 KB";
-        
-        [ObservableProperty]
-        private int _totalPackets;
-        
-        [ObservableProperty]
-        private int _filteredPackets;
-        
-        [ObservableProperty]
-        private string _tracingDuration = "00:00:00";
+        private double _replyPercentage;
         
         [ObservableProperty]
         private bool _isLoading;
@@ -179,16 +170,7 @@ namespace ApBox.Web.ViewModels
         {
             var stats = notification.Statistics;
             
-            TotalPackets = stats.TotalPackets;
-            MemoryUsage = stats.FormattedMemoryUsage;
-            
-            // Use statistics from notification instead of recalculating
-            FilteredPackets = stats.FilteredPackets;
-            
-            if (stats.TracingDuration.HasValue)
-            {
-                TracingDuration = stats.TracingDuration.Value.ToString(@"hh\:mm\:ss");
-            }
+            ReplyPercentage = stats.ReplyPercentage;
             
             // Update UI on the main thread
             InvokeAsync?.Invoke(() => { StateHasChanged(); return Task.CompletedTask; });
@@ -222,14 +204,7 @@ namespace ApBox.Web.ViewModels
         {
             var stats = traceService.GetStatistics();
 
-            TotalPackets = stats.TotalPackets;
-            MemoryUsage = stats.FormattedMemoryUsage;
-            FilteredPackets = stats.FilteredPackets;
-            
-            if (stats.TracingDuration.HasValue)
-            {
-                TracingDuration = stats.TracingDuration.Value.ToString(@"hh\:mm\:ss");
-            }
+            ReplyPercentage = stats.ReplyPercentage;
         }
         
         private void ApplySettingsToViewModel(PacketTraceSettings settings)

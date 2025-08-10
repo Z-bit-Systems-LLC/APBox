@@ -4,6 +4,8 @@ using ApBox.Core.PacketTracing;
 using Microsoft.Extensions.Logging;
 using NUnit.Framework;
 using OSDP.Net.Tracing;
+using OSDP.Net.Model;
+using System.Reflection;
 
 namespace ApBox.Core.Tests.PacketTracing;
 
@@ -99,10 +101,26 @@ public class PacketTraceServiceIntegrationTests
         
         // Assert
         Assert.That(stats, Is.Not.Null);
-        Assert.That(stats.TotalPackets, Is.GreaterThanOrEqualTo(0));
-        Assert.That(stats.MemoryUsageBytes, Is.GreaterThanOrEqualTo(0));
-        Assert.That(stats.PacketsPerReader, Is.Not.Null);
+        Assert.That(stats.ReplyPercentage, Is.GreaterThanOrEqualTo(0));
+        Assert.That(stats.ReplyPercentage, Is.LessThanOrEqualTo(100));
     }
+
+    [Test]
+    public void GetStatistics_ReplyPercentage_StartsAtZero()
+    {
+        // Arrange
+        var readerId = Guid.NewGuid().ToString();
+        _service.StartTracing(readerId);
+        
+        // Act
+        var stats = _service.GetStatistics();
+        
+        // Assert - No packets captured, should be 0%
+        Assert.That(stats.ReplyPercentage, Is.EqualTo(0.0));
+        Assert.That(stats.TotalOutgoingPackets, Is.EqualTo(0));
+        Assert.That(stats.PacketsWithReplies, Is.EqualTo(0));
+    }
+    
 
     [TearDown]
     public void TearDown()

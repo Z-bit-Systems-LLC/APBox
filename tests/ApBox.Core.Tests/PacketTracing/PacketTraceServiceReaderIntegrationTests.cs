@@ -254,8 +254,8 @@ public class PacketTraceServiceReaderIntegrationTests
         var stats = _service.GetStatistics();
 
         // Assert
-        Assert.That(stats.TracingStartedAt, Is.Not.Null);
-        Assert.That(stats.TracingDuration, Is.Not.Null);
+        Assert.That(stats.ReplyPercentage, Is.GreaterThanOrEqualTo(0));
+        Assert.That(stats.ReplyPercentage, Is.LessThanOrEqualTo(100));
     }
 
     [TearDown]

@@ -20,6 +20,8 @@ public class UnifiedNotificationService : INotificationAggregator, IHostedServic
     private readonly IPacketTraceService _packetTraceService;
     private readonly ILogger<UnifiedNotificationService> _logger;
     private readonly ConcurrentDictionary<Type, List<Delegate>> _serverSideHandlers = new();
+    private readonly Timer _statisticsTimer;
+    private volatile bool _hasPacketActivity;
 
     public UnifiedNotificationService(
         IEventPublisher eventPublisher,
@@ -31,6 +33,9 @@ public class UnifiedNotificationService : INotificationAggregator, IHostedServic
         _hubContext = hubContext;
         _packetTraceService = packetTraceService;
         _logger = logger;
+        
+        // Initialize timer to send statistics updates once per second
+        _statisticsTimer = new Timer(SendStatisticsUpdate, null, Timeout.Infinite, Timeout.Infinite);
     }
 
     public Task StartAsync(CancellationToken cancellationToken)
@@ -44,6 +49,9 @@ public class UnifiedNotificationService : INotificationAggregator, IHostedServic
         
         // Subscribe to packet trace events
         _packetTraceService.PacketCaptured += OnPacketCaptured;
+        
+        // Start the statistics timer (1 second intervals)
+        _statisticsTimer.Change(TimeSpan.FromSeconds(1), TimeSpan.FromSeconds(1));
 
         _logger.LogInformation("Unified Notification Service started - handling both server-side and SignalR notifications");
         return Task.CompletedTask;
@@ -60,6 +68,10 @@ public class UnifiedNotificationService : INotificationAggregator, IHostedServic
         
         // Unsubscribe from packet trace events
         _packetTraceService.PacketCaptured -= OnPacketCaptured;
+        
+        // Stop and dispose the statistics timer
+        _statisticsTimer.Change(Timeout.Infinite, Timeout.Infinite);
+        _statisticsTimer.Dispose();
 
         _logger.LogInformation("Unified Notification Service stopped");
         return Task.CompletedTask;
@@ -225,14 +237,8 @@ public class UnifiedNotificationService : INotificationAggregator, IHostedServic
             // Distribute to both channels
             await DistributeNotificationAsync(notification);
             
-            // Also send updated statistics
-            var statsNotification = new TracingStatisticsNotification
-            {
-                Statistics = _packetTraceService.GetStatistics(),
-                Timestamp = DateTime.UtcNow
-            };
-            
-            await DistributeNotificationAsync(statsNotification);
+            // Mark that there was packet activity (statistics will be sent by timer)
+            _hasPacketActivity = true;
         }
         catch (Exception ex)
         {
@@ -320,6 +326,34 @@ public class UnifiedNotificationService : INotificationAggregator, IHostedServic
                         notificationType.Name);
                 }
             }
+        }
+    }
+    
+    /// <summary>
+    /// Timer callback to send statistics updates once per second
+    /// </summary>
+    private async void SendStatisticsUpdate(object? state)
+    {
+        // Only send statistics if there has been packet activity
+        if (!_hasPacketActivity)
+            return;
+            
+        try
+        {
+            var statsNotification = new TracingStatisticsNotification
+            {
+                Statistics = _packetTraceService.GetStatistics(),
+                Timestamp = DateTime.UtcNow
+            };
+            
+            await DistributeNotificationAsync(statsNotification);
+            
+            // Reset activity flag
+            _hasPacketActivity = false;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error sending statistics update");
         }
     }
 

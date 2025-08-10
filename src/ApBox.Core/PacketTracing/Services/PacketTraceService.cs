@@ -10,7 +10,6 @@ namespace ApBox.Core.PacketTracing.Services
         private readonly Dictionary<string, PacketTraceEntry?> _lastEntries = new();
         private readonly HashSet<string> _activeReaders = new();
         private PacketTraceSettings _settings = new();
-        private DateTime? _tracingStarted;
         private readonly IReaderConfigurationService? _readerConfigurationService;
 
         public PacketTraceService(IReaderConfigurationService? readerConfigurationService = null)
@@ -32,17 +31,11 @@ namespace ApBox.Core.PacketTracing.Services
             }
             
             _activeReaders.Add(readerId);
-            
-            if (_tracingStarted == null)
-                _tracingStarted = DateTime.UtcNow;
         }
         
         public void StopTracing(string readerId)
         {
             _activeReaders.Remove(readerId);
-            
-            if (_activeReaders.Count == 0)
-                _tracingStarted = null;
         }
         
         public async void StartTracingAll()
@@ -70,7 +63,6 @@ namespace ApBox.Core.PacketTracing.Services
         public void StopTracingAll()
         {
             _activeReaders.Clear();
-            _tracingStarted = null;
         }
         
         public void ClearTraces(string? readerId = null)
@@ -123,21 +115,76 @@ namespace ApBox.Core.PacketTracing.Services
         
         public TracingStatistics GetStatistics()
         {
-            var stats = new TracingStatistics
-            {
-                TracingStartedAt = _tracingStarted,
-                PacketsPerReader = new Dictionary<string, int>()
-            };
+            var stats = new TracingStatistics();
             
-            foreach (var kvp in _readerBuffers)
-            {
-                var count = kvp.Value.CurrentSize;
-                stats.PacketsPerReader[kvp.Key] = count;
-                stats.TotalPackets += count;
-                stats.MemoryUsageBytes += kvp.Value.MemoryUsageBytes;
-            }
+            // Calculate reply percentages across all readers
+            CalculateReplyStatistics(stats);
             
             return stats;
+        }
+        
+        private void CalculateReplyStatistics(TracingStatistics stats)
+        {
+            int totalOutgoing = 0;
+            int packetsWithReplies = 0;
+            
+            // Analyze packets from all readers
+            foreach (var buffer in _readerBuffers.Values)
+            {
+                var packets = buffer.GetEntries().OrderBy(p => p.Timestamp).ToList();
+                
+                // Find the index of the last outgoing packet to exclude it
+                int lastOutgoingIndex = -1;
+                for (int i = packets.Count - 1; i >= 0; i--)
+                {
+                    if (packets[i].Direction == TraceDirection.Output)
+                    {
+                        lastOutgoingIndex = i;
+                        break;
+                    }
+                }
+                
+                for (int i = 0; i < packets.Count; i++)
+                {
+                    var currentPacket = packets[i];
+                    
+                    // Check if current packet is outgoing
+                    if (currentPacket.Direction == TraceDirection.Output)
+                    {
+                        // Exclude the most recent outgoing packet from statistics
+                        if (i == lastOutgoingIndex)
+                            continue;
+                            
+                        totalOutgoing++;
+                        
+                        // Look for a reply (incoming packet) before the next outgoing packet
+                        bool hasReply = false;
+                        for (int j = i + 1; j < packets.Count; j++)
+                        {
+                            var nextPacket = packets[j];
+                            
+                            // If we find another outgoing packet, stop looking
+                            if (nextPacket.Direction == TraceDirection.Output)
+                                break;
+                            
+                            // If we find an incoming packet, this outgoing packet has a reply
+                            if (nextPacket.Direction == TraceDirection.Input)
+                            {
+                                hasReply = true;
+                                break;
+                            }
+                        }
+                        
+                        if (hasReply)
+                        {
+                            packetsWithReplies++;
+                        }
+                    }
+                }
+            }
+            
+            stats.TotalOutgoingPackets = totalOutgoing;
+            stats.PacketsWithReplies = packetsWithReplies;
         }
         
         // Primary method to capture packet from OSDP.Net TraceEntry
@@ -167,8 +214,6 @@ namespace ApBox.Core.PacketTracing.Services
                 PacketCaptured?.Invoke(this, entry);
             }
             
-            // Check memory limits
-            CheckMemoryLimits();
         }
         
         // Legacy method for backward compatibility
@@ -178,19 +223,6 @@ namespace ApBox.Core.PacketTracing.Services
             // For legacy support, we would need to create a TraceEntry
             // But since OSDP.Net provides TraceEntry objects, this method may not be needed
             throw new NotSupportedException("Use CapturePacket(TraceEntry, string, string) instead - OSDP.Net provides TraceEntry objects directly");
-        }
-        
-        
-        private void CheckMemoryLimits()
-        {
-            var stats = GetStatistics();
-            var limitBytes = _settings.MemoryLimitMB * 1024 * 1024;
-            
-            if (stats.MemoryUsageBytes > limitBytes && _settings.AutoStopOnMemoryLimit)
-            {
-                StopTracingAll();
-                // Raise memory limit event
-            }
         }
         
     }
