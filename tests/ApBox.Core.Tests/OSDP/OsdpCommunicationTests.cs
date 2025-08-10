@@ -4,6 +4,7 @@ using ApBox.Core.Services.Configuration;
 using ApBox.Core.Services.Core;
 using ApBox.Core.Services.Infrastructure;
 using ApBox.Core.Services.Security;
+using ApBox.Core.PacketTracing.Services;
 using Microsoft.Extensions.Logging;
 using Moq;
 using OSDP.Net.Connections;
@@ -60,7 +61,8 @@ public class OsdpCommunicationTests
                              });
         
         var mockPinCollectionService = new Mock<IPinCollectionService>();
-        _communicationManager = new OsdpCommunicationManager(_mockSerialPortService.Object, mockSecurityModeUpdateService.Object, mockFeedbackConfigurationService.Object, mockPinCollectionService.Object, _logger);
+        var mockPacketTraceService = new Mock<IPacketTraceService>();
+        _communicationManager = new OsdpCommunicationManager(_mockSerialPortService.Object, mockSecurityModeUpdateService.Object, mockFeedbackConfigurationService.Object, mockPinCollectionService.Object, mockPacketTraceService.Object, _logger);
     }
     
     [TearDown]

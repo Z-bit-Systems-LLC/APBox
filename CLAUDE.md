@@ -198,6 +198,22 @@ The detailed implementation plan is in `apbox_project_plan.md` (excluded from gi
 ## Testing Best Practices
 
 - Use ElementId attribute for finding components in UI tests
+- **NEVER use Task.Delay in tests** - it makes tests slow and unreliable
+- Instead of `Task.Delay`, use these patterns:
+  - For async operations: Use `TaskCompletionSource` to control timing synchronously
+  - For Blazor components: Use `component.Render()` to force UI updates
+  - For waiting on events: Use synchronous mocks or test doubles
+- Example of proper async test control:
+  ```csharp
+  // BAD - Don't do this
+  await Task.Delay(100); // Arbitrary delay
+  
+  // GOOD - Use TaskCompletionSource
+  var tcs = new TaskCompletionSource<Result>();
+  mockService.Setup(x => x.GetDataAsync()).Returns(tcs.Task);
+  // ... start operation ...
+  tcs.SetResult(expectedResult); // Control when async completes
+  ```
 
 ## Development Memories
 

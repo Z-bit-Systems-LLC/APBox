@@ -78,15 +78,11 @@ public class PinCollectionServiceTests
         PinReadEvent? capturedEvent = null;
         _pinCollectionService.PinCollectionCompleted += (sender, e) => capturedEvent = e;
 
-        // Act - Add some digits and wait for timeout (we'll trigger timeout manually)
+        // Act - Add some digits and complete with pound key to test reader name inclusion
         await _pinCollectionService.AddDigitAsync(_testReaderId, '4');
         await _pinCollectionService.AddDigitAsync(_testReaderId, '5');
 
-        // Wait a bit and trigger timeout by waiting longer than the timeout period
-        // Note: In a real test, we might need to mock the timer or make timeout shorter
-        await Task.Delay(100); // Small delay to ensure digits are processed
-
-        // For this test, we'll complete with pound to simulate what would happen on timeout
+        // Complete with pound to test that reader name is included
         var isComplete = await _pinCollectionService.AddDigitAsync(_testReaderId, '#');
 
         // Assert
