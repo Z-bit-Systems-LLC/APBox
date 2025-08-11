@@ -56,6 +56,9 @@ namespace ApBox.Web.ViewModels
                 IsLoading = true;
                 ErrorMessage = string.Empty;
                 
+                // Synchronize UI state with actual service state
+                TracingEnabled = traceService.IsTracing;
+                
                 await Task.Run(async () =>
                 {
                     if (await localStorage.ContainKeyAsync(SettingsKey))
@@ -247,7 +250,6 @@ namespace ApBox.Web.ViewModels
         
         private void ApplySettingsToViewModel(PacketTraceSettings settings)
         {
-            TracingEnabled = settings.Enabled;
             FilterPollCommands = settings.FilterPollCommands;
             FilterAckCommands = settings.FilterAckCommands;
         }

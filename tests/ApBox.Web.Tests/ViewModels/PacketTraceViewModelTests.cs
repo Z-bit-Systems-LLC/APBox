@@ -152,6 +152,9 @@ public class PacketTraceViewModelTests
                         .ReturnsAsync(true);
         _mockLocalStorage.Setup(s => s.GetItemAsync<PacketTraceSettings>("packetTraceSettings", default))
                         .ReturnsAsync(savedSettings);
+        
+        // Mock the service IsTracing to match the saved settings
+        _mockPacketTraceService.Setup(s => s.IsTracing).Returns(savedSettings.Enabled);
 
         // Act
         await _viewModel.InitializeCommand.ExecuteAsync(null);
