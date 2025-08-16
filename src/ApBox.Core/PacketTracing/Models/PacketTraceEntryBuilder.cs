@@ -13,16 +13,17 @@ public class PacketTraceEntryBuilder
 
     /// <summary>
     /// Initializes the <see cref="PacketTraceEntryBuilder"/> instance with the specified trace entry and previous trace entry
-    /// while also recording the current timestamp.
+    /// while also recording the packet reception timestamp.
     /// </summary>
     /// <param name="traceEntry">The current trace entry that provides details for creating a new trace packet.</param>
     /// <param name="lastTraceEntry">The previous packet trace entry used for calculating the interval; can be null.</param>
+    /// <param name="receptionTimestamp">The timestamp when the packet was received. If null, uses current time.</param>
     /// <returns>The current <see cref="PacketTraceEntryBuilder"/> instance, updated with the provided trace entry details.</returns>
-    public PacketTraceEntryBuilder FromTraceEntry(TraceEntry traceEntry, PacketTraceEntry? lastTraceEntry)
+    public PacketTraceEntryBuilder FromTraceEntry(TraceEntry traceEntry, PacketTraceEntry? lastTraceEntry, DateTime? receptionTimestamp = null)
     {
         _traceEntry = traceEntry;
         _lastTraceEntry = lastTraceEntry;
-        _timestamp = DateTime.UtcNow;
+        _timestamp = receptionTimestamp ?? DateTime.UtcNow;
         
         return this;
     }

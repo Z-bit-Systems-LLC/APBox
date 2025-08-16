@@ -218,12 +218,15 @@ namespace ApBox.Core.PacketTracing.Services
         {
             if (!IsTracingReader(readerId)) return;
             
+            // Capture timestamp immediately when packet is received
+            var receptionTimestamp = DateTime.UtcNow;
+            
             // Build packet entry using OSDP-Bench pattern
             var builder = new PacketTraceEntryBuilder();
             PacketTraceEntry entry;
             try 
             {
-                entry = builder.FromTraceEntry(traceEntry, _lastEntries.ContainsKey(readerId) ? _lastEntries[readerId] : null).Build();
+                entry = builder.FromTraceEntry(traceEntry, _lastEntries.ContainsKey(readerId) ? _lastEntries[readerId] : null, receptionTimestamp).Build();
             }
             catch (Exception)
             {

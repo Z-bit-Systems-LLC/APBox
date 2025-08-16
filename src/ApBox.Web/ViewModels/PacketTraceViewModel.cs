@@ -143,7 +143,7 @@ namespace ApBox.Web.ViewModels
         {
             try
             {
-                var packets = traceService.GetTraces();
+                var packets = traceService.GetTraces().OrderBy(p => p.Timestamp).ToList();
                 
                 if (!packets.Any())
                 {
