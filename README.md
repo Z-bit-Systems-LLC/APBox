@@ -41,6 +41,56 @@ ApBox fills the gap between modern OSDP readers and existing access infrastructu
 
 ## Architecture
 
+```mermaid
+graph TB
+    %% Reader Connections
+    Reader1[OSDP Reader 1] --> |OSDP| APBox[APBox Controller]
+    Reader2[OSDP Reader 2] --> |OSDP| APBox
+    Reader3[OSDP Reader 3] --> |OSDP| APBox
+    
+    %% Plugin Architecture
+    APBox --> |Plugin Interface| PluginMgr[Plugin Manager]
+    PluginMgr --> Plugin1[Access Control Plugin]
+    PluginMgr --> Plugin2[Web Services Plugin]
+    PluginMgr --> Plugin3[IoT Hub Plugin]
+    PluginMgr --> Plugin4[Custom Plugin]
+    
+
+    
+    %% System Integrations via Plugins
+    Plugin1 --> |OSDP| AccessPanel[Access Control Panel]
+    Plugin2 --> |REST API| WebService[Web Services]
+    Plugin3 --> |MQTT| IoTHub[IoT Hub/Cloud Platform]
+    Plugin4 --> |Custom Protocol| External[External System]
+    
+    %% External Systems
+    AccessPanel --> |Integration| PACS[Physical Access Control System]
+    WebService --> |API| Elevator[Elevator Dispatch System]
+    IoTHub --> |Analytics| Dashboard[Analytics Dashboard]
+    
+
+    
+    %% Data Flow
+    APBox --> |Event Logging| Logger[Event Logger]
+    
+    %% Status Monitoring
+    APBox --> |Status| Monitor[Health Monitoring]
+    Monitor --> |Alerts| Notification[Notification System]
+    
+    %% Styling
+    classDef readerClass fill:#e1f5fe,stroke:#01579b,stroke-width:2px
+    classDef apboxClass fill:#f3e5f5,stroke:#4a148c,stroke-width:3px
+    classDef pluginClass fill:#fff8e1,stroke:#f57f17,stroke-width:2px
+    classDef systemClass fill:#e8f5e8,stroke:#1b5e20,stroke-width:2px
+    classDef infrastructureClass fill:#fff3e0,stroke:#e65100,stroke-width:2px
+    
+    class Reader1,Reader2,Reader3 readerClass
+    class APBox apboxClass
+    class PluginMgr,Plugin1,Plugin2,Plugin3,Plugin4 pluginClass
+    class AccessPanel,WebService,IoTHub,PACS,Elevator,Dashboard,External systemClass
+    class Logger,Monitor,Notification infrastructureClass
+```
+
 ### Core Components
 
 - **ApBox.Core**: Main application hosting OSDP integration and plugin infrastructure
