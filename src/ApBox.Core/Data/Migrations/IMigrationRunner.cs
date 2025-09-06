@@ -131,6 +131,12 @@ public class MigrationRunner(IApBoxDbContext dbContext, IFileSystem fileSystem, 
         var assemblyLocation = Assembly.GetExecutingAssembly().Location;
         var assemblyDirectory = fileSystem.GetDirectoryName(assemblyLocation);
         
+        // Handle single-file deployment where Location is empty
+        if (string.IsNullOrEmpty(assemblyDirectory))
+        {
+            assemblyDirectory = AppContext.BaseDirectory;
+        }
+        
         // Try the output directory structure first (Data/Migrations)
         var migrationsPath = fileSystem.CombinePath(assemblyDirectory!, "Data", "Migrations");
         return fileSystem.DirectoryExists(migrationsPath) ? migrationsPath :
