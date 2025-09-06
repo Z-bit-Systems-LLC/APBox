@@ -11,6 +11,23 @@ using Blazored.LocalStorage;
 
 var builder = WebApplication.CreateBuilder(args);
 
+// Configure Kestrel for external access
+builder.WebHost.ConfigureKestrel(options =>
+{
+    // Bind to all network interfaces on port 5000 for HTTP
+    options.ListenAnyIP(5000);
+    
+    // Only configure HTTPS if certificate is available
+    var httpsPort = builder.Configuration.GetValue<int?>("ASPNETCORE_HTTPS_PORT");
+    if (httpsPort.HasValue)
+    {
+        options.ListenAnyIP(httpsPort.Value, listenOptions =>
+        {
+            listenOptions.UseHttps();
+        });
+    }
+});
+
 // Add services to the container
 builder.Services.AddRazorPages();
 builder.Services.AddServerSideBlazor();
@@ -41,6 +58,17 @@ builder.Services.AddHttpClient();
 
 // Add API controllers
 builder.Services.AddControllers();
+
+// Add CORS for external API access
+builder.Services.AddCors(options =>
+{
+    options.AddPolicy("AllowExternalSystems", policy =>
+    {
+        policy.AllowAnyOrigin()
+              .AllowAnyMethod()
+              .AllowAnyHeader();
+    });
+});
 
 // Add OpenAPI/Swagger
 builder.Services.AddEndpointsApiExplorer();
@@ -91,9 +119,16 @@ else
     app.UseSwaggerUI();
 }
 
-app.UseHttpsRedirection();
+// Only redirect to HTTPS if HTTPS is configured
+if (builder.Configuration.GetValue<int?>("ASPNETCORE_HTTPS_PORT").HasValue)
+{
+    app.UseHttpsRedirection();
+}
 app.UseStaticFiles();
 app.UseRouting();
+
+// Enable CORS
+app.UseCors("AllowExternalSystems");
 
 // Map API controllers
 app.MapControllers();

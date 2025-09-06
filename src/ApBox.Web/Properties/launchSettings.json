@@ -12,9 +12,18 @@
       "commandName": "Project",
       "dotnetRunMessages": true,
       "launchBrowser": true,
-      "applicationUrl": "http://0.0.0.0:5271",
+      "applicationUrl": "http://localhost:5271",
       "environmentVariables": {
         "ASPNETCORE_ENVIRONMENT": "Development"
+      }
+    },
+    "Production": {
+      "commandName": "Project",
+      "dotnetRunMessages": false,
+      "launchBrowser": false,
+      "applicationUrl": "http://0.0.0.0:5000",
+      "environmentVariables": {
+        "ASPNETCORE_ENVIRONMENT": "Production"
       }
     },
     "https": {
