@@ -11,22 +11,25 @@ using Blazored.LocalStorage;
 
 var builder = WebApplication.CreateBuilder(args);
 
-// Configure Kestrel for external access
-builder.WebHost.ConfigureKestrel(options =>
+// Configure Kestrel for external access in production only
+if (!builder.Environment.IsDevelopment())
 {
-    // Bind to all network interfaces on port 5000 for HTTP
-    options.ListenAnyIP(5000);
-    
-    // Only configure HTTPS if certificate is available
-    var httpsPort = builder.Configuration.GetValue<int?>("ASPNETCORE_HTTPS_PORT");
-    if (httpsPort.HasValue)
+    builder.WebHost.ConfigureKestrel(options =>
     {
-        options.ListenAnyIP(httpsPort.Value, listenOptions =>
+        // Bind to all network interfaces on port 5000 for HTTP
+        options.ListenAnyIP(5000);
+        
+        // Only configure HTTPS if certificate is available
+        var httpsPort = builder.Configuration.GetValue<int?>("ASPNETCORE_HTTPS_PORT");
+        if (httpsPort.HasValue)
         {
-            listenOptions.UseHttps();
-        });
-    }
-});
+            options.ListenAnyIP(httpsPort.Value, listenOptions =>
+            {
+                listenOptions.UseHttps();
+            });
+        }
+    });
+}
 
 // Add services to the container
 builder.Services.AddRazorPages();
