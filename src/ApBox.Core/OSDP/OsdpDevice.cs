@@ -212,6 +212,28 @@ public class OsdpDevice(
         return Task.CompletedTask;
     }
     
+    private async Task RequestDeviceInfoAsync()
+    {
+        try
+        {
+            logger.LogInformation("Requesting device information for {DeviceName}", Name);
+            
+            // Request ID Report
+            var idReport = await controlPanel.IdReport(connectionId, Address);
+            logger.LogInformation("Device {DeviceName} ID Report - Vendor: {VendorCode}, Serial: {SerialNumber}, Model: {ModelNumber}, Version: {Version}", 
+                Name, idReport.VendorCode, idReport.SerialNumber, idReport.ModelNumber, idReport.Version);
+            
+            // Request Device Capabilities  
+            var capabilities = await controlPanel.DeviceCapabilities(connectionId, Address);
+            logger.LogInformation("Device {DeviceName} Capabilities received: {Capabilities}", 
+                Name, capabilities.ToString());
+        }
+        catch (Exception ex)
+        {
+            logger.LogWarning(ex, "Failed to get device information for {DeviceName}", Name);
+        }
+    }
+    
     
     public async Task<bool> SendFeedbackAsync(ReaderFeedback feedback)
     {
@@ -408,6 +430,9 @@ public class OsdpDevice(
                     IsOnline = true,
                     Message = "Connected successfully"
                 });
+                
+                // Request device information after connection
+                _ = Task.Run(async () => await RequestDeviceInfoAsync());
                 
                 // If in Install Mode, attempt to install secure channel key
                 if (config.SecurityMode == OsdpSecurityMode.Install)
