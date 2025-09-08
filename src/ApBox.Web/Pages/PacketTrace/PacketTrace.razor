@@ -128,7 +128,7 @@
                     </CardActions>
                 </CardHeader>
                     <CardBody>
-                        @if (ViewModel.Packets.Any())
+                        @if (GetFilteredPackets().Any())
                         {
                             <Table Striped Hoverable Responsive ElementId="packet-traces-table">
                                 <TableHeader>
@@ -142,7 +142,7 @@
                                     </TableRow>
                                 </TableHeader>
                             <TableBody>
-                                @foreach (var packet in ViewModel.Packets.Take(50))
+                                @foreach (var packet in GetFilteredPackets().Take(50))
                                 {
                                     <TableRow>
                                         <TableRowCell>
@@ -214,6 +214,26 @@
         ViewModel.InvokeAsync = InvokeAsync;
         
         await ViewModel.InitializeCommand.ExecuteAsync(null);
+    }
+    
+    private IEnumerable<PacketTraceEntry> GetFilteredPackets()
+    {
+        return ViewModel.Packets.Where(packet => 
+        {
+            if (ViewModel.FilterPollCommands && IsPollCommand(packet.Type)) return false;
+            if (ViewModel.FilterAckCommands && IsAckReply(packet.Type)) return false;
+            return true;
+        });
+    }
+    
+    private static bool IsPollCommand(string packetType)
+    {
+        return packetType.Contains("Poll", StringComparison.OrdinalIgnoreCase);
+    }
+    
+    private static bool IsAckReply(string packetType)
+    {
+        return packetType.Contains("Ack", StringComparison.OrdinalIgnoreCase);
     }
     
     
