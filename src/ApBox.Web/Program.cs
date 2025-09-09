@@ -8,8 +8,12 @@ using Blazorise;
 using Blazorise.Bootstrap5;
 using Blazorise.Icons.FontAwesome;
 using Blazored.LocalStorage;
+using Microsoft.Extensions.Hosting.Systemd;
 
 var builder = WebApplication.CreateBuilder(args);
+
+// Add systemd integration
+builder.Services.AddSystemd();
 
 // Configure Kestrel for external access in production only
 if (!builder.Environment.IsDevelopment())
@@ -109,6 +113,20 @@ var loggerFactory = app.Services.GetRequiredService<ILoggerFactory>();
 loggerFactory.AddProvider(new ApBoxLogProvider(logService));
 
 // Configuration change notifications are now handled directly via dependency injection
+
+// Notify systemd that the service is ready (after all initialization)
+var hostEnvironment = app.Services.GetRequiredService<IHostEnvironment>();
+if (!hostEnvironment.IsDevelopment())
+{
+    // This tells systemd the service is ready and healthy
+    var lifetime = app.Services.GetRequiredService<IHostApplicationLifetime>();
+    lifetime.ApplicationStarted.Register(() =>
+    {
+        // The systemd integration will automatically notify systemd
+        var logger = app.Services.GetRequiredService<ILogger<Program>>();
+        logger.LogInformation("Application startup completed - systemd notified");
+    });
+}
 
 // Configure the HTTP request pipeline
 if (!app.Environment.IsDevelopment())
