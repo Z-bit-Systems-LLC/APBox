@@ -1,4 +1,4 @@
-# ApBox
+# APBox
 
 An industrial OSDP (Open Supervised Device Protocol) gateway that bridges card readers with existing access control systems through a flexible plugin architecture.
 
@@ -14,7 +14,7 @@ Unlike traditional access controllers that limit third-party code execution, ApB
 - **Multi-System Lookup**: Enable parking gate readers to query multiple databases and systems for comprehensive card validation
 - **New Credential Technologies**: Integrate emerging credential formats not yet supported by legacy access controllers
 
-ApBox fills the gap between modern OSDP readers and existing access infrastructure, providing the flexibility to adopt new technologies and implement custom business logic without disrupting established access control investments.
+APBox fills the gap between modern OSDP readers and existing access infrastructure, providing the flexibility to adopt new technologies and implement custom business logic without disrupting established access control investments.
 
 ## Features
 
@@ -115,7 +115,7 @@ public interface IApBoxPlugin
 
 ### Feedback System
 
-ApBox provides a centralized feedback configuration system:
+APBox provides a centralized feedback configuration system:
 
 1. **Success Feedback**: Configurable LED color, duration, beep count, and display message
 2. **Failure Feedback**: Separate configuration for failed card reads
@@ -124,7 +124,7 @@ ApBox provides a centralized feedback configuration system:
 
 ## Web Interface
 
-ApBox includes a comprehensive web management interface with the following sections:
+APBox includes a comprehensive web management interface with the following sections:
 
 ### Dashboard
 - **Real-time metrics**: Live card read statistics and system status
@@ -287,7 +287,7 @@ cp -r publish/linux-x64/plugins /opt/apbox/
 
 ### Runtime Identifiers (RIDs)
 
-Common runtime identifiers for ApBox deployment:
+Common runtime identifiers for APBox deployment:
 
 | Platform | RID | Use Case |
 |----------|-----|----------|
@@ -500,6 +500,198 @@ sudo ./ApBox.Web
 
 **Note**: The dialout group approach is preferred for production deployments as it follows the principle of least privilege and doesn't require running the entire application as root.
 
+### Linux Service Installation
+
+APBox includes built-in systemd support for running as a Linux service. This provides automatic startup, process monitoring, and clean shutdown handling.
+
+#### Prerequisites
+
+1. **Build the application** for Linux:
+   ```bash
+   # Self-contained build for Linux x64
+   dotnet publish src/ApBox.Web -c Release -r linux-x64 --self-contained -p:PublishSingleFile=true -o publish/linux-x64
+   
+   # Or for Raspberry Pi (ARM64)
+   dotnet publish src/ApBox.Web -c Release -r linux-arm64 --self-contained -p:PublishSingleFile=true -o publish/linux-arm64
+   ```
+
+2. **Set up dialout permissions** (see Linux Deployment Requirements above):
+   ```bash
+   sudo usermod -a -G dialout apbox
+   ```
+
+#### Service Installation Steps
+
+1. **Create service user**:
+   ```bash
+   # Create dedicated service user
+   sudo useradd -r -s /bin/false apbox
+   sudo usermod -a -G dialout apbox
+   ```
+
+2. **Deploy the application**:
+   ```bash
+   # Create application directory
+   sudo mkdir -p /opt/apbox
+   sudo chown apbox:apbox /opt/apbox
+   
+   # Copy application files
+   sudo cp publish/linux-x64/ApBox.Web /opt/apbox/
+   sudo chmod +x /opt/apbox/ApBox.Web
+   
+   # Copy plugins if using separate plugin deployment
+   sudo cp -r publish/linux-x64/plugins /opt/apbox/ 2>/dev/null || true
+   sudo chown -R apbox:apbox /opt/apbox
+   ```
+
+3. **Create systemd service file**:
+   ```bash
+   sudo tee /etc/systemd/system/apbox.service > /dev/null << 'EOF'
+   [Unit]
+   Description=APBox OSDP Gateway Service
+   Documentation=https://github.com/Z-bit-Systems-LLC/ApBox
+   After=network.target
+   Wants=network.target
+   
+   [Service]
+   Type=notify
+   User=apbox
+   Group=apbox
+   WorkingDirectory=/opt/apbox
+   ExecStart=/opt/apbox/ApBox.Web
+   Restart=always
+   RestartSec=5
+   SyslogIdentifier=apbox
+   Environment=ASPNETCORE_ENVIRONMENT=Production
+   Environment=ASPNETCORE_URLS=http://0.0.0.0:5000
+   
+   # Security settings
+   NoNewPrivileges=yes
+   PrivateTmp=yes
+   ProtectSystem=strict
+   ProtectHome=yes
+   ReadWritePaths=/opt/apbox
+   
+   # Resource limits
+   MemoryMax=512M
+   TasksMax=100
+   
+   [Install]
+   WantedBy=multi-user.target
+   EOF
+   ```
+
+4. **Enable and start the service**:
+   ```bash
+   # Reload systemd configuration
+   sudo systemctl daemon-reload
+   
+   # Enable service to start at boot
+   sudo systemctl enable apbox
+   
+   # Start the service
+   sudo systemctl start apbox
+   
+   # Check service status
+   sudo systemctl status apbox
+   ```
+
+#### Service Management Commands
+
+```bash
+# Start the service
+sudo systemctl start apbox
+
+# Stop the service
+sudo systemctl stop apbox
+
+# Restart the service
+sudo systemctl restart apbox
+
+# Check service status
+sudo systemctl status apbox
+
+# View service logs
+sudo journalctl -u apbox -f
+
+# View logs since last boot
+sudo journalctl -u apbox -b
+
+# View logs for specific time period
+sudo journalctl -u apbox --since "1 hour ago"
+
+# Disable service from starting at boot
+sudo systemctl disable apbox
+
+# Enable service to start at boot
+sudo systemctl enable apbox
+```
+
+#### Configuration and Data Persistence
+
+The service stores its data in the working directory (`/opt/apbox`):
+
+- **Database**: `apbox.db` (SQLite database file)
+- **Logs**: Application logs are sent to systemd journal
+- **Plugins**: Plugin DLLs are loaded from `plugins/` subdirectory
+- **Configuration**: System configuration can be exported/imported via web interface
+
+#### Web Interface Access
+
+Once the service is running, access the web interface at:
+- **HTTP**: `http://[server-ip]:5000`
+- **Local access**: `http://localhost:5000`
+
+#### Troubleshooting
+
+**Service fails to start:**
+```bash
+# Check detailed service status
+sudo systemctl status apbox -l
+
+# View recent error logs
+sudo journalctl -u apbox -n 50
+
+# Check if port is already in use
+sudo netstat -tulpn | grep :5000
+```
+
+**Permission issues:**
+```bash
+# Verify user is in dialout group
+groups apbox
+
+# Check file permissions
+ls -la /opt/apbox/
+
+# Fix permissions if needed
+sudo chown -R apbox:apbox /opt/apbox
+sudo chmod +x /opt/apbox/ApBox.Web
+```
+
+**OSDP communication problems:**
+```bash
+# List available serial ports
+ls -la /dev/tty*
+
+# Check port permissions
+ls -la /dev/ttyUSB0  # or your specific port
+
+# Test serial port access as apbox user
+sudo -u apbox cat /dev/ttyUSB0
+```
+
+#### Service Features
+
+The systemd integration provides:
+
+- **Type=notify**: Service notifies systemd when fully initialized
+- **Automatic restart**: Service restarts automatically if it crashes
+- **Resource limits**: Memory and task limits prevent resource exhaustion  
+- **Security**: Runs with minimal privileges and restricted filesystem access
+- **Logging**: All logs are captured by systemd journal
+- **Clean shutdown**: Proper shutdown handling for database and OSDP connections
+
 ## Contributing
 
 1. Fork the repository
@@ -513,7 +705,7 @@ sudo ./ApBox.Web
 
 ## Testing
 
-ApBox maintains comprehensive test coverage:
+APBox maintains comprehensive test coverage:
 
 - **Unit Tests**: Core business logic and plugin interfaces
 - **Integration Tests**: OSDP communication and database operations
@@ -526,12 +718,12 @@ This project is licensed under the Eclipse Public License v2.0 - see the [LICENS
 
 ## Support
 
-- **Documentation**: [Wiki](https://github.com/Z-bit-Systems-LLC/ApBox/wiki)
+- **Documentation**: [Wiki](https://github.com/Z-bit-Systems-LLC/APBox/wiki)
 - **Issues**: [GitHub Issues](https://github.com/Z-bit-Systems-LLC/ApBox/issues)
 
 ## Testing with Sample Plugins
 
-ApBox includes 4 comprehensive sample plugins that demonstrate the plugin architecture. Here's how to test them:
+APBox includes 4 comprehensive sample plugins that demonstrate the plugin architecture. Here's how to test them:
 
 ### 1. Build and Deploy Sample Plugins
 
