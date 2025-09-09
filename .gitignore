@@ -71,3 +71,6 @@ src/ApBox.Web/plugins/ApBox.SamplePlugins.dll
 *.db
 *.db-shm
 *.db-wal
+
+# Published single-file executables and deployment artifacts
+publish/

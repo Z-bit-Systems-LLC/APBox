@@ -214,10 +214,10 @@ Build a single executable with all dependencies included:
 # Windows x64
 dotnet publish src/ApBox.Web -c Release -r win-x64 --self-contained -p:PublishSingleFile=true -o publish/win-x64
 
-# Linux x64 (for Raspberry Pi)
+# Linux x64 
 dotnet publish src/ApBox.Web -c Release -r linux-x64 --self-contained -p:PublishSingleFile=true -o publish/linux-x64
 
-# Linux ARM64 (for ARM-based systems)
+# Linux ARM64 (for Raspberry Pi)
 dotnet publish src/ApBox.Web -c Release -r linux-arm64 --self-contained -p:PublishSingleFile=true -o publish/linux-arm64
 ```
 
