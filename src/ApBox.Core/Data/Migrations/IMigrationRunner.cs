@@ -128,9 +128,11 @@ public class MigrationRunner(IApBoxDbContext dbContext, IFileSystem fileSystem, 
     
     private string GetMigrationsDirectory()
     {
+#pragma warning disable IL3000 // Assembly.Location is properly handled with AppContext.BaseDirectory fallback
         var assemblyLocation = Assembly.GetExecutingAssembly().Location;
+#pragma warning restore IL3000
         var assemblyDirectory = fileSystem.GetDirectoryName(assemblyLocation);
-        
+
         // Handle single-file deployment where Location is empty
         if (string.IsNullOrEmpty(assemblyDirectory))
         {
