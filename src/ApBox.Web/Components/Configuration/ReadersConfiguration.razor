@@ -385,6 +385,7 @@
 
     public void Dispose()
     {
-        ViewModel.Dispose();
+        // Don't manually dispose scoped services - let DI container handle it
+        // ViewModel will be disposed by DI container at end of circuit scope
     }
 }
