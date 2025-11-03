@@ -23,6 +23,10 @@ public partial class DashboardViewModel(
     INotificationAggregator notificationAggregator)
     : ObservableObject, IDisposable
 {
+    private IDisposable? _cardEventSubscription;
+    private IDisposable? _pinEventSubscription;
+    private IDisposable? _readerStatusSubscription;
+
     [ObservableProperty]
     private int _configuredReaders;
 
@@ -187,10 +191,10 @@ public partial class DashboardViewModel(
     /// </summary>
     private void InitializeSignalRHandlers()
     {
-        // Register event handlers with the notification aggregator
-        notificationAggregator.Subscribe<CardEventNotification>(OnCardEventProcessed);
-        notificationAggregator.Subscribe<PinEventNotification>(OnPinEventProcessed);
-        notificationAggregator.Subscribe<ReaderStatusNotification>(OnReaderStatusChanged);
+        // Subscribe and store the disposable tokens
+        _cardEventSubscription = notificationAggregator.Subscribe<CardEventNotification>(OnCardEventProcessed);
+        _pinEventSubscription = notificationAggregator.Subscribe<PinEventNotification>(OnPinEventProcessed);
+        _readerStatusSubscription = notificationAggregator.Subscribe<ReaderStatusNotification>(OnReaderStatusChanged);
     }
 
     /// <summary>
@@ -319,9 +323,14 @@ public partial class DashboardViewModel(
     /// </summary>
     public void Dispose()
     {
-        // Unsubscribe from events
-        notificationAggregator.Unsubscribe<CardEventNotification>(OnCardEventProcessed);
-        notificationAggregator.Unsubscribe<PinEventNotification>(OnPinEventProcessed);
-        notificationAggregator.Unsubscribe<ReaderStatusNotification>(OnReaderStatusChanged);
+        // Dispose subscription tokens to automatically unsubscribe
+        _cardEventSubscription?.Dispose();
+        _cardEventSubscription = null;
+
+        _pinEventSubscription?.Dispose();
+        _pinEventSubscription = null;
+
+        _readerStatusSubscription?.Dispose();
+        _readerStatusSubscription = null;
     }
 }

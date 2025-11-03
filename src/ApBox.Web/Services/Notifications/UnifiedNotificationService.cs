@@ -100,7 +100,7 @@ public class UnifiedNotificationService : INotificationAggregator, IHostedServic
         await Task.CompletedTask;
     }
 
-    public void Subscribe<TNotification>(Action<TNotification> handler) where TNotification : INotification
+    public IDisposable Subscribe<TNotification>(Action<TNotification> handler) where TNotification : INotification
     {
         ArgumentNullException.ThrowIfNull(handler);
 
@@ -117,15 +117,15 @@ public class UnifiedNotificationService : INotificationAggregator, IHostedServic
                 }
             });
 
-        _logger.LogDebug("Subscribed server-side handler for notification type {NotificationType}", 
+        _logger.LogDebug("Subscribed server-side handler for notification type {NotificationType}",
             notificationType.Name);
+
+        // Return a disposable token that will unsubscribe when disposed
+        return new SubscriptionToken(() => Unsubscribe(notificationType, handler));
     }
 
-    public void Unsubscribe<TNotification>(Action<TNotification> handler) where TNotification : INotification
+    private void Unsubscribe<TNotification>(Type notificationType, Action<TNotification> handler)
     {
-        ArgumentNullException.ThrowIfNull(handler);
-
-        var notificationType = typeof(TNotification);
         if (_serverSideHandlers.TryGetValue(notificationType, out var handlers))
         {
             lock (handlers)
@@ -138,7 +138,7 @@ public class UnifiedNotificationService : INotificationAggregator, IHostedServic
             }
         }
 
-        _logger.LogDebug("Unsubscribed server-side handler for notification type {NotificationType}", 
+        _logger.LogDebug("Unsubscribed server-side handler for notification type {NotificationType}",
             notificationType.Name);
     }
 

@@ -20,6 +20,8 @@ public partial class CardEventsViewModel(
     INotificationAggregator notificationAggregator)
     : ObservableObject, IDisposable
 {
+    private IDisposable? _cardEventSubscription;
+
     [ObservableProperty]
     private ObservableCollection<CardEventDisplay> _allEvents = new();
 
@@ -178,8 +180,8 @@ public partial class CardEventsViewModel(
     /// </summary>
     private void InitializeSignalRHandlers()
     {
-        // Register event handler with the notification aggregator
-        notificationAggregator.Subscribe<CardEventNotification>(OnCardEventProcessed);
+        // Subscribe and store the disposable token
+        _cardEventSubscription = notificationAggregator.Subscribe<CardEventNotification>(OnCardEventProcessed);
     }
 
     /// <summary>
@@ -232,7 +234,8 @@ public partial class CardEventsViewModel(
     /// </summary>
     public void Dispose()
     {
-        // Unsubscribe from events
-        notificationAggregator.Unsubscribe<CardEventNotification>(OnCardEventProcessed);
+        // Dispose subscription token to automatically unsubscribe
+        _cardEventSubscription?.Dispose();
+        _cardEventSubscription = null;
     }
 }

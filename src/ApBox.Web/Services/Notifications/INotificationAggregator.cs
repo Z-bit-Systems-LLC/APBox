@@ -17,12 +17,6 @@ public interface INotificationAggregator
     /// </summary>
     /// <typeparam name="TNotification">Type of notification to subscribe to</typeparam>
     /// <param name="handler">Handler to call when notification is broadcast</param>
-    void Subscribe<TNotification>(Action<TNotification> handler) where TNotification : INotification;
-    
-    /// <summary>
-    /// Unsubscribe from server-side notification events
-    /// </summary>
-    /// <typeparam name="TNotification">Type of notification to unsubscribe from</typeparam>
-    /// <param name="handler">Handler to remove</param>
-    void Unsubscribe<TNotification>(Action<TNotification> handler) where TNotification : INotification;
+    /// <returns>Disposable subscription token that unsubscribes when disposed</returns>
+    IDisposable Subscribe<TNotification>(Action<TNotification> handler) where TNotification : INotification;
 }

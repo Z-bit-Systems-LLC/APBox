@@ -21,7 +21,9 @@ namespace ApBox.Web.ViewModels
         : ObservableObject, IDisposable
     {
         private const string SettingsKey = "packetTraceSettings";
-        
+        private IDisposable? _packetTraceSubscription;
+        private IDisposable? _statisticsSubscription;
+
         [ObservableProperty]
         private ObservableCollection<PacketTraceEntry> _packets = [];
         
@@ -71,10 +73,10 @@ namespace ApBox.Web.ViewModels
                     }
                     
                     RefreshPacketList();
-                    
-                    // Subscribe to packet trace notifications
-                    notificationAggregator.Subscribe<PacketTraceNotification>(OnPacketTraceNotification);
-                    notificationAggregator.Subscribe<TracingStatisticsNotification>(OnTracingStatisticsNotification);
+
+                    // Subscribe and store the disposable tokens
+                    _packetTraceSubscription = notificationAggregator.Subscribe<PacketTraceNotification>(OnPacketTraceNotification);
+                    _statisticsSubscription = notificationAggregator.Subscribe<TracingStatisticsNotification>(OnTracingStatisticsNotification);
                 });
             }
             catch (Exception ex)
@@ -292,11 +294,14 @@ namespace ApBox.Web.ViewModels
             {
                 if (disposing)
                 {
-                    // Unsubscribe from notifications
-                    notificationAggregator.Unsubscribe<PacketTraceNotification>(OnPacketTraceNotification);
-                    notificationAggregator.Unsubscribe<TracingStatisticsNotification>(OnTracingStatisticsNotification);
+                    // Dispose subscription tokens to automatically unsubscribe
+                    _packetTraceSubscription?.Dispose();
+                    _packetTraceSubscription = null;
+
+                    _statisticsSubscription?.Dispose();
+                    _statisticsSubscription = null;
                 }
-                
+
                 _disposed = true;
             }
         }

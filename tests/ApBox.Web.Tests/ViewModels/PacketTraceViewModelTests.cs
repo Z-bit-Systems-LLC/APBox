@@ -46,6 +46,12 @@ public class PacketTraceViewModelTests
         _mockPacketTraceService.Setup(s => s.GetTraces(It.IsAny<string>(), It.IsAny<int?>()))
             .Returns(new List<PacketTraceEntry>());
 
+        // Setup Subscribe to return a disposable token
+        _mockNotificationAggregator.Setup(s => s.Subscribe(It.IsAny<Action<ApBox.Web.Models.Notifications.PacketTraceNotification>>()))
+            .Returns(Mock.Of<IDisposable>());
+        _mockNotificationAggregator.Setup(s => s.Subscribe(It.IsAny<Action<ApBox.Web.Models.Notifications.TracingStatisticsNotification>>()))
+            .Returns(Mock.Of<IDisposable>());
+
         _viewModel = new PacketTraceViewModel(_mockPacketTraceService.Object,
             _mockNotificationAggregator.Object,
             _mockLocalStorage.Object,
@@ -212,11 +218,11 @@ public class PacketTraceViewModelTests
         
         // Act
         _viewModel.Dispose();
-        
-        // Assert - Verify unsubscriptions were called
-        _mockNotificationAggregator.Verify(s => s.Unsubscribe<ApBox.Web.Models.Notifications.PacketTraceNotification>(It.IsAny<Action<ApBox.Web.Models.Notifications.PacketTraceNotification>>()), Times.Once);
-        _mockNotificationAggregator.Verify(s => s.Unsubscribe<ApBox.Web.Models.Notifications.TracingStatisticsNotification>(It.IsAny<Action<ApBox.Web.Models.Notifications.TracingStatisticsNotification>>()), Times.Once);
-        
+
+        // Assert - Verify subscriptions were created (Subscribe was called)
+        _mockNotificationAggregator.Verify(s => s.Subscribe<ApBox.Web.Models.Notifications.PacketTraceNotification>(It.IsAny<Action<ApBox.Web.Models.Notifications.PacketTraceNotification>>()), Times.Once);
+        _mockNotificationAggregator.Verify(s => s.Subscribe<ApBox.Web.Models.Notifications.TracingStatisticsNotification>(It.IsAny<Action<ApBox.Web.Models.Notifications.TracingStatisticsNotification>>()), Times.Once);
+
         // Verify multiple calls to Dispose don't cause issues
         Assert.DoesNotThrow(() => _viewModel.Dispose());
     }

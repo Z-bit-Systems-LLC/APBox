@@ -26,6 +26,8 @@ public partial class ReadersConfigurationViewModel : ObservableValidator, IDispo
     private readonly IReaderPluginMappingService _readerPluginMappingService;
     private readonly ILogger<ReadersConfigurationViewModel> _logger;
     private readonly INotificationAggregator _notificationAggregator;
+    private IDisposable? _readerStatusSubscription;
+    private IDisposable? _readerConfigurationSubscription;
 
     public ReadersConfigurationViewModel(
         IReaderConfigurationService readerConfigurationService,
@@ -388,9 +390,9 @@ public partial class ReadersConfigurationViewModel : ObservableValidator, IDispo
 
     private void InitializeSignalRHandlers()
     {
-        // Register event handlers for real-time updates
-        _notificationAggregator.Subscribe<ReaderStatusNotification>(OnReaderStatusChanged);
-        _notificationAggregator.Subscribe<ReaderConfigurationNotification>(OnReaderConfigurationChanged);
+        // Subscribe and store the disposable tokens
+        _readerStatusSubscription = _notificationAggregator.Subscribe<ReaderStatusNotification>(OnReaderStatusChanged);
+        _readerConfigurationSubscription = _notificationAggregator.Subscribe<ReaderConfigurationNotification>(OnReaderConfigurationChanged);
     }
 
     private void OnReaderStatusChanged(ReaderStatusNotification notification)
@@ -451,8 +453,11 @@ public partial class ReadersConfigurationViewModel : ObservableValidator, IDispo
 
     public void Dispose()
     {
-        // Unsubscribe from events
-        _notificationAggregator.Unsubscribe<ReaderStatusNotification>(OnReaderStatusChanged);
-        _notificationAggregator.Unsubscribe<ReaderConfigurationNotification>(OnReaderConfigurationChanged);
+        // Dispose subscription tokens to automatically unsubscribe
+        _readerStatusSubscription?.Dispose();
+        _readerStatusSubscription = null;
+
+        _readerConfigurationSubscription?.Dispose();
+        _readerConfigurationSubscription = null;
     }
 }
