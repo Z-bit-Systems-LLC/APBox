@@ -13,7 +13,7 @@
   <ItemGroup>
     <PackageReference Include="Dapper" Version="2.1.66" />
     <PackageReference Include="Microsoft.Data.Sqlite" Version="9.0.10" />
-    <PackageReference Include="OSDP.Net" Version="4.1.7" />
+    <PackageReference Include="OSDP.Net" Version="5.0.36-beta" />
     <PackageReference Include="System.Reflection.Metadata" Version="9.0.10" />
   </ItemGroup>
 

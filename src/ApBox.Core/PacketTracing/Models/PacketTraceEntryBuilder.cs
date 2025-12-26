@@ -7,6 +7,7 @@ namespace ApBox.Core.PacketTracing.Models;
 /// </summary>
 public class PacketTraceEntryBuilder
 {
+    private readonly MessageSpy _messageSpy = new();
     private TraceEntry _traceEntry;
     private PacketTraceEntry? _lastTraceEntry;
     private DateTime _timestamp;
@@ -24,18 +25,24 @@ public class PacketTraceEntryBuilder
         _traceEntry = traceEntry;
         _lastTraceEntry = lastTraceEntry;
         _timestamp = receptionTimestamp ?? DateTime.UtcNow;
-        
+
         return this;
     }
 
     /// <summary>
     /// Creates and returns a new instance of the <see cref="PacketTraceEntry"/> class.
+    /// Uses MessageSpy.TryParsePacket for exception-free parsing.
     /// </summary>
-    /// <returns>A new instance of the <see cref="PacketTraceEntry"/> class, fully constructed based on the specified trace entry details.</returns>
-    public PacketTraceEntry Build()
+    /// <returns>A new instance of the <see cref="PacketTraceEntry"/> class, or null if the packet could not be parsed.</returns>
+    public PacketTraceEntry? Build()
     {
+        if (!_messageSpy.TryParsePacket(_traceEntry.Data, out var packet) || packet == null)
+        {
+            return null; // Return null for unparseable packets
+        }
+
         return PacketTraceEntry.Create(_traceEntry.Direction, _timestamp,
             _lastTraceEntry != null ? _timestamp - _lastTraceEntry.Timestamp : TimeSpan.Zero,
-            PacketDecoding.ParseMessage(_traceEntry.Data));
+            packet);
     }
 }

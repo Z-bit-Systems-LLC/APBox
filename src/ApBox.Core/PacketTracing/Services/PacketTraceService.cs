@@ -217,28 +217,25 @@ namespace ApBox.Core.PacketTracing.Services
         public void CapturePacket(TraceEntry traceEntry, string readerId, string readerName)
         {
             if (!IsTracingReader(readerId)) return;
-            
+
             // Capture timestamp immediately when packet is received
             var receptionTimestamp = DateTime.UtcNow;
-            
-            // Build packet entry using OSDP-Bench pattern
+
+            // Build packet entry using MessageSpy for exception-free parsing
             var builder = new PacketTraceEntryBuilder();
-            PacketTraceEntry entry;
-            try 
-            {
-                entry = builder.FromTraceEntry(traceEntry, _lastEntries.ContainsKey(readerId) ? _lastEntries[readerId] : null, receptionTimestamp).Build();
-            }
-            catch (Exception)
-            {
-                return; // Skip entries that can't be parsed
-            }
-            
+            var entry = builder
+                .FromTraceEntry(traceEntry, _lastEntries.GetValueOrDefault(readerId), receptionTimestamp)
+                .Build();
+
+            // Skip packets that couldn't be parsed
+            if (entry == null) return;
+
             // Store in buffer
-            if (_readerBuffers.ContainsKey(readerId))
+            if (_readerBuffers.TryGetValue(readerId, out var buffer))
             {
-                _readerBuffers[readerId].Add(entry);
+                buffer.Add(entry);
                 _lastEntries[readerId] = entry;
-                
+
                 // Raise event for real-time UI updates
                 PacketCaptured?.Invoke(this, entry);
             }
