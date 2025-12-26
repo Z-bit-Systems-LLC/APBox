@@ -1,4 +1,4 @@
-using System.Text.RegularExpressions;
+using OSDP.Net.Messages;
 using OSDP.Net.Model;
 using OSDP.Net.Tracing;
 
@@ -8,7 +8,7 @@ namespace ApBox.Core.PacketTracing.Models;
 /// Represents an entry in a packet trace, providing details of a packet, including its direction,
 /// timestamp, type, and associated data.
 /// </summary>
-public partial class PacketTraceEntry
+public class PacketTraceEntry
 {
     /// <summary>
     /// Gets the direction of the packet in the trace entry.
@@ -36,21 +36,10 @@ public partial class PacketTraceEntry
 
     /// <summary>
     /// Gets the type of the packet represented in the trace entry.
-    /// This property identifies the packet's command or response type, represented as a human-readable string.
+    /// Uses OSDP protocol-standard names like "osdp_POLL", "osdp_ACK".
     /// </summary>
-    public string Type
-    {
-        get
-        {
-            if (Packet.CommandType != null)
-            {
-                return ToSpacedString(Packet.CommandType);
-            }
+    public string Type => Packet.CommandType?.GetDisplayName() ?? Packet.ReplyType?.GetDisplayName() ?? "Unknown";
 
-            return Packet.ReplyType != null ? ToSpacedString(Packet.ReplyType) : "Unknown";
-        }
-    }
-    
     /// <summary>
     /// Gets the packet associated with the trace entry.
     /// This property contains the detailed information being traced,
@@ -64,12 +53,6 @@ public partial class PacketTraceEntry
     /// or returns "Empty" if no data is available.
     /// </summary>
     public string Details => Packet.ParsePayloadData()?.ToString() ?? "Empty";
-    
-    private static string ToSpacedString(Enum enumValue)
-    {
-        // Use Regex to insert spaces before any capital letter followed by a lowercase letter, ignoring the first capital.
-        return SpacedString().Replace(enumValue.ToString(), " $1");
-    }
 
     // Private constructor
     private PacketTraceEntry(TraceDirection direction, DateTime timestamp, TimeSpan interval, Packet packet)
@@ -85,7 +68,4 @@ public partial class PacketTraceEntry
     {
         return new PacketTraceEntry(direction, timestamp, interval, packet);
     }
-
-    [GeneratedRegex("(?<!^)([A-Z](?=[a-z]))")]
-    private static partial Regex SpacedString();
 }
