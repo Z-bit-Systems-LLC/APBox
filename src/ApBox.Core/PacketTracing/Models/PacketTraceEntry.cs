@@ -52,7 +52,22 @@ public class PacketTraceEntry
     /// This property parses and formats the payload data of the packet,
     /// or returns "Empty" if no data is available.
     /// </summary>
-    public string Details => Packet.ParsePayloadData()?.ToString() ?? "Empty";
+    public string Details
+    {
+        get
+        {
+            var payload = Packet.ParsePayloadData();
+            if (payload == null) return "Empty";
+
+            // Handle byte arrays specially - format as hex string
+            if (payload is byte[] bytes)
+            {
+                return bytes.Length == 0 ? "Empty" : BitConverter.ToString(bytes);
+            }
+
+            return payload.ToString() ?? "Empty";
+        }
+    }
 
     // Private constructor
     private PacketTraceEntry(TraceDirection direction, DateTime timestamp, TimeSpan interval, Packet packet)
