@@ -48,6 +48,22 @@ public class PacketTraceEntry
     public Packet Packet { get; }
 
     /// <summary>
+    /// Gets the security state of the packet.
+    /// </summary>
+    public PacketSecurityState SecurityState
+    {
+        get
+        {
+            if (!Packet.IsSecureMessage)
+                return PacketSecurityState.ClearText;
+
+            return Packet.IsUsingDefaultKey
+                ? PacketSecurityState.SecureDefaultKey
+                : PacketSecurityState.Secure;
+        }
+    }
+
+    /// <summary>
     /// Gets the detailed information of the packet payload in the trace entry.
     /// This property parses and formats the payload data of the packet,
     /// or returns "Empty" if no data is available.

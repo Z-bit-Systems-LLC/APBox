@@ -151,13 +151,13 @@
                                         <TableHeaderCell>Direction</TableHeaderCell>
                                         <TableHeaderCell>Address</TableHeaderCell>
                                         <TableHeaderCell>Type</TableHeaderCell>
-                                        <TableHeaderCell>Details</TableHeaderCell>
+                                        <TableHeaderCell>Secure</TableHeaderCell>
                                     </TableRow>
                                 </TableHeader>
                             <TableBody>
                                 @foreach (var packet in GetFilteredPackets().Take(50))
                                 {
-                                    <TableRow>
+                                    <TableRow Clicked="@(() => ShowPacketDetails(packet))" Style="cursor: pointer;">
                                         <TableRowCell>
                                             <small>@packet.LocalTimestamp.ToString("HH:mm:ss.fff")</small>
                                         </TableRowCell>
@@ -188,7 +188,18 @@
                                             <span>@packet.Type</span>
                                         </TableRowCell>
                                         <TableRowCell>
-                                            <span>@packet.Details</span>
+                                            @switch (packet.SecurityState)
+                                            {
+                                                case PacketSecurityState.ClearText:
+                                                    <Badge Color="Color.Danger">Clear Text</Badge>
+                                                    break;
+                                                case PacketSecurityState.SecureDefaultKey:
+                                                    <Badge Color="Color.Warning">Default Key</Badge>
+                                                    break;
+                                                case PacketSecurityState.Secure:
+                                                    <Badge Color="Color.Success">Secure</Badge>
+                                                    break;
+                                            }
                                         </TableRowCell>
                                     </TableRow>
                                 }
@@ -219,7 +230,68 @@
     }
 </Container>
 
+<Modal @ref="_detailsModal" ElementId="packet-details-modal">
+    <ModalContent Centered Size="ModalSize.Large">
+        <ModalHeader>
+            <ModalTitle>
+                @if (_selectedPacket != null)
+                {
+                    <Badge Color="@(_selectedPacket.Direction == TraceDirection.Output ? Color.Primary : Color.Success)" Margin="Margin.Is2.FromEnd">
+                        @(_selectedPacket.Direction == TraceDirection.Output ? "OUT" : "IN")
+                    </Badge>
+                    <Text>@_selectedPacket.Type</Text>
+                }
+                else
+                {
+                    <Text>Packet Details</Text>
+                }
+            </ModalTitle>
+            <CloseButton />
+        </ModalHeader>
+        <ModalBody>
+            @if (_selectedPacket != null)
+            {
+                <Row Margin="Margin.Is3.FromBottom">
+                    <Column ColumnSize="ColumnSize.Is4">
+                        <Small TextColor="TextColor.Muted">Time</Small>
+                        <Div>@_selectedPacket.LocalTimestamp.ToString("HH:mm:ss.fff")</Div>
+                    </Column>
+                    <Column ColumnSize="ColumnSize.Is4">
+                        <Small TextColor="TextColor.Muted">Address</Small>
+                        <Div>@_selectedPacket.Packet.Address</Div>
+                    </Column>
+                    <Column ColumnSize="ColumnSize.Is4">
+                        <Small TextColor="TextColor.Muted">Security</Small>
+                        <Div>
+                            @switch (_selectedPacket.SecurityState)
+                            {
+                                case PacketSecurityState.ClearText:
+                                    <Badge Color="Color.Danger">Clear Text</Badge>
+                                    break;
+                                case PacketSecurityState.SecureDefaultKey:
+                                    <Badge Color="Color.Warning">Default Key</Badge>
+                                    break;
+                                case PacketSecurityState.Secure:
+                                    <Badge Color="Color.Success">Secure</Badge>
+                                    break;
+                            }
+                        </Div>
+                    </Column>
+                </Row>
+                <Divider />
+                <Small TextColor="TextColor.Muted">Payload</Small>
+                <Div Background="Background.Light" Padding="Padding.Is3" Margin="Margin.Is2.FromTop" Style="white-space: pre-wrap; font-family: monospace; overflow-x: auto; max-height: 400px; overflow-y: auto;">@FormatDetails(_selectedPacket.Details)</Div>
+            }
+        </ModalBody>
+        <ModalFooter>
+            <Button Color="Color.Secondary" Clicked="@HidePacketDetails">Close</Button>
+        </ModalFooter>
+    </ModalContent>
+</Modal>
+
 @code {
+    private Modal? _detailsModal;
+    private PacketTraceEntry? _selectedPacket;
     protected override async Task OnInitializedAsync()
     {
         // Set up component callbacks for the ViewModel
@@ -290,7 +362,30 @@
         // Auto-refresh is handled by the ViewModel's OnFilterAckCommandsChanged method
         await ViewModel.ApplySettingsCommand.ExecuteAsync(null);
     }
-    
+
+    private async Task ShowPacketDetails(PacketTraceEntry packet)
+    {
+        _selectedPacket = packet;
+        if (_detailsModal != null)
+        {
+            await _detailsModal.Show();
+        }
+    }
+
+    private async Task HidePacketDetails()
+    {
+        if (_detailsModal != null)
+        {
+            await _detailsModal.Hide();
+        }
+        _selectedPacket = null;
+    }
+
+    private static string FormatDetails(string details)
+    {
+        return string.IsNullOrEmpty(details) ? "Empty" : details;
+    }
+
     public void Dispose()
     {
         // Dispose the ViewModel to clean up subscriptions
