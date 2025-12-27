@@ -118,13 +118,26 @@
                                 <Icon Name="IconName.Stop" /> Stop
                             </Button>
                         </Buttons>
-                        <Button Color="Color.Secondary" 
-                                Clicked="@ExportToOsdpCap"
-                                Size="Size.Small"
-                                Float="Float.End"
-                                Disabled="@(!ViewModel.Packets.Any())">
-                            <Icon Name="IconName.Download" /> Export
-                        </Button>
+                        <Dropdown Direction="Direction.Down">
+                            <DropdownToggle Color="Color.Secondary" Size="Size.Small" Disabled="@(!ViewModel.Packets.Any())">
+                                <Icon Name="IconName.Download" /> Export
+                            </DropdownToggle>
+                            <DropdownMenu>
+                                <DropdownItem Clicked="@ExportBothFormats">
+                                    <Icon Name="IconName.FileDownload" Margin="Margin.Is2.FromEnd" />
+                                    Export Both Formats
+                                </DropdownItem>
+                                <DropdownDivider />
+                                <DropdownItem Clicked="@ExportToOsdpCapture">
+                                    <Icon Name="IconName.File" Margin="Margin.Is2.FromEnd" />
+                                    OSDP Capture (.osdpcap)
+                                </DropdownItem>
+                                <DropdownItem Clicked="@ExportToParsedJson">
+                                    <Icon Name="IconName.FileAlt" Margin="Margin.Is2.FromEnd" />
+                                    Parsed Packets (.txt)
+                                </DropdownItem>
+                            </DropdownMenu>
+                        </Dropdown>
                     </CardActions>
                 </CardHeader>
                     <CardBody>
@@ -248,9 +261,19 @@
     }
     
     
-    private async Task ExportToOsdpCap()
+    private async Task ExportToOsdpCapture()
     {
-        await ViewModel.ExportToOsdpCapCommand.ExecuteAsync(null);
+        await ViewModel.ExportToOsdpCaptureCommand.ExecuteAsync(null);
+    }
+
+    private async Task ExportToParsedJson()
+    {
+        await ViewModel.ExportToParsedJsonCommand.ExecuteAsync(null);
+    }
+
+    private async Task ExportBothFormats()
+    {
+        await ViewModel.ExportBothFormatsCommand.ExecuteAsync(null);
     }
     
 

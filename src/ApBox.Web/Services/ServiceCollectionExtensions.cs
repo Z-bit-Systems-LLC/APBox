@@ -55,7 +55,8 @@ public static class ServiceCollectionExtensions
         services.AddHostedService<PacketTraceStartupService>();
         
         // Register packet tracing export services
-        services.AddScoped<OsdpCapExporter>();
+        services.AddScoped<OsdpCaptureExporter>();
+        services.AddScoped<ParsedPacketExporter>();
         
         // Register ViewModels
         services.AddScoped<DashboardViewModel>();

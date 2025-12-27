@@ -20,7 +20,8 @@ public class PacketTraceViewModelTests
     private Mock<IPacketTraceService> _mockPacketTraceService;
     private Mock<ILocalStorageService> _mockLocalStorage;
     private Mock<INotificationAggregator> _mockNotificationAggregator;
-    private Mock<OsdpCapExporter> _mockExporter;
+    private Mock<OsdpCaptureExporter> _mockOsdpCaptureExporter;
+    private Mock<ParsedPacketExporter> _mockParsedExporter;
     private Mock<IJSRuntime> _mockJSRuntime;
 
     [SetUp]
@@ -29,9 +30,10 @@ public class PacketTraceViewModelTests
         _mockPacketTraceService = new Mock<IPacketTraceService>();
         _mockLocalStorage = new Mock<ILocalStorageService>();
         _mockNotificationAggregator = new Mock<INotificationAggregator>();
-        _mockExporter = new Mock<OsdpCapExporter>();
+        _mockOsdpCaptureExporter = new Mock<OsdpCaptureExporter>();
+        _mockParsedExporter = new Mock<ParsedPacketExporter>();
         _mockJSRuntime = new Mock<IJSRuntime>();
-        
+
         // Setup default GetStatistics to avoid null reference during property changes
         _mockPacketTraceService.Setup(s => s.GetStatistics())
             .Returns(new TracingStatistics
@@ -41,7 +43,7 @@ public class PacketTraceViewModelTests
                 AverageResponseTimeMs = 0,
                 ResponseTimeCount = 0
             });
-        
+
         // Setup default GetTraces to avoid null reference during RefreshPacketList
         _mockPacketTraceService.Setup(s => s.GetTraces(It.IsAny<string>(), It.IsAny<int?>()))
             .Returns(new List<PacketTraceEntry>());
@@ -55,7 +57,8 @@ public class PacketTraceViewModelTests
         _viewModel = new PacketTraceViewModel(_mockPacketTraceService.Object,
             _mockNotificationAggregator.Object,
             _mockLocalStorage.Object,
-            _mockExporter.Object,
+            _mockOsdpCaptureExporter.Object,
+            _mockParsedExporter.Object,
             _mockJSRuntime.Object);
     }
 
@@ -191,19 +194,35 @@ public class PacketTraceViewModelTests
         Assert.That(_viewModel.RefreshDisplayCommand, Is.Not.Null);
         Assert.That(_viewModel.InitializeCommand, Is.Not.Null);
         Assert.That(_viewModel.ApplySettingsCommand, Is.Not.Null);
-        Assert.That(_viewModel.ExportToOsdpCapCommand, Is.Not.Null);
+        Assert.That(_viewModel.ExportToOsdpCaptureCommand, Is.Not.Null);
+        Assert.That(_viewModel.ExportToParsedJsonCommand, Is.Not.Null);
+        Assert.That(_viewModel.ExportBothFormatsCommand, Is.Not.Null);
     }
 
     [Test]
-    public async Task ExportToOsdpCapAsync_WithNoPackets_SetsErrorMessage()
+    public async Task ExportToOsdpCaptureAsync_WithNoPackets_SetsErrorMessage()
     {
         // Arrange
         _mockPacketTraceService.Setup(s => s.GetTraces(It.IsAny<string>(), It.IsAny<int?>()))
             .Returns(new List<PacketTraceEntry>());
 
         // Act
-        await _viewModel.ExportToOsdpCapCommand.ExecuteAsync(null);
-        
+        await _viewModel.ExportToOsdpCaptureCommand.ExecuteAsync(null);
+
+        // Assert
+        Assert.That(_viewModel.ErrorMessage, Is.EqualTo("No packet data available for export"));
+    }
+
+    [Test]
+    public async Task ExportToParsedJsonAsync_WithNoPackets_SetsErrorMessage()
+    {
+        // Arrange
+        _mockPacketTraceService.Setup(s => s.GetTraces(It.IsAny<string>(), It.IsAny<int?>()))
+            .Returns(new List<PacketTraceEntry>());
+
+        // Act
+        await _viewModel.ExportToParsedJsonCommand.ExecuteAsync(null);
+
         // Assert
         Assert.That(_viewModel.ErrorMessage, Is.EqualTo("No packet data available for export"));
     }

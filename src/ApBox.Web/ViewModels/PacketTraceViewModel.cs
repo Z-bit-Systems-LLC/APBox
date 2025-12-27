@@ -16,7 +16,8 @@ namespace ApBox.Web.ViewModels
         IPacketTraceService traceService,
         INotificationAggregator notificationAggregator,
         ILocalStorageService localStorage,
-        OsdpCapExporter exporter,
+        OsdpCaptureExporter osdpCaptureExporter,
+        ParsedPacketExporter parsedExporter,
         IJSRuntime jsRuntime)
         : SubscribingViewModelBase
     {
@@ -142,33 +143,46 @@ namespace ApBox.Web.ViewModels
         
         
         [RelayCommand]
-        private async Task ExportToOsdpCapAsync()
+        private async Task ExportToOsdpCaptureAsync()
+        {
+            await ExportWithExporterAsync(osdpCaptureExporter);
+        }
+
+        [RelayCommand]
+        private async Task ExportToParsedJsonAsync()
+        {
+            await ExportWithExporterAsync(parsedExporter);
+        }
+
+        [RelayCommand]
+        private async Task ExportBothFormatsAsync()
+        {
+            // Export both formats simultaneously
+            await Task.WhenAll(
+                ExportWithExporterAsync(osdpCaptureExporter),
+                ExportWithExporterAsync(parsedExporter)
+            );
+        }
+
+        private async Task ExportWithExporterAsync(IPacketExporter exporter)
         {
             try
             {
                 var packets = traceService.GetTraces().OrderBy(p => p.Timestamp).ToList();
-                
+
                 if (!packets.Any())
                 {
                     ErrorMessage = "No packet data available for export";
                     return;
                 }
 
-                var metadata = new OsdpCapMetadata
-                {
-                    DeviceName = "ApBox Gateway",
-                    CaptureStartTime = packets.First().Timestamp,
-                    CaptureEndTime = packets.Last().Timestamp,
-                    Version = "1.0"
-                };
+                var exportData = await exporter.ExportAsync(packets);
+                var fileName = $"apbox-trace-{DateTime.Now:yyyyMMdd-HHmmss}{exporter.FileExtension}";
 
-                var exportData = await exporter.ExportToOsdpCapAsync(packets, metadata);
-                var fileName = $"apbox-trace-{DateTime.Now:yyyyMMdd-HHmmss}.osdpcap";
-                
                 // Trigger immediate download via JavaScript
                 var base64Data = Convert.ToBase64String(exportData);
-                var dataUri = $"data:application/octet-stream;base64,{base64Data}";
-                
+                var dataUri = $"data:{exporter.ContentType};base64,{base64Data}";
+
                 await jsRuntime.InvokeVoidAsync("downloadFile", dataUri, fileName);
             }
             catch (Exception ex)
