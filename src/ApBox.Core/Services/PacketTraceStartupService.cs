@@ -25,8 +25,8 @@ public class PacketTraceStartupService : IHostedService
         try
         {
             // Start tracing for all configured readers
-            _packetTraceService.StartTracingAll();
-            
+            await _packetTraceService.StartTracingAll();
+
             _logger.LogInformation("Packet tracing system started successfully - tracing all enabled readers");
         }
         catch (Exception ex)
@@ -34,8 +34,6 @@ public class PacketTraceStartupService : IHostedService
             _logger.LogError(ex, "Failed to start packet tracing system");
             // Don't throw - packet tracing failure shouldn't prevent app startup
         }
-        
-        await Task.CompletedTask;
     }
 
     public async Task StopAsync(CancellationToken cancellationToken)

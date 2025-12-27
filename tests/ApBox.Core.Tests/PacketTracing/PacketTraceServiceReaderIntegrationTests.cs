@@ -47,11 +47,8 @@ public class PacketTraceServiceReaderIntegrationTests
                          .Returns(readersTaskCompletionSource.Task);
 
         // Act
-        _service.StartTracingAll();
-        
-        // Complete the async operation synchronously
         readersTaskCompletionSource.SetResult(readers);
-        await readersTaskCompletionSource.Task;
+        await _service.StartTracingAll();
 
         // Assert
         Assert.That(_service.IsTracingReader(reader1Id.ToString()), Is.True);
@@ -75,11 +72,8 @@ public class PacketTraceServiceReaderIntegrationTests
                          .Returns(readersTaskCompletionSource.Task);
 
         // Act
-        _service.StartTracingAll();
-        
-        // Complete the async operation synchronously
         readersTaskCompletionSource.SetResult(readers);
-        await readersTaskCompletionSource.Task;
+        await _service.StartTracingAll();
 
         // Assert
         Assert.That(_service.IsTracing, Is.False);
@@ -94,47 +88,34 @@ public class PacketTraceServiceReaderIntegrationTests
                          .Returns(readersTaskCompletionSource.Task);
 
         // Act
-        _service.StartTracingAll();
-        
-        // Complete the async operation synchronously
         readersTaskCompletionSource.SetResult(new List<ReaderConfiguration>());
-        await readersTaskCompletionSource.Task;
+        await _service.StartTracingAll();
 
         // Assert
         Assert.That(_service.IsTracing, Is.False);
     }
 
     [Test]
-    public void StartTracingAll_WhenReaderServiceThrows_DoesNotThrow()
+    public async Task StartTracingAll_WhenReaderServiceThrows_DoesNotThrow()
     {
         // Arrange
-        var readersTaskCompletionSource = new TaskCompletionSource<IEnumerable<ReaderConfiguration>>();
         _mockReaderService.Setup(s => s.GetAllReadersAsync())
-                         .Returns(readersTaskCompletionSource.Task);
+                         .ThrowsAsync(new InvalidOperationException("Database error"));
 
-        // Act
-        _service.StartTracingAll();
-        
-        // Complete with exception
-        readersTaskCompletionSource.SetException(new InvalidOperationException("Database error"));
-        
-        // Assert - Give time for exception handling but no delay needed
-        Assert.DoesNotThrow(() => 
-        {
-            try { readersTaskCompletionSource.Task.Wait(100); } catch { }
-        });
-        
+        // Act & Assert - The method catches exceptions internally
+        await _service.StartTracingAll();
+
         Assert.That(_service.IsTracing, Is.False);
     }
 
     [Test]
-    public void StartTracingAll_WithNullReaderService_DoesNotThrow()
+    public async Task StartTracingAll_WithNullReaderService_DoesNotThrow()
     {
         // Arrange
         var serviceWithNullDependency = new PacketTraceService(null);
 
         // Act & Assert
-        Assert.DoesNotThrow(() => serviceWithNullDependency.StartTracingAll());
+        await serviceWithNullDependency.StartTracingAll();
         Assert.That(serviceWithNullDependency.IsTracing, Is.False);
     }
 
@@ -156,9 +137,8 @@ public class PacketTraceServiceReaderIntegrationTests
                          .Returns(readersTaskCompletionSource.Task);
 
         // Start tracing all
-        _service.StartTracingAll();
         readersTaskCompletionSource.SetResult(readers);
-        await readersTaskCompletionSource.Task;
+        await _service.StartTracingAll();
 
         // Act - Skip legacy API test since it uses deprecated methods
         // The CapturePacket method with PacketDirection is now deprecated
@@ -186,10 +166,9 @@ public class PacketTraceServiceReaderIntegrationTests
                          .Returns(readersTaskCompletionSource.Task);
 
         // Start tracing
-        _service.StartTracingAll();
         readersTaskCompletionSource.SetResult(readers);
-        await readersTaskCompletionSource.Task;
-        
+        await _service.StartTracingAll();
+
         Assert.That(_service.IsTracing, Is.True);
 
         // Act
@@ -219,9 +198,8 @@ public class PacketTraceServiceReaderIntegrationTests
         _service.PacketCaptured += (sender, packet) => capturedPacket = packet;
 
         // Start tracing
-        _service.StartTracingAll();
         readersTaskCompletionSource.SetResult(readers);
-        await readersTaskCompletionSource.Task;
+        await _service.StartTracingAll();
 
         // Act - Skip legacy API test since it uses deprecated methods
         // The CapturePacket method with PacketDirection is now deprecated
@@ -247,9 +225,8 @@ public class PacketTraceServiceReaderIntegrationTests
                          .Returns(readersTaskCompletionSource.Task);
 
         // Act
-        _service.StartTracingAll();
         readersTaskCompletionSource.SetResult(readers);
-        await readersTaskCompletionSource.Task;
+        await _service.StartTracingAll();
 
         var stats = _service.GetStatistics();
 

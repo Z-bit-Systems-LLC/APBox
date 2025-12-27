@@ -117,12 +117,12 @@ namespace ApBox.Web.ViewModels
         }
         
         [RelayCommand]
-        private void StartTracing()
+        private async Task StartTracingAsync()
         {
             // Clear the UI packet collection as well
             Packets.Clear();
             traceService.ClearTraces();
-            traceService.StartTracingAll();
+            await traceService.StartTracingAll();
             TracingEnabled = true;
         }
         

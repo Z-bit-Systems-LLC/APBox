@@ -119,10 +119,13 @@ public class PacketTraceViewModelTests
     }
 
     [Test]
-    public void StartTracing_CallsServiceStartTracingAllAndClearsTraces()
+    public async Task StartTracing_CallsServiceStartTracingAllAndClearsTraces()
     {
+        // Arrange
+        _mockPacketTraceService.Setup(s => s.StartTracingAll()).Returns(Task.CompletedTask);
+
         // Act
-        _viewModel.StartTracingCommand.Execute(null);
+        await _viewModel.StartTracingCommand.ExecuteAsync(null);
 
         // Assert
         _mockPacketTraceService.Verify(s => s.ClearTraces(null), Times.Once);

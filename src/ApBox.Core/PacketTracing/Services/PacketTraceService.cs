@@ -69,7 +69,7 @@ namespace ApBox.Core.PacketTracing.Services
             _activeReaders.Remove(readerId);
         }
         
-        public async void StartTracingAll()
+        public async Task StartTracingAll()
         {
             if (_readerConfigurationService == null)
             {

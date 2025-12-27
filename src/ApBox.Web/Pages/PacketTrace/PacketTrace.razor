@@ -322,9 +322,9 @@
     }
     
     
-    private void StartTracing()
+    private async Task StartTracing()
     {
-        ViewModel.StartTracingCommand.Execute(null);
+        await ViewModel.StartTracingCommand.ExecuteAsync(null);
     }
     
     private void StopTracing()

@@ -10,7 +10,7 @@ namespace ApBox.Core.PacketTracing.Services
 
         void StartTracing(string readerId);
         void StopTracing(string readerId);
-        void StartTracingAll();
+        Task StartTracingAll();
         void StopTracingAll();
         void ClearTraces(string? readerId = null);
 

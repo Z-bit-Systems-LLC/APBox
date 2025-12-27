@@ -24,6 +24,9 @@ public class PacketTraceStartupServiceTests
     [Test]
     public async Task StartAsync_CallsStartTracingAll()
     {
+        // Arrange
+        _packetTraceService.Setup(x => x.StartTracingAll()).Returns(Task.CompletedTask);
+
         // Act
         await _service.StartAsync(CancellationToken.None);
 
@@ -36,7 +39,7 @@ public class PacketTraceStartupServiceTests
     {
         // Arrange
         var exception = new Exception("Test exception");
-        _packetTraceService.Setup(x => x.StartTracingAll()).Throws(exception);
+        _packetTraceService.Setup(x => x.StartTracingAll()).ThrowsAsync(exception);
 
         // Act & Assert
         Assert.DoesNotThrowAsync(() => _service.StartAsync(CancellationToken.None));
