@@ -17,7 +17,7 @@ namespace ApBox.Web.ViewModels;
 /// <summary>
 /// ViewModel for the Readers Configuration page using MVVM pattern
 /// </summary>
-public partial class ReadersConfigurationViewModel : ObservableValidator, IDisposable
+public partial class ReadersConfigurationViewModel : SubscribingValidatorViewModelBase
 {
     private readonly IReaderConfigurationService _readerConfigurationService;
     private readonly IReaderService _readerService;
@@ -26,8 +26,6 @@ public partial class ReadersConfigurationViewModel : ObservableValidator, IDispo
     private readonly IReaderPluginMappingService _readerPluginMappingService;
     private readonly ILogger<ReadersConfigurationViewModel> _logger;
     private readonly INotificationAggregator _notificationAggregator;
-    private IDisposable? _readerStatusSubscription;
-    private IDisposable? _readerConfigurationSubscription;
 
     public ReadersConfigurationViewModel(
         IReaderConfigurationService readerConfigurationService,
@@ -390,9 +388,12 @@ public partial class ReadersConfigurationViewModel : ObservableValidator, IDispo
 
     private void InitializeSignalRHandlers()
     {
-        // Subscribe and store the disposable tokens
-        _readerStatusSubscription = _notificationAggregator.Subscribe<ReaderStatusNotification>(OnReaderStatusChanged);
-        _readerConfigurationSubscription = _notificationAggregator.Subscribe<ReaderConfigurationNotification>(OnReaderConfigurationChanged);
+        // Clear existing subscriptions to prevent duplicates on re-navigation
+        ClearSubscriptions();
+
+        // Subscribe and track for automatic disposal
+        AddSubscription(_notificationAggregator.Subscribe<ReaderStatusNotification>(OnReaderStatusChanged));
+        AddSubscription(_notificationAggregator.Subscribe<ReaderConfigurationNotification>(OnReaderConfigurationChanged));
     }
 
     private void OnReaderStatusChanged(ReaderStatusNotification notification)
@@ -417,9 +418,9 @@ public partial class ReadersConfigurationViewModel : ObservableValidator, IDispo
     {
         try
         {
-            _logger.LogDebug("Received reader configuration change for {ReaderName} ({ReaderId}): {ChangeType}", 
+            _logger.LogDebug("Received reader configuration change for {ReaderName} ({ReaderId}): {ChangeType}",
                 notification.ReaderName, notification.ReaderId, notification.ChangeType);
-            
+
             // Find the reader in our collection and update it
             var existingReader = Readers.FirstOrDefault(r => r.ReaderId == notification.ReaderId);
             if (existingReader != null)
@@ -431,16 +432,16 @@ public partial class ReadersConfigurationViewModel : ObservableValidator, IDispo
                 existingReader.BaudRate = notification.BaudRate;
                 existingReader.Address = notification.Address;
                 existingReader.IsEnabled = notification.IsEnabled;
-                
-                _logger.LogInformation("Updated reader {ReaderId} security mode to {SecurityMode} in UI", 
+
+                _logger.LogInformation("Updated reader {ReaderId} security mode to {SecurityMode} in UI",
                     notification.ReaderId, notification.SecurityMode);
             }
             else
             {
-                _logger.LogWarning("Reader {ReaderId} not found in UI collection for configuration update", 
+                _logger.LogWarning("Reader {ReaderId} not found in UI collection for configuration update",
                     notification.ReaderId);
             }
-            
+
             // Notify UI to update
             InvokeAsync?.Invoke(() => { StateHasChanged?.Invoke(); return Task.CompletedTask; });
         }
@@ -448,16 +449,5 @@ public partial class ReadersConfigurationViewModel : ObservableValidator, IDispo
         {
             _logger.LogError(ex, "Error handling reader configuration change");
         }
-    }
-
-
-    public void Dispose()
-    {
-        // Dispose subscription tokens to automatically unsubscribe
-        _readerStatusSubscription?.Dispose();
-        _readerStatusSubscription = null;
-
-        _readerConfigurationSubscription?.Dispose();
-        _readerConfigurationSubscription = null;
     }
 }

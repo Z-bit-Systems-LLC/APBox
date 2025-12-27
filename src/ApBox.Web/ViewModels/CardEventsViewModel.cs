@@ -18,9 +18,8 @@ public partial class CardEventsViewModel(
     IReaderService readerService,
     ICardEventRepository cardEventRepository,
     INotificationAggregator notificationAggregator)
-    : ObservableObject, IDisposable
+    : SubscribingViewModelBase
 {
-    private IDisposable? _cardEventSubscription;
 
     [ObservableProperty]
     private ObservableCollection<CardEventDisplay> _allEvents = new();
@@ -180,8 +179,11 @@ public partial class CardEventsViewModel(
     /// </summary>
     private void InitializeSignalRHandlers()
     {
-        // Subscribe and store the disposable token
-        _cardEventSubscription = notificationAggregator.Subscribe<CardEventNotification>(OnCardEventProcessed);
+        // Clear existing subscriptions to prevent duplicates on re-navigation
+        ClearSubscriptions();
+
+        // Subscribe and track for automatic disposal
+        AddSubscription(notificationAggregator.Subscribe<CardEventNotification>(OnCardEventProcessed));
     }
 
     /// <summary>
@@ -228,14 +230,4 @@ public partial class CardEventsViewModel(
     /// Placeholder for InvokeAsync - will be set by the component
     /// </summary>
     public Func<Func<Task>, Task> InvokeAsync { get; set; } = func => func();
-
-    /// <summary>
-    /// Disposes resources and unsubscribes from SignalR events
-    /// </summary>
-    public void Dispose()
-    {
-        // Dispose subscription token to automatically unsubscribe
-        _cardEventSubscription?.Dispose();
-        _cardEventSubscription = null;
-    }
 }

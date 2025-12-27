@@ -21,11 +21,8 @@ public partial class DashboardViewModel(
     ICardEventRepository cardEventRepository,
     IPinEventRepository pinEventRepository,
     INotificationAggregator notificationAggregator)
-    : ObservableObject, IDisposable
+    : SubscribingViewModelBase
 {
-    private IDisposable? _cardEventSubscription;
-    private IDisposable? _pinEventSubscription;
-    private IDisposable? _readerStatusSubscription;
 
     [ObservableProperty]
     private int _configuredReaders;
@@ -191,10 +188,13 @@ public partial class DashboardViewModel(
     /// </summary>
     private void InitializeSignalRHandlers()
     {
-        // Subscribe and store the disposable tokens
-        _cardEventSubscription = notificationAggregator.Subscribe<CardEventNotification>(OnCardEventProcessed);
-        _pinEventSubscription = notificationAggregator.Subscribe<PinEventNotification>(OnPinEventProcessed);
-        _readerStatusSubscription = notificationAggregator.Subscribe<ReaderStatusNotification>(OnReaderStatusChanged);
+        // Clear existing subscriptions to prevent duplicates on re-navigation
+        ClearSubscriptions();
+
+        // Subscribe and track for automatic disposal
+        AddSubscription(notificationAggregator.Subscribe<CardEventNotification>(OnCardEventProcessed));
+        AddSubscription(notificationAggregator.Subscribe<PinEventNotification>(OnPinEventProcessed));
+        AddSubscription(notificationAggregator.Subscribe<ReaderStatusNotification>(OnReaderStatusChanged));
     }
 
     /// <summary>
@@ -317,20 +317,4 @@ public partial class DashboardViewModel(
     /// Placeholder for InvokeAsync - will be set by the component
     /// </summary>
     public Func<Func<Task>, Task> InvokeAsync { get; set; } = func => func();
-
-    /// <summary>
-    /// Disposes resources and unsubscribes from SignalR events
-    /// </summary>
-    public void Dispose()
-    {
-        // Dispose subscription tokens to automatically unsubscribe
-        _cardEventSubscription?.Dispose();
-        _cardEventSubscription = null;
-
-        _pinEventSubscription?.Dispose();
-        _pinEventSubscription = null;
-
-        _readerStatusSubscription?.Dispose();
-        _readerStatusSubscription = null;
-    }
 }

@@ -270,7 +270,8 @@
     
     public void Dispose()
     {
-        // Unsubscribe from events if needed
+        // Dispose the ViewModel to clean up subscriptions
+        ViewModel.Dispose();
     }
 }
 

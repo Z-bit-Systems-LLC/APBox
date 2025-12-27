@@ -295,3 +295,31 @@ The detailed implementation plan is in `apbox_project_plan.md` (excluded from gi
 - Don't commit until entire project builds and all tests pass
 - **Use async methods for interacting with the UI during tests**
 - **SignalR is used for all notifications from the server to the web client**
+
+## ViewModel Subscription Pattern
+
+ViewModels that subscribe to notifications must use the base classes to prevent duplicate subscriptions when pages are re-navigated:
+
+- **`SubscribingViewModelBase`**: For ViewModels inheriting from `ObservableObject`
+- **`SubscribingValidatorViewModelBase`**: For ViewModels inheriting from `ObservableValidator`
+
+**Usage Pattern:**
+```csharp
+public partial class MyViewModel : SubscribingViewModelBase
+{
+    private void InitializeSignalRHandlers()
+    {
+        // ALWAYS clear existing subscriptions first to prevent duplicates
+        ClearSubscriptions();
+
+        // Use AddSubscription to track subscriptions for automatic disposal
+        AddSubscription(notificationAggregator.Subscribe<MyNotification>(OnNotification));
+    }
+}
+```
+
+**Key Points:**
+- Call `ClearSubscriptions()` at the start of initialization to prevent duplicates on re-navigation
+- Use `AddSubscription()` instead of storing subscriptions in fields
+- The base class handles `IDisposable` - no need for manual `Dispose()` implementation
+- Blazor components should call `ViewModel.Dispose()` in their `Dispose()` method

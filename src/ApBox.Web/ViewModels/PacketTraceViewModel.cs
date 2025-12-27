@@ -18,11 +18,9 @@ namespace ApBox.Web.ViewModels
         ILocalStorageService localStorage,
         OsdpCapExporter exporter,
         IJSRuntime jsRuntime)
-        : ObservableObject, IDisposable
+        : SubscribingViewModelBase
     {
         private const string SettingsKey = "packetTraceSettings";
-        private IDisposable? _packetTraceSubscription;
-        private IDisposable? _statisticsSubscription;
 
         [ObservableProperty]
         private ObservableCollection<PacketTraceEntry> _packets = [];
@@ -57,10 +55,13 @@ namespace ApBox.Web.ViewModels
             {
                 IsLoading = true;
                 ErrorMessage = string.Empty;
-                
+
+                // Clear existing subscriptions to prevent duplicates on re-navigation
+                ClearSubscriptions();
+
                 // Synchronize UI state with actual service state
                 TracingEnabled = traceService.IsTracing;
-                
+
                 await Task.Run(async () =>
                 {
                     if (await localStorage.ContainKeyAsync(SettingsKey))
@@ -71,12 +72,12 @@ namespace ApBox.Web.ViewModels
                             ApplySettingsToViewModel(settings);
                         }
                     }
-                    
+
                     RefreshPacketList();
 
-                    // Subscribe and store the disposable tokens
-                    _packetTraceSubscription = notificationAggregator.Subscribe<PacketTraceNotification>(OnPacketTraceNotification);
-                    _statisticsSubscription = notificationAggregator.Subscribe<TracingStatisticsNotification>(OnTracingStatisticsNotification);
+                    // Subscribe and track for automatic disposal
+                    AddSubscription(notificationAggregator.Subscribe<PacketTraceNotification>(OnPacketTraceNotification));
+                    AddSubscription(notificationAggregator.Subscribe<TracingStatisticsNotification>(OnTracingStatisticsNotification));
                 });
             }
             catch (Exception ex)
@@ -238,18 +239,6 @@ namespace ApBox.Web.ViewModels
             }
         }
         
-        /// <summary>
-        /// Manual statistics update - only used for initial load or explicit refresh
-        /// Real-time updates come through TracingStatisticsNotification
-        /// </summary>
-        private void UpdateStatistics()
-        {
-            var stats = traceService.GetStatistics();
-
-            ReplyPercentage = stats.ReplyPercentage;
-            AverageResponseTimeMs = stats.AverageResponseTimeMs;
-        }
-        
         private void ApplySettingsToViewModel(PacketTraceSettings settings)
         {
             FilterPollCommands = settings.FilterPollCommands;
@@ -259,13 +248,13 @@ namespace ApBox.Web.ViewModels
         private static bool IsPollCommand(string packetType)
         {
             // Check if the packet type indicates a Poll command
-            return packetType.Contains("Poll", StringComparison.OrdinalIgnoreCase) == true;
+            return packetType.Contains("Poll", StringComparison.OrdinalIgnoreCase);
         }
         
         private static bool IsAckReply(string packetType)
         {
             // Check if the packet type indicates an ACK reply
-            return packetType.Contains("Ack", StringComparison.OrdinalIgnoreCase) == true;
+            return packetType.Contains("Ack", StringComparison.OrdinalIgnoreCase);
         }
         
         /// <summary>
@@ -277,35 +266,5 @@ namespace ApBox.Web.ViewModels
         /// Placeholder for InvokeAsync - will be set by the component
         /// </summary>
         public Func<Func<Task>, Task>? InvokeAsync { get; set; }
-        
-        #region IDisposable Implementation
-        
-        private bool _disposed = false;
-        
-        public void Dispose()
-        {
-            Dispose(true);
-            GC.SuppressFinalize(this);
-        }
-        
-        protected virtual void Dispose(bool disposing)
-        {
-            if (!_disposed)
-            {
-                if (disposing)
-                {
-                    // Dispose subscription tokens to automatically unsubscribe
-                    _packetTraceSubscription?.Dispose();
-                    _packetTraceSubscription = null;
-
-                    _statisticsSubscription?.Dispose();
-                    _statisticsSubscription = null;
-                }
-
-                _disposed = true;
-            }
-        }
-        
-        #endregion
     }
 }
