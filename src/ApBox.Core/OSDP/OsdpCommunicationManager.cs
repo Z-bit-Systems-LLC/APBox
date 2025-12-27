@@ -14,7 +14,6 @@ public class OsdpCommunicationManager : IOsdpCommunicationManager
 {
     private readonly Dictionary<Guid, IOsdpDevice> _devices = new();
     private readonly Dictionary<string, Guid> _connectionMappings = new(); // Maps connection strings to connection IDs
-    private readonly Dictionary<(Guid ConnectionId, byte Address), (string ReaderId, string ReaderName)> _addressToReaderMap = new();
     private readonly ILogger<OsdpCommunicationManager> _logger;
     private readonly ISerialPortService _serialPortService;
     private readonly ISecurityModeUpdateService _securityModeUpdateService;
@@ -112,10 +111,6 @@ public class OsdpCommunicationManager : IOsdpCommunicationManager
             
             _devices[config.Id] = device;
 
-            // Map (connectionId, address) to reader info for efficient trace routing
-            var key = (connectionId, config.Address);
-            _addressToReaderMap[key] = (config.Id.ToString(), config.Name);
-
             // Set security key for packet trace decryption if using secure channel
             if (config.UseSecureChannel && config.SecureChannelKey != null)
             {
@@ -146,14 +141,6 @@ public class OsdpCommunicationManager : IOsdpCommunicationManager
             device.CardRead -= OnDeviceCardRead;
             device.PinDigitReceived -= OnDevicePinDigitReceived;
             device.StatusChanged -= OnDeviceStatusChanged;
-
-            // Remove from address mapping
-            var keyToRemove = _addressToReaderMap
-                .FirstOrDefault(kvp => kvp.Value.ReaderId == deviceId.ToString()).Key;
-            if (keyToRemove != default)
-            {
-                _addressToReaderMap.Remove(keyToRemove);
-            }
 
             await device.DisconnectAsync();
             _devices.Remove(deviceId);
@@ -213,7 +200,6 @@ public class OsdpCommunicationManager : IOsdpCommunicationManager
                 await Task.WhenAll(stopTasks);
 
                 _connectionMappings.Clear();
-                _addressToReaderMap.Clear();
                 _controlPanel = null;
             }
             catch (Exception ex)
@@ -317,21 +303,7 @@ public class OsdpCommunicationManager : IOsdpCommunicationManager
     {
         try
         {
-            // Try direct lookup using TraceEntry.Address and ConnectionId
-            if (traceEntry.Address is { } address)
-            {
-                var key = (traceEntry.ConnectionId, address);
-                if (_addressToReaderMap.TryGetValue(key, out var readerInfo))
-                {
-                    if (_packetTraceService.IsTracingReader(readerInfo.ReaderId))
-                    {
-                        _packetTraceService.CapturePacket(traceEntry, readerInfo.ReaderId, readerInfo.ReaderName);
-                    }
-                    return;
-                }
-            }
-
-            // Fallback: iterate through devices if address lookup fails
+            // Find the device this packet belongs to and capture it
             foreach (var device in _devices.Values)
             {
                 if (_packetTraceService.IsTracingReader(device.Id.ToString()))
