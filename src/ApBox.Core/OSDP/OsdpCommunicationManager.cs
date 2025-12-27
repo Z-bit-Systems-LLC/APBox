@@ -116,6 +116,12 @@ public class OsdpCommunicationManager : IOsdpCommunicationManager
             var key = (connectionId, config.Address);
             _addressToReaderMap[key] = (config.Id.ToString(), config.Name);
 
+            // Set security key for packet trace decryption if using secure channel
+            if (config.UseSecureChannel && config.SecureChannelKey != null)
+            {
+                _packetTraceService.SetSecurityKey(config.Id.ToString(), config.SecureChannelKey);
+            }
+
             if (_isRunning && config.IsEnabled)
             {
                 await device.ConnectAsync();
@@ -272,22 +278,25 @@ public class OsdpCommunicationManager : IOsdpCommunicationManager
     {
         try
         {
-            _logger.LogInformation("Handling security mode change for device {DeviceName} to {SecurityMode}", 
+            _logger.LogInformation("Handling security mode change for device {DeviceName} to {SecurityMode}",
                 e.DeviceName, e.NewMode);
-            
+
+            // Update security key for packet trace decryption
+            _packetTraceService.SetSecurityKey(e.DeviceId.ToString(), e.SecureChannelKey);
+
             var updateSuccess = await _securityModeUpdateService.UpdateSecurityModeAsync(
-                e.DeviceId, 
-                e.NewMode, 
+                e.DeviceId,
+                e.NewMode,
                 e.SecureChannelKey);
-            
+
             if (updateSuccess)
             {
-                _logger.LogInformation("Successfully updated database with new security mode for device {DeviceName}", 
+                _logger.LogInformation("Successfully updated database with new security mode for device {DeviceName}",
                     e.DeviceName);
             }
             else
             {
-                _logger.LogWarning("Failed to update database with new security mode for device {DeviceName}", 
+                _logger.LogWarning("Failed to update database with new security mode for device {DeviceName}",
                     e.DeviceName);
             }
         }

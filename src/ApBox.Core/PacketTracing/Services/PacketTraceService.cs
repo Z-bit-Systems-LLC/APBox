@@ -8,6 +8,8 @@ namespace ApBox.Core.PacketTracing.Services
     {
         private readonly Dictionary<string, PacketTraceBuffer> _readerBuffers = new();
         private readonly Dictionary<string, PacketTraceEntry?> _lastEntries = new();
+        private readonly Dictionary<string, byte[]?> _securityKeys = new();
+        private readonly Dictionary<string, MessageSpy> _messageSpies = new();
         private readonly HashSet<string> _activeReaders = new();
         private PacketTraceSettings _settings = new();
         private readonly IReaderConfigurationService? _readerConfigurationService;
@@ -16,12 +18,36 @@ namespace ApBox.Core.PacketTracing.Services
         {
             _readerConfigurationService = readerConfigurationService;
         }
-        
+
         public bool IsTracing => _activeReaders.Count > 0;
         public bool IsTracingReader(string readerId) => _activeReaders.Contains(readerId);
-        
+
         public event EventHandler<PacketTraceEntry>? PacketCaptured;
-        
+
+        public void SetSecurityKey(string readerId, byte[]? securityKey)
+        {
+            _securityKeys[readerId] = securityKey;
+
+            // Recreate MessageSpy with the new security key
+            _messageSpies[readerId] = new MessageSpy(securityKey);
+        }
+
+        public byte[]? GetSecurityKey(string readerId)
+        {
+            return _securityKeys.GetValueOrDefault(readerId);
+        }
+
+        private MessageSpy GetOrCreateMessageSpy(string readerId)
+        {
+            if (!_messageSpies.TryGetValue(readerId, out var spy))
+            {
+                var securityKey = _securityKeys.GetValueOrDefault(readerId);
+                spy = new MessageSpy(securityKey);
+                _messageSpies[readerId] = spy;
+            }
+            return spy;
+        }
+
         public void StartTracing(string readerId)
         {
             if (!_readerBuffers.ContainsKey(readerId))
@@ -29,7 +55,10 @@ namespace ApBox.Core.PacketTracing.Services
                 var buffer = new PacketTraceBuffer();
                 _readerBuffers[readerId] = buffer;
             }
-            
+
+            // Ensure we have a MessageSpy for this reader
+            GetOrCreateMessageSpy(readerId);
+
             _activeReaders.Add(readerId);
         }
         
@@ -73,6 +102,10 @@ namespace ApBox.Core.PacketTracing.Services
                 {
                     _readerBuffers[readerId].Clear();
                     _lastEntries.Remove(readerId);
+
+                    // Reset MessageSpy to clear secure channel state
+                    var securityKey = _securityKeys.GetValueOrDefault(readerId);
+                    _messageSpies[readerId] = new MessageSpy(securityKey);
                 }
             }
             else
@@ -82,6 +115,13 @@ namespace ApBox.Core.PacketTracing.Services
                     buffer.Clear();
                 }
                 _lastEntries.Clear();
+
+                // Reset all MessageSpy instances
+                foreach (var id in _messageSpies.Keys.ToList())
+                {
+                    var securityKey = _securityKeys.GetValueOrDefault(id);
+                    _messageSpies[id] = new MessageSpy(securityKey);
+                }
             }
         }
         
@@ -221,8 +261,11 @@ namespace ApBox.Core.PacketTracing.Services
             // Capture timestamp immediately when packet is received
             var receptionTimestamp = DateTime.UtcNow;
 
-            // Build packet entry using MessageSpy for exception-free parsing
-            var builder = new PacketTraceEntryBuilder();
+            // Get or create MessageSpy for this reader (maintains secure channel state)
+            var messageSpy = GetOrCreateMessageSpy(readerId);
+
+            // Build packet entry using the reader's MessageSpy for secure channel support
+            var builder = new PacketTraceEntryBuilder(messageSpy);
             var entry = builder
                 .FromTraceEntry(traceEntry, _lastEntries.GetValueOrDefault(readerId), receptionTimestamp)
                 .Build();

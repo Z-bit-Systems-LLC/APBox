@@ -7,10 +7,20 @@ namespace ApBox.Core.PacketTracing.Models;
 /// </summary>
 public class PacketTraceEntryBuilder
 {
-    private readonly MessageSpy _messageSpy = new();
+    private readonly MessageSpy _messageSpy;
     private TraceEntry _traceEntry;
     private PacketTraceEntry? _lastTraceEntry;
     private DateTime _timestamp;
+
+    /// <summary>
+    /// Initializes a new instance of the <see cref="PacketTraceEntryBuilder"/> class.
+    /// </summary>
+    /// <param name="messageSpy">The MessageSpy instance to use for parsing packets.
+    /// Should be reused across packets to maintain secure channel state.</param>
+    public PacketTraceEntryBuilder(MessageSpy messageSpy)
+    {
+        _messageSpy = messageSpy;
+    }
 
     /// <summary>
     /// Initializes the <see cref="PacketTraceEntryBuilder"/> instance with the specified trace entry and previous trace entry
