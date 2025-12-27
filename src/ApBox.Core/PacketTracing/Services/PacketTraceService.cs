@@ -29,6 +29,8 @@ namespace ApBox.Core.PacketTracing.Services
             _securityKeys[readerId] = securityKey;
 
             // Recreate MessageSpy with the new security key
+            // Note: This resets secure channel state, so decryption of in-flight
+            // encrypted packets may fail until a new secure channel is established
             _messageSpies[readerId] = new MessageSpy(securityKey);
         }
 
