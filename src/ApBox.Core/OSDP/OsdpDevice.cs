@@ -113,12 +113,7 @@ public class OsdpDevice(
             
             if (installSuccess)
             {
-                logger.LogInformation("Successfully installed secure channel key for device {DeviceName}", Name);
-                
-                // Update the configuration to use the new key
-                config.SecureChannelKey = secureChannelKey;
-                config.UseSecureChannel = true;
-                
+                // Config is already updated inside InstallSecureChannelKey (before reconnection)
                 // Notify that the security mode has changed
                 await NotifySecurityModeChanged(OsdpSecurityMode.Secure);
             }
@@ -149,22 +144,45 @@ public class OsdpDevice(
     private async Task<bool> InstallSecureChannelKey(byte[] secureChannelKey)
     {
         // ControlPanel is always available as it's injected
-        
+
         try
         {
             logger.LogInformation("Installing secure channel key for device {DeviceName}", Name);
-            
+
             // Create the encryption key configuration
             // Using SecureChannelBaseKey as the key type for secure channel installation
             var keyConfiguration = new EncryptionKeyConfiguration(KeyType.SecureChannelBaseKey, secureChannelKey);
-            
+
             // Use the OSDP.Net API to set the encryption key
             // This will install the new secure channel key on the device
             var result = await controlPanel.EncryptionKeySet(connectionId, Address, keyConfiguration);
-            
+
             if (result)
             {
                 logger.LogInformation("Successfully installed secure channel key for device {DeviceName}", Name);
+
+                // Update config BEFORE reconnection to prevent infinite KEYSET loop
+                // When the device reconnects, OnConnectionStatusChanged will check SecurityMode
+                config.SecurityMode = OsdpSecurityMode.Secure;
+                config.SecureChannelKey = secureChannelKey;
+                config.UseSecureChannel = true;
+
+                // Force reconnection with the new key
+                // The reader has stored the new key, but the ACU must initiate a new secure channel session
+                logger.LogInformation("Forcing reconnection with new key for device {DeviceName}", Name);
+
+                controlPanel.RemoveDevice(connectionId, Address);
+                await Task.Delay(100); // Brief delay to ensure clean disconnect
+
+                controlPanel.AddDevice(
+                    connectionId,
+                    Address,
+                    useCrc: true,
+                    useSecureChannel: true,
+                    secureChannelKey: secureChannelKey);
+
+                logger.LogInformation("Reconnection initiated with new key for device {DeviceName}", Name);
+
                 return true;
             }
             else
