@@ -32,7 +32,7 @@ public class ParsedPacketExporter : IPacketExporter
                 packet.Timestamp,
                 packet.Interval.TotalMilliseconds > 0 ? packet.Interval : null);
 
-            stringBuilder.AppendLine(formattedPacket);
+            stringBuilder.Append(formattedPacket);
         }
 
         return Task.FromResult(Encoding.UTF8.GetBytes(stringBuilder.ToString()));
