@@ -241,6 +241,18 @@ The detailed implementation plan is in `apbox_project_plan.md` (excluded from gi
   - Use `<Div>`, `<Text>`, `<Badge>`, `<Button>`, etc. instead of `<div>`, `<span>`, `<p>`, etc.
   - Use Blazorise styling properties like `TextColor="TextColor.Success"`, `Margin="Margin.Is2.FromBottom"`
   - Avoid raw CSS classes like `class="text-success"` - use Blazorise equivalents
+- **Blazorise Flex Layout**: Use the `Flex` attribute (not separate `Display` and `JustifyContent` attributes)
+  ```razor
+  @* CORRECT - Use Flex attribute for flexbox layouts *@
+  <Div Flex="Flex.JustifyContent.Between" Width="Width.Is100">
+      <Buttons>...</Buttons>
+      <Dropdown>...</Dropdown>
+  </Div>
+
+  @* WRONG - These separate attributes don't work *@
+  <Div Display="Display.Flex" JustifyContent="JustifyContent.Between">...</Div>
+  ```
+  - See https://blazorise.com/docs/helpers/utilities for full Flex documentation
 - Use the SnackBar component to notify user of operation status
 - Use Validation component for forms
 - Plugin system stores detailed results with success/failure status per plugin

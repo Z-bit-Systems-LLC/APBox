@@ -103,15 +103,15 @@
                 <!-- Packet Trace Grid -->
                 <Card ElementId="packet-traces-card">
                     <CardHeader>
-                    <CardActions>
+                    <Div Flex="Flex.JustifyContent.Between" Width="Width.Is100">
                         <Buttons>
-                            <Button Color="Color.Success" 
-                                    Clicked="@StartTracing" 
+                            <Button Color="Color.Success"
+                                    Clicked="@StartTracing"
                                     Disabled="@ViewModel.TracingEnabled"
                                     Size="Size.Small">
                                 <Icon Name="IconName.Play" /> Start
                             </Button>
-                            <Button Color="Color.Danger" 
+                            <Button Color="Color.Danger"
                                     Clicked="@StopTracing"
                                     Disabled="@(!ViewModel.TracingEnabled)"
                                     Size="Size.Small">
@@ -138,7 +138,7 @@
                                 </DropdownItem>
                             </DropdownMenu>
                         </Dropdown>
-                    </CardActions>
+                    </Div>
                 </CardHeader>
                     <CardBody>
                         @if (GetFilteredPackets().Any())
